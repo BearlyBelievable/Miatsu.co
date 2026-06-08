@@ -24,9 +24,9 @@ extensions = [
     "sphinx_copybutton",
 ]
 templates_path = ["_templates"]
-project = "Zulip"
+project = "Miatsu.co"
 copyright = "2012–2015 Dropbox, Inc., 2015–2021 Kandra Labs, Inc., and contributors"
-author = "The Zulip Team"
+author = "The Miatsu.co Team"
 version = ZULIP_VERSION
 release = ZULIP_VERSION
 exclude_patterns = ["_build", "README.md"]
