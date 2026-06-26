@@ -27,22 +27,35 @@ def check_required_settings(
     ]
     errors = []
     for setting_name, default in required_settings:
-        if (
-            hasattr(settings, setting_name)
-            and getattr(settings, setting_name) != default
-            and getattr(settings, setting_name)
-        ):
+        value = getattr(settings, setting_name, None)
+        if value and value != default:
             continue
 
-        if settings.RUNNING_IN_DOCKER:
+        # Even in Docker, MANUAL_CONFIGURATION means the admin
+        # manages /etc/zulip/settings.py themselves, so the SETTING_*
+        # environment variables are not where to make changes.
+        if settings.RUNNING_IN_HELM:
+            settings_location = "your Helm values"
+            setting_display_name = "zulip.environment.SETTING_" + setting_name
+        elif settings.RUNNING_IN_DOCKER and os.environ.get("MANUAL_CONFIGURATION") != "True":
             settings_location = "your Docker environment configuration"
             setting_display_name = "SETTING_" + setting_name
         else:
             settings_location = "/etc/zulip/settings.py"
             setting_display_name = setting_name
+        if value:
+            # The setting is still the example value from the
+            # documentation, which the admin must replace -- saying
+            # "you must set" it would be confusing, as it is set.
+            message = (
+                f"{setting_display_name} is still set to the example value {default!r}; "
+                f"change it in {settings_location}"
+            )
+        else:
+            message = f"You must set {setting_display_name} in {settings_location}"
         errors.append(
             checks.Error(
-                f"You must set {setting_display_name} in {settings_location}",
+                message,
                 obj=f"settings.{setting_name}",
                 id="zulip.E001",
             )
@@ -146,3 +159,48 @@ def check_auth_settings(
                         )
                     )
     return errors
+
+
+def check_uploads_settings(
+    app_configs: Sequence[AppConfig] | None,
+    databases: Sequence[str] | None,
+    **kwargs: Any,
+) -> Iterable[checks.CheckMessage]:
+    uploads_dir = settings.LOCAL_UPLOADS_DIR
+    if uploads_dir is None:
+        errors = []
+        if settings.S3_AUTH_UPLOADS_BUCKET == "":
+            errors.append(
+                checks.Error(
+                    "Neither settings.LOCAL_UPLOADS_DIR nor settings.S3_AUTH_UPLOADS_BUCKET is set",
+                    obj="settings.S3_AUTH_UPLOADS_BUCKET",
+                    id="zulip.E005",
+                )
+            )
+        if settings.S3_AVATAR_BUCKET == "":
+            errors.append(
+                checks.Error(
+                    "Neither settings.LOCAL_UPLOADS_DIR nor settings.S3_AVATAR_BUCKET is set",
+                    obj="settings.S3_AVATAR_BUCKET",
+                    id="zulip.E005",
+                )
+            )
+        return errors
+
+    if not os.path.isdir(uploads_dir):
+        return [
+            checks.Error(
+                f"settings.LOCAL_UPLOADS_DIR ({uploads_dir}) does not exist",
+                obj="settings.LOCAL_UPLOADS_DIR",
+                id="zulip.E006",
+            )
+        ]
+    elif not os.access(uploads_dir, os.W_OK):
+        return [
+            checks.Error(
+                f"settings.LOCAL_UPLOADS_DIR ({uploads_dir}) is not writable",
+                obj="settings.LOCAL_UPLOADS_DIR",
+                id="zulip.E006",
+            )
+        ]
+    return []

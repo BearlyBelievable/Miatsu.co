@@ -100,6 +100,7 @@ SOCIAL_AUTH_SAML_SECURITY_CONFIG: dict[str, Any] = {}
 # Set this to True to enforce that any configured IdP needs to specify
 # the limit_to_subdomains setting to be considered valid:
 SAML_REQUIRE_LIMIT_TO_SUBDOMAINS = False
+OIDC_REQUIRE_LIMIT_TO_SUBDOMAINS = False
 
 # Historical name for SOCIAL_AUTH_GITHUB_KEY; still allowed in production.
 GOOGLE_OAUTH2_CLIENT_ID: str | None = None
@@ -422,6 +423,12 @@ DEVELOPMENT_DISABLE_PUSH_BOUNCER_DOMAIN_CHECK = False
 #  * don't make sense to change on a typical production server with
 #    one or a handful of realms, though they might on an installation
 #    like Zulip Cloud or to work around a problem on another server.
+
+# Set to True by the docker-zulip Helm chart via SETTING_RUNNING_IN_HELM, so that
+# error messages can recommend Helm-specific knobs (e.g. setting LOADBALANCER_IPS
+# via `zulip.environment.LOADBALANCER_IPS` in values) instead of bare env vars
+# the operator has no direct way to set under Helm.
+RUNNING_IN_HELM = False
 
 NOTIFICATION_BOT = "notification-bot@zulip.com"
 EMAIL_GATEWAY_BOT = "emailgateway@zulip.com"
@@ -759,7 +766,8 @@ MAX_DEACTIVATED_REALM_DELETION_DAYS: int | None = None
 
 
 TOPIC_SUMMARIZATION_MODEL: str | None = None
-TOPIC_SUMMARIZATION_PARAMETERS: dict[str, object] = {}
+TOPIC_SUMMARIZATION_API_BASE: str | None = None
+TOPIC_SUMMARIZATION_PARAMETERS: dict[str, Any] = {}
 # Price per token for input and output tokens, and maximum cost. Units
 # are arbitrarily, but typically will be USD.
 INPUT_COST_PER_GIGATOKEN: int = 0

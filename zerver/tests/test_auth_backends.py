@@ -49,7 +49,7 @@ from typing_extensions import override
 from confirmation.models import Confirmation, create_confirmation_link
 from zerver.actions.create_realm import do_create_realm
 from zerver.actions.create_user import do_create_user, do_reactivate_user
-from zerver.actions.invites import do_invite_users
+from zerver.actions.invites import do_invite_users, do_revoke_user_invite
 from zerver.actions.realm_settings import (
     do_deactivate_realm,
     do_reactivate_realm,
@@ -1461,7 +1461,7 @@ class SocialAuthBase(DesktopFlowTestingLib, ZulipTestCase, ABC):
             self.assert_in_response("Enter your account details to complete registration.", result)
 
             # Verify that the user is asked for name but not password
-            self.assert_not_in_success_response(["id_password"], result)
+            self.assert_not_in_success_response(["id_password", "ldap-password"], result)
             self.assert_in_success_response(["id_full_name"], result)
             if expect_full_name_prepopulated:
                 # Verify the name field gets correctly pre-populated:
@@ -1597,6 +1597,105 @@ class SocialAuthBase(DesktopFlowTestingLib, ZulipTestCase, ABC):
         self.stage_two_of_registration(
             result, realm, subdomain, email, name, name, self.BACKEND_CLASS.full_name_validated
         )
+
+    @override_settings(TERMS_OF_SERVICE_VERSION=None)
+    def test_social_auth_registration_invitation_exists_invite_required(self) -> None:
+        """
+        A user with a pending email invitation can sign up via a social
+        backend even when the organization requires invitations to join.
+        """
+        email = "newuser@zulip.com"
+        name = "Full Name"
+        subdomain = "zulip"
+        realm = get_realm("zulip")
+        do_set_realm_property(realm, "invite_required", True, acting_user=None)
+
+        iago = self.example_user("iago")
+        with self.captureOnCommitCallbacks(execute=True):
+            do_invite_users(
+                iago,
+                [Invitee(full_name=name, email=email)],
+                [],
+                include_realm_default_subscriptions=True,
+                invite_expires_in_minutes=2 * 24 * 60,
+            )
+
+        account_data_dict = self.get_account_data_dict(email=email, name=name)
+        result = self.social_auth_test(
+            account_data_dict, expect_choose_email_screen=True, subdomain=subdomain, is_signup=True
+        )
+        self.stage_two_of_registration(
+            result, realm, subdomain, email, name, name, self.BACKEND_CLASS.full_name_validated
+        )
+
+    @override_settings(TERMS_OF_SERVICE_VERSION=None)
+    def test_social_auth_registration_invite_required_invalid_invitations(self) -> None:
+        """
+        In an organization requiring invitations, PreregistrationUser rows
+        that aren't valid pending invitations to this realm do not permit
+        signup.
+        """
+        email = "newuser@zulip.com"
+        name = "Full Name"
+        subdomain = "zulip"
+        realm = get_realm("zulip")
+        do_set_realm_property(realm, "invite_required", True, acting_user=None)
+        iago = self.example_user("iago")
+
+        def invite(referred_by: UserProfile) -> PreregistrationUser:
+            with self.captureOnCommitCallbacks(execute=True):
+                do_invite_users(
+                    referred_by,
+                    [Invitee(full_name=name, email=email)],
+                    [],
+                    include_realm_default_subscriptions=True,
+                    invite_expires_in_minutes=2 * 24 * 60,
+                )
+            return PreregistrationUser.objects.get(email=email, referred_by=referred_by)
+
+        def leftover_signup_attempt() -> None:
+            # Left over from the user's own earlier signup attempt, made
+            # while the organization permitted signups; such rows have
+            # referred_by unset.
+            prereg_user = PreregistrationUser.objects.create(
+                email=email, realm=realm, password_required=False
+            )
+            create_confirmation_link(prereg_user, Confirmation.USER_REGISTRATION)
+
+        def revoked_invitation() -> None:
+            do_revoke_user_invite(invite(iago), acting_user=iago)
+
+        def expired_invitation() -> None:
+            with time_machine.travel(timezone_now() - timedelta(days=3), tick=False):
+                invite(iago)
+
+        def invitation_in_another_realm() -> None:
+            invite(self.lear_user("cordelia"))
+
+        for setup in [
+            leftover_signup_attempt,
+            revoked_invitation,
+            expired_invitation,
+            invitation_in_another_realm,
+        ]:
+            with self.subTest(setup.__name__):
+                setup()
+                account_data_dict = self.get_account_data_dict(email=email, name=name)
+                result = self.social_auth_test(
+                    account_data_dict,
+                    expect_choose_email_screen=True,
+                    subdomain=subdomain,
+                    is_signup=True,
+                )
+                result = self.client_get(result["Location"])
+                self.assertEqual(result.status_code, 200)
+                self.assert_in_success_response(
+                    [f"Please request an invite for {email} from the organization administrator."],
+                    result,
+                )
+                with self.assertRaises(UserProfile.DoesNotExist):
+                    get_user_by_delivery_email(email, realm)
+                PreregistrationUser.objects.filter(email=email).delete()
 
     @override_settings(TERMS_OF_SERVICE_VERSION=None)
     def test_social_auth_with_invalid_multiuse_invite(self) -> None:
@@ -1919,6 +2018,102 @@ class SocialAuthBase(DesktopFlowTestingLib, ZulipTestCase, ABC):
                 f"DEBUG:zulip.ldap:ZulipLDAPAuthBackend: No LDAP user matching django_to_ldap_username result: {email}. Input username: {email}",
             ],
         )
+
+    @override_settings(TERMS_OF_SERVICE_VERSION=None)
+    def test_social_auth_with_ldap_auth_registration_user_in_ldap(self) -> None:
+        """
+        This test checks that in configurations that use the LDAP authentication
+        backend and a social backend, a user who exists in the LDAP directory
+        can create an account via the social backend, with their identity
+        having been verified by the social backend.
+        """
+        self.init_default_ldap_database()
+        email = "newuser_email@zulip.com"
+        name = "Social Fullname"
+        # The name of this user in the LDAP directory, which is expected
+        # to take precedence over the name provided by the social backend.
+        ldap_name = "New LDAP fullname"
+        realm = get_realm("zulip")
+        subdomain = "zulip"
+        ldap_user_attr_map = {"full_name": "cn"}
+
+        backend_path = f"zproject.backends.{self.BACKEND_CLASS.__name__}"
+        with self.settings(
+            POPULATE_PROFILE_VIA_LDAP=True,
+            LDAP_EMAIL_ATTR="mail",
+            AUTH_LDAP_USER_ATTR_MAP=ldap_user_attr_map,
+            AUTHENTICATION_BACKENDS=(
+                backend_path,
+                "zproject.backends.ZulipLDAPAuthBackend",
+                "zproject.backends.ZulipDummyBackend",
+            ),
+        ):
+            account_data_dict = self.get_account_data_dict(email=email, name=name)
+            result = self.social_auth_test(
+                account_data_dict,
+                expect_choose_email_screen=True,
+                subdomain=subdomain,
+                is_signup=True,
+            )
+            # The full name is populated from LDAP, so the registration form
+            # is skipped and the account is created directly.
+            self.stage_two_of_registration(
+                result,
+                realm,
+                subdomain,
+                email,
+                name,
+                ldap_name,
+                skip_registration_form=True,
+            )
+
+    @override_settings(TERMS_OF_SERVICE_VERSION="1.0")
+    def test_social_auth_with_ldap_auth_registration_user_in_ldap_with_form(self) -> None:
+        """
+        Like test_social_auth_with_ldap_auth_registration_user_in_ldap, but with
+        a Terms of Service version set, so that
+        the registration form is displayed instead of being skipped. The form
+        should not prompt the user for their LDAP password, since their
+        identity was already verified by the social backend and any password
+        entered would be ignored.
+        """
+        self.init_default_ldap_database()
+        email = "newuser_email@zulip.com"
+        name = "Social Fullname"
+        # The name of this user in the LDAP directory, which is expected
+        # to take precedence over the name provided by the social backend.
+        ldap_name = "New LDAP fullname"
+        realm = get_realm("zulip")
+        subdomain = "zulip"
+        ldap_user_attr_map = {"full_name": "cn"}
+
+        backend_path = f"zproject.backends.{self.BACKEND_CLASS.__name__}"
+        with self.settings(
+            POPULATE_PROFILE_VIA_LDAP=True,
+            LDAP_EMAIL_ATTR="mail",
+            AUTH_LDAP_USER_ATTR_MAP=ldap_user_attr_map,
+            AUTHENTICATION_BACKENDS=(
+                backend_path,
+                "zproject.backends.ZulipLDAPAuthBackend",
+                "zproject.backends.ZulipDummyBackend",
+            ),
+        ):
+            account_data_dict = self.get_account_data_dict(email=email, name=name)
+            result = self.social_auth_test(
+                account_data_dict,
+                expect_choose_email_screen=True,
+                subdomain=subdomain,
+                is_signup=True,
+            )
+            self.stage_two_of_registration(
+                result,
+                realm,
+                subdomain,
+                email,
+                name,
+                ldap_name,
+                skip_registration_form=False,
+            )
 
     def test_social_auth_complete(self) -> None:
         def mock_process_error(backend: BaseOAuth2, data: Mapping[str, object]) -> None:
@@ -4390,7 +4585,7 @@ class AppleAuthMixin:
     def generate_id_token(
         self, account_data_dict: dict[str, str], audience: str | None = None
     ) -> str:
-        payload = dict(email=account_data_dict["email"])
+        payload = dict(email=account_data_dict["email"], iss=AppleAuthBackend.ID_TOKEN_ISSUER)
 
         # This setup is important because python-social-auth decodes `id_token`
         # with `SOCIAL_AUTH_APPLE_CLIENT` as the `audience`
@@ -5053,6 +5248,34 @@ class GenericOpenIdConnectTest(SocialAuthBase):
         self.assert_json_error(result, "Missing idp param")
         self.assertEqual(
             m.output, [self.logger_output("/login/oidc/: Missing idp param.", type="info")]
+        )
+
+    def test_social_auth_oidc_require_limit_to_subdomains(self) -> None:
+        idps_dict = copy.deepcopy(settings.SOCIAL_AUTH_OIDC_ENABLED_IDPS)
+        idps_dict["testoidc2"] = copy.deepcopy(idps_dict["testoidc"])
+        idps_dict["testoidc2"]["oidc_url"] = "https://example.com/idp2/api/openid"
+        idps_dict["testoidc2"]["display_name"] = "Second Test IdP"
+        idps_dict["testoidc2"]["limit_to_subdomains"] = ["zulip"]
+
+        with self.settings(
+            SOCIAL_AUTH_OIDC_ENABLED_IDPS=idps_dict, OIDC_REQUIRE_LIMIT_TO_SUBDOMAINS=True
+        ):
+            with self.assertLogs(self.logger_string, level="ERROR") as m:
+                # Initialization of the backend should validate the configured IdPs
+                # with respect to the OIDC_REQUIRE_LIMIT_TO_SUBDOMAINS setting and remove
+                # the non-compliant ones.
+                GenericOpenIdConnectBackend()
+            self.assertEqual(list(settings.SOCIAL_AUTH_OIDC_ENABLED_IDPS.keys()), ["testoidc2"])
+        self.assertEqual(
+            m.output,
+            [
+                self.logger_output(
+                    "OIDC_REQUIRE_LIMIT_TO_SUBDOMAINS is enabled and the following "
+                    "IdPs don't have limit_to_subdomains specified and will be ignored: "
+                    "['testoidc']",
+                    "error",
+                )
+            ],
         )
 
     def test_social_auth_oidc_idp_limited_to_subdomains_attempt_wrong_realm(self) -> None:
