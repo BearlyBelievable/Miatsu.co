@@ -165,6 +165,27 @@ export function make_check_message_permission_for_dm_candidate(
         realm.realm_direct_message_permission_group,
     );
 
+    // Fork feature (miatsuco): the self-authorize path. A DM is authorized
+    // without a permission-group member if every participant is in the
+    // self-authorize group. So the current user being in it, plus every
+    // current human recipient being in it, means a candidate who is also in
+    // it keeps the DM authorized.
+    const self_authorize_group_user_ids = user_groups.get_user_ids_in_setting_group(
+        realm.realm_direct_message_self_authorize_group,
+    );
+    const is_current_user_in_self_authorize_group = user_groups.is_user_in_setting_group(
+        realm.realm_direct_message_self_authorize_group,
+        current_user_id,
+    );
+    const all_human_recipients_can_self_authorize = recipient_ids.every(
+        (user_id) =>
+            people.is_valid_bot_user(user_id) ||
+            user_id === current_user_id ||
+            self_authorize_group_user_ids.has(user_id),
+    );
+    const self_authorize_path_available =
+        is_current_user_in_self_authorize_group && all_human_recipients_can_self_authorize;
+
     return (candidate_user_id: number): boolean => {
         // Include bots when all recipients are bots.
         if (all_recipients_are_bots && people.is_valid_bot_user(candidate_user_id)) {
@@ -172,6 +193,20 @@ export function make_check_message_permission_for_dm_candidate(
         }
 
         const is_candidate_in_permission_group = permission_group_user_ids.has(candidate_user_id);
+
+        // Fork feature (miatsuco): if the self-authorize path is available
+        // and the candidate is also in the group (or a bot), the DM stays
+        // authorized without a permission-group member. The current user
+        // being able to start is implied here, because the self-authorize
+        // group is expected to be a subset of the initiator group; if it is
+        // not, the server still enforces the start rule.
+        if (
+            self_authorize_path_available &&
+            (people.is_valid_bot_user(candidate_user_id) ||
+                self_authorize_group_user_ids.has(candidate_user_id))
+        ) {
+            return true;
+        }
 
         // Current user can initiate and the candidate is in the permission group.
         if (is_current_user_in_initiator_group && is_candidate_in_permission_group) {

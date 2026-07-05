@@ -324,6 +324,15 @@ exports.server_supported_permission_settings = {
             default_for_system_groups: null,
             allowed_system_groups: [],
         },
+        direct_message_self_authorize_group: {
+            require_system_group: false,
+            allow_internet_group: false,
+            allow_nobody_group: true,
+            allow_everyone_group: true,
+            default_group_name: "role:nobody",
+            default_for_system_groups: null,
+            allowed_system_groups: [],
+        },
     },
     group: {
         can_add_members_group: {

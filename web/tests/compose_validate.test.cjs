@@ -187,6 +187,7 @@ test_ui("validate", ({mock_template, override}) => {
     let pm_recipient_error_rendered = false;
     override(realm, "realm_direct_message_permission_group", everyone.id);
     override(realm, "realm_direct_message_initiator_group", everyone.id);
+    override(realm, "realm_direct_message_self_authorize_group", nobody.id);
     mock_template("compose_banner/compose_banner.hbs", false, (data) => {
         assert.equal(data.classname, compose_banner.CLASSNAMES.missing_private_message_recipient);
         assert.equal(data.banner_text, compose_validate.NO_PRIVATE_RECIPIENT_ERROR_MESSAGE);

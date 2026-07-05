@@ -89,6 +89,7 @@ from zerver.lib.user_groups import (
     check_user_has_permission_by_role,
     is_any_user_in_group,
     is_user_in_group,
+    user_has_permission_for_group_setting,
 )
 from zerver.lib.user_message import UserMessageLite, bulk_insert_ums
 from zerver.lib.users import (
@@ -1632,20 +1633,44 @@ def check_can_send_direct_message(
         return
 
     system_groups_name_dict = get_realm_system_groups_name_dict(realm.id)
+
+    participants = set(recipient_users) | {sender}
+
+    # Fork feature (miatsuco): a direct message is authorized if a member of
+    # direct_message_permission_group is present (the upstream rule, which the
+    # mod escape hatch relies on), OR if every participant is in the
+    # direct_message_self_authorize_group. That self-authorize path lets a
+    # configured set (for example a "group 1") exchange DMs among themselves
+    # without needing a permission-group member, while any participant outside
+    # that set still requires one.
     if realm.direct_message_permission_group_id in system_groups_name_dict:
-        users = set(recipient_users) | {sender}
-        if not check_any_user_has_permission_by_role(
-            users, realm.direct_message_permission_group_id, system_groups_name_dict
-        ):
-            is_nobody_group = (
-                system_groups_name_dict[realm.direct_message_permission_group_id]
-                == SystemGroups.NOBODY
-            )
-            raise DirectMessagePermissionError(is_nobody_group)
+        permission_group_member_present = check_any_user_has_permission_by_role(
+            participants, realm.direct_message_permission_group_id, system_groups_name_dict
+        )
     else:
-        user_ids = {recipient_user.id for recipient_user in recipient_users} | {sender.id}
-        if not is_any_user_in_group(realm.direct_message_permission_group_id, user_ids):
-            raise DirectMessagePermissionError(is_nobody_group=False)
+        participant_ids = {user.id for user in participants}
+        permission_group_member_present = is_any_user_in_group(
+            realm.direct_message_permission_group_id, participant_ids
+        )
+
+    # Only evaluate the self-authorize path when the permission group did not
+    # authorize the conversation, to avoid a membership query per participant
+    # in the common case.
+    all_participants_can_self_authorize = permission_group_member_present or all(
+        user_has_permission_for_group_setting(
+            realm.direct_message_self_authorize_group_id,
+            user,
+            Realm.REALM_PERMISSION_GROUP_SETTINGS["direct_message_self_authorize_group"],
+        )
+        for user in participants
+    )
+
+    if not (permission_group_member_present or all_participants_can_self_authorize):
+        is_nobody_group = (
+            system_groups_name_dict.get(realm.direct_message_permission_group_id)
+            == SystemGroups.NOBODY
+        )
+        raise DirectMessagePermissionError(is_nobody_group)
 
     if realm.direct_message_initiator_group_id in system_groups_name_dict:
         if check_user_has_permission_by_role(

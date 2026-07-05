@@ -73,6 +73,7 @@ exports.make_realm = (opts = {}) => {
         realm_digest_emails_enabled: false,
         realm_digest_weekday: 0,
         realm_direct_message_initiator_group: 0,
+        realm_direct_message_self_authorize_group: 0,
         realm_direct_message_permission_group: 0,
         realm_disallow_disposable_email_addresses: false,
         realm_domains: [],

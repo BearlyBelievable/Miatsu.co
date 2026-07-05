@@ -71,3 +71,34 @@ people in the conversation see.
     </FlattenedSteps>
   </TabItem>
 </Tabs>
+
+## Configure who can send direct messages without an authorizer present
+
+<AdminOnly />
+
+By default, Zulip lets you require that certain users (for example,
+moderators or admins) be included in every direct message conversation, by
+setting **Who can authorize a direct message conversation**. This fork adds a
+companion setting, **Who can direct message others in this setting without an
+authorizer present**, which lets you name a group whose members may exchange
+direct messages among themselves without one of those authorizing users
+present.
+
+This is useful when you want direct messages to generally require an
+authorizer, but still allow a trusted group (for instance, everyone in a
+given team) to message each other freely.
+
+<ZulipNote>
+  An individual can choose to be stricter than this allowance for their own
+  direct messages; see [Restrict who can direct message
+  you](#restrict-who-can-direct-message-you).
+</ZulipNote>
+
+<FlattenedSteps>
+  <NavigationSteps target="settings/organization-permissions" />
+
+  1. Under **Direct message permissions**, set **Who can direct message
+     others in this setting without an authorizer present**.
+
+  <SaveChanges />
+</FlattenedSteps>

@@ -418,6 +418,7 @@ run_test("show_empty_narrow_message", ({mock_template, override, override_rewire
 
     override(realm, "realm_direct_message_permission_group", everyone.id);
     override(realm, "realm_direct_message_initiator_group", everyone.id);
+    override(realm, "realm_direct_message_self_authorize_group", nobody.id);
     current_filter = set_filter([["is", "dm"]]);
     narrow_banner.show_empty_narrow_message(current_filter);
     assert.equal(
