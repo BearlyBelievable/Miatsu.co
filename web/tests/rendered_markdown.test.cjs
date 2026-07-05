@@ -139,6 +139,8 @@ const get_content_element = () => {
     $content.set_find_results("div.spoiler-header", []);
     $content.set_find_results("div.codehilite", []);
     $content.set_find_results(".message_inline_video video", []);
+    $content.set_find_results(".message_inline_video", []);
+    $content.set_find_results(".media-audio-element", []);
     $content.set_find_results("audio", []);
 
     set_message_for_message_content($content, undefined);
@@ -678,13 +680,78 @@ run_test("audio", ({mock_template}) => {
     assert.equal(
         audio_html,
         '<span class="media-audio-wrapper">\n' +
-            '    <audio controls="" preload="metadata" src="http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline.mp3" title="inline.mp3" class="media-audio-element"></audio>\n' +
-            '    <a class="media-audio-download icon-button icon-button-square icon-button-neutral"\n' +
-            '      aria-label="translated: Download" href="http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline.mp3" download>\n' +
-            '        <i class="media-download-icon zulip-icon zulip-icon-download"></i>\n' +
-            "    </a>\n" +
+            '    <span class="miatsuco-media-audio-filename">inline.mp3</span>\n' +
+            '    <span class="miatsuco-media-audio-controls-row">\n' +
+            '        <audio controls="" preload="metadata" src="http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline.mp3" title="inline.mp3" class="media-audio-element"></audio>\n' +
+            '        <a class="media-audio-download icon-button icon-button-square icon-button-neutral"\n' +
+            '          aria-label="translated: Download" href="http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline.mp3" download>\n' +
+            '            <i class="media-download-icon zulip-icon zulip-icon-download"></i>\n' +
+            "        </a>\n" +
+            "    </span>\n" +
             "</span>",
     );
+});
+
+run_test("audio without title derives filename from URL", ({mock_template}) => {
+    // Hand-written ![](url) markdown can omit the title; the filename is
+    // then derived (and percent-decoded) from the last URL segment.
+    const audio_src = "http://zulip.zulipdev.com/user_uploads/w/ha/tever/my%20clip.mp3";
+
+    const $content = get_content_element();
+    const $audio = $.create("audio");
+    $audio[0].replaceWith = noop;
+    $audio.attr("src", audio_src);
+
+    $content.set_find_results("audio", $audio);
+
+    let template_data;
+    mock_template("markdown_audio.hbs", true, (data, html) => {
+        template_data = data;
+        return html;
+    });
+
+    rm.update_elements($content);
+
+    assert.deepEqual(template_data, {audio_src, audio_title: "my clip.mp3"});
+});
+
+run_test("audio with malformed URL keeps raw filename", ({mock_template}) => {
+    // A malformed percent-encoding makes decodeURIComponent throw; the raw
+    // last segment is used as-is rather than failing.
+    const audio_src = "http://zulip.zulipdev.com/user_uploads/w/ha/tever/bad%E0%A4.mp3";
+
+    const $content = get_content_element();
+    const $audio = $.create("audio");
+    $audio[0].replaceWith = noop;
+    $audio.attr("src", audio_src);
+
+    $content.set_find_results("audio", $audio);
+
+    let template_data;
+    mock_template("markdown_audio.hbs", true, (data, html) => {
+        template_data = data;
+        return html;
+    });
+
+    rm.update_elements($content);
+
+    assert.deepEqual(template_data, {audio_src, audio_title: "bad%E0%A4.mp3"});
+});
+
+run_test("audio error hides the player", () => {
+    const $content = get_content_element();
+    const $audio = $.create("audio-element");
+    $content.set_find_results(".media-audio-element", $audio);
+
+    rm.update_elements($content);
+
+    // Without an error, the player is not hidden.
+    assert.ok(!$audio.hasClass("miatsuco-audio-format-unsupported"));
+
+    // Simulate a decode error (e.g. Safari with an Ogg file).
+    const error_handler = $audio.get_on_handler("error");
+    error_handler();
+    assert.ok($audio.hasClass("miatsuco-audio-format-unsupported"));
 });
 
 run_test("timestamp", ({mock_template}) => {

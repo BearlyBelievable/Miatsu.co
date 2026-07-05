@@ -31,61 +31,57 @@ import $ from "jquery";
 // docs/contributing/miatsuco-fork-conventions.md.
 
 export function enhance_inline_videos(content: JQuery): void {
-    // Match inline-video containers both among descendants of the passed
-    // set and among its own top-level nodes. The rendered-content hook
-    // passes a wrapper (containers are descendants), but the collapse and
-    // expand handler passes a parsed fragment whose top-level node can be
-    // the container itself, which a plain .find() would miss.
-    content
-        .find(".message_inline_video")
-        .addBack(".message_inline_video")
-        .each((_index, container) => {
-            const $container = $(container);
-            if ($container.hasClass("video-format-unsupported")) {
-                return;
-            }
-            if ($container.attr("data-miatsuco-inline-video") === "1") {
-                return;
-            }
-            const $video = $container.find("video").first();
-            if ($video.length === 0) {
-                return;
-            }
-            $container.attr("data-miatsuco-inline-video", "1");
+    // Callers pass a container element whose inline videos are descendants
+    // (the rendered-content hook passes the message content wrapper; the
+    // collapse and expand handler passes the expanded row after the video
+    // has been appended into it). We therefore match descendants only.
+    content.find(".message_inline_video").each((_index, container) => {
+        const $container = $(container);
+        if ($container.hasClass("video-format-unsupported")) {
+            return;
+        }
+        if ($container.attr("data-miatsuco-inline-video") === "1") {
+            return;
+        }
+        const $video = $container.find("video");
+        if ($video.length === 0) {
+            return;
+        }
+        $container.attr("data-miatsuco-inline-video", "1");
 
-            // Turn the poster preview into a real player.
-            $video.attr("controls", "true");
-            $container.addClass("miatsuco-inline-video-playable");
+        // Turn the poster preview into a real player.
+        $video.attr("controls", "true");
+        $container.addClass("miatsuco-inline-video-playable");
 
-            // Drop the media-image-element class (postprocess_content adds it to
-            // inline videos alongside media-video-element). That class is what
-            // gives the preview its zoom-in cursor and its "Click to view or
-            // download" hover tooltip, both of which describe the old
-            // click-to-open-lightbox behavior and no longer apply to a player
-            // that plays in place. The media-video-element class, which carries
-            // the layout, is left in place.
-            $video.removeClass("media-image-element");
+        // Drop the media-image-element class (postprocess_content adds it to
+        // inline videos alongside media-video-element). That class is what
+        // gives the preview its zoom-in cursor and its "Click to view or
+        // download" hover tooltip, both of which describe the old
+        // click-to-open-lightbox behavior and no longer apply to a player
+        // that plays in place. The media-video-element class, which carries
+        // the layout, is left in place.
+        $video.removeClass("media-image-element");
 
-            // Disable native drag-and-drop on the player and its wrapping
-            // anchor. Both a <video> and an <a href> are draggable by default,
-            // so dragging the seek bar across the video surface (which overlaps
-            // the video for tall/portrait clips) would otherwise start dragging
-            // the file or link instead of seeking. This is drag-and-drop only
-            // and does not affect the native player controls. Upstream uses the
-            // same draggable="false" approach on its own anchors.
-            const $anchor = $container.find("a").first();
-            $video.attr("draggable", "false");
-            $anchor.attr("draggable", "false");
+        // Disable native drag-and-drop on the player and its wrapping
+        // anchor. Both a <video> and an <a href> are draggable by default,
+        // so dragging the seek bar across the video surface (which overlaps
+        // the video for tall/portrait clips) would otherwise start dragging
+        // the file or link instead of seeking. This is drag-and-drop only
+        // and does not affect the native player controls. Upstream uses the
+        // same draggable="false" approach on its own anchors.
+        const $anchor = $container.find("a");
+        $video.attr("draggable", "false");
+        $anchor.attr("draggable", "false");
 
-            // Keep clicks on the player from reaching upstream's delegated
-            // lightbox handler, without suppressing the native controls.
-            $video.on("click", (event) => {
-                event.stopPropagation();
-            });
-
-            // Stop the wrapping <a> from navigating to the raw file.
-            $anchor.on("click", (event) => {
-                event.preventDefault();
-            });
+        // Keep clicks on the player from reaching upstream's delegated
+        // lightbox handler, without suppressing the native controls.
+        $video.on("click", (event) => {
+            event.stopPropagation();
         });
+
+        // Stop the wrapping <a> from navigating to the raw file.
+        $anchor.on("click", (event) => {
+            event.preventDefault();
+        });
+    });
 }

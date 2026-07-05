@@ -746,13 +746,6 @@ export function initialize(): void {
             });
             const $expanded = $($.parseHTML(expanded_html));
 
-            // This expanded markup is inserted directly, bypassing
-            // rendered_markdown.update_elements, so apply the fork's inline
-            // video enhancement here too. Otherwise an expanded video would
-            // revert to the original poster-plus-lightbox behavior instead
-            // of playing in place like a normally-rendered one.
-            miatsuco_inline_video.enhance_inline_videos($expanded);
-
             // Let the user undo this and re-collapse the preview
             // back to a link, regardless of whatever the personal
             // preference is currently set to; clicking this button
@@ -777,6 +770,14 @@ export function initialize(): void {
 
             const $row = $('<span class="miatsuco-message-media-expanded-image-row"></span>');
             $row.append($expanded, $collapse_button);
+
+            // This expanded markup is inserted directly, bypassing
+            // rendered_markdown.update_elements, so apply the fork's inline
+            // video enhancement here too. Otherwise an expanded video would
+            // revert to the original poster-plus-lightbox behavior instead
+            // of playing in place like a normally-rendered one. We run this
+            // on the row, after appending, so the video is a descendant.
+            miatsuco_inline_video.enhance_inline_videos($row);
 
             $wrapper.replaceWith($row);
 
