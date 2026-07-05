@@ -12,7 +12,6 @@ import render_markdown_timestamp from "../templates/markdown_timestamp.hbs";
 import render_mention_content_wrapper from "../templates/mention_content_wrapper.hbs";
 import render_topic_link from "../templates/topic_link.hbs";
 
-import * as miatsuco_inline_video from "./miatsuco_inline_video.ts";
 import * as alert_words from "./alert_words.ts";
 import * as blueslip from "./blueslip.ts";
 import {show_copied_confirmation} from "./copied_tooltip.ts";
@@ -20,6 +19,7 @@ import * as hash_util from "./hash_util.ts";
 import {$t} from "./i18n.ts";
 import * as message_store from "./message_store.ts";
 import type {Message} from "./message_store.ts";
+import * as miatsuco_inline_video from "./miatsuco_inline_video.ts";
 import * as people from "./people.ts";
 import * as realm_playground from "./realm_playground.ts";
 import * as rows from "./rows.ts";

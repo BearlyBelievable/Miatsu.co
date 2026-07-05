@@ -44,7 +44,7 @@ function build_collapsed_media_wrapper(
     // same lookup in lightbox.ts.
     const media_wrapper = inertDocument.createElement("span");
     media_wrapper.classList.add("miatsuco-message-media-collapsed-image");
-    media_wrapper.dataset.collapsedImageHtml = original_html;
+    media_wrapper.dataset["collapsedImageHtml"] = original_html;
     media_wrapper.append(collapsed_link, expand_button);
     return media_wrapper;
 }
@@ -92,12 +92,10 @@ export function postprocess_content(
             // Collapse website previews the same way as uploaded-file
             // previews: never fetch a preview image, and show a
             // compact click-to-expand link instead.
-            const title_link = message_embed.querySelector<HTMLAnchorElement>(
-                ".message_embed_title a",
-            );
-            const image_link = message_embed.querySelector<HTMLAnchorElement>(
-                ".message_embed_image",
-            );
+            const title_link =
+                message_embed.querySelector<HTMLAnchorElement>(".message_embed_title a");
+            const image_link =
+                message_embed.querySelector<HTMLAnchorElement>(".message_embed_image");
             const href = title_link?.getAttribute("href") ?? image_link?.getAttribute("href");
             if (href) {
                 const link_text = title_link?.textContent;
@@ -206,7 +204,9 @@ export function postprocess_content(
             // by re-running this same function.
             const filename_from_url = (() => {
                 try {
-                    return decodeURIComponent(original_src.slice(original_src.lastIndexOf("/") + 1));
+                    return decodeURIComponent(
+                        original_src.slice(original_src.lastIndexOf("/") + 1),
+                    );
                 } catch {
                     return original_src.slice(original_src.lastIndexOf("/") + 1);
                 }
