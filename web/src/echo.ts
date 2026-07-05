@@ -13,6 +13,7 @@ import * as compose_notifications from "./compose_notifications.ts";
 import * as compose_ui from "./compose_ui.ts";
 import * as echo_state from "./echo_state.ts";
 import * as hash_util from "./hash_util.ts";
+import {$t} from "./i18n.ts";
 import * as local_message from "./local_message.ts";
 import * as markdown from "./markdown.ts";
 import type {InsertNewMessagesOpts} from "./message_events.ts";
@@ -127,14 +128,17 @@ function hide_retry_spinner($row: JQuery): boolean {
     return true;
 }
 
-function show_message_failed(message_id: number, _failed_msg: string): void {
+function show_message_failed(message_id: number, failed_msg: string): void {
     // Failed to send message, so display inline retry/cancel
     message_live_update.update_message_in_all_views(message_id, ($row) => {
         $row.find(".slow-send-spinner").addClass("hidden");
         const $message_controls = $row.find(".message_controls");
-        $message_controls.html(render_message_controls_failed_msg());
+        // Surface the specific error so the sender can see why the message
+        // didn't go through. Fall back to the plain "Retry" label when the
+        // failure has no specific reason (e.g., a network timeout).
+        const retry_tooltip = failed_msg === "" ? $t({defaultMessage: "Retry"}) : failed_msg;
+        $message_controls.html(render_message_controls_failed_msg({retry_tooltip}));
     });
-    // TODO: Show the `_failed_msg` in the UI, describing the reason for the failure.
 }
 
 function show_failed_message_success(message_id: number): void {

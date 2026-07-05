@@ -289,6 +289,16 @@ export let send_message = (): void => {
         assert(message !== undefined);
         echo.message_send_error(message.id, response);
 
+        // Also surface the failure reason as a compose banner. This matches
+        // the non-echoed path above, avoids being missed when message is
+        // scrolled out of view, and works on touch devices (where the
+        // message-row tooltip is not reachable).
+        compose_banner.show_error_message(
+            response,
+            compose_banner.CLASSNAMES.generic_compose_error,
+            $("#compose_banners"),
+        );
+
         // We might not have updated the draft count because we assumed the
         // message would send. Ensure that the displayed count is correct.
         drafts.sync_count();
