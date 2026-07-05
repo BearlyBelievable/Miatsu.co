@@ -14,7 +14,7 @@ const thumbnail = mock_esm("../src/thumbnail", {
 const {postprocess_content} = zrequire("postprocess_content");
 const {initialize_user_settings} = zrequire("user_settings");
 
-const user_settings = {web_font_size_px: 16};
+const user_settings = {web_font_size_px: 16, miatsuco_web_show_upload_thumbnails: true};
 initialize_user_settings({user_settings});
 
 run_test("emoji_only", () => {
