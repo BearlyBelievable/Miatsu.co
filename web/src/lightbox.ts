@@ -735,7 +735,7 @@ export function initialize(): void {
             e.stopPropagation();
 
             const $wrapper = $(e.currentTarget).closest(".miatsuco-message-media-collapsed-image");
-            const original_html = $wrapper[0]?.dataset.collapsedImageHtml;
+            const original_html = $wrapper[0]?.dataset["collapsedImageHtml"];
             if (original_html === undefined) {
                 blueslip.warn("Collapsed media wrapper is missing its original markup.");
                 return;
@@ -744,7 +744,9 @@ export function initialize(): void {
             const expanded_html = postprocess_content(original_html, {
                 force_show_upload_thumbnails: true,
             });
-            const $expanded = $($.parseHTML(expanded_html));
+            const expanded_fragment = document.createDocumentFragment();
+            expanded_fragment.append(...$.parseHTML(expanded_html));
+            const $expanded = $([...expanded_fragment.children]);
 
             // Let the user undo this and re-collapse the preview
             // back to a link, regardless of whatever the personal
@@ -758,17 +760,25 @@ export function initialize(): void {
             // .message-media-preview-image or
             // .message-media-inline-image to assume an <img> is
             // present, which isn't true of this button.
-            const $collapse_button = $(
-                '<a role="button" tabindex="0" class="miatsuco-message-media-recollapse-button icon-button icon-button-square icon-button-neutral">' +
-                    '<i class="zulip-icon zulip-icon-collapse" aria-hidden="true"></i>' +
-                    "</a>",
+            const collapse_button_elt = document.createElement("a");
+            collapse_button_elt.setAttribute("role", "button");
+            collapse_button_elt.setAttribute("tabindex", "0");
+            collapse_button_elt.classList.add(
+                "miatsuco-message-media-recollapse-button",
+                "icon-button",
+                "icon-button-square",
+                "icon-button-neutral",
             );
+            const collapse_icon_elt = document.createElement("i");
+            collapse_icon_elt.classList.add("zulip-icon", "zulip-icon-collapse");
+            collapse_icon_elt.setAttribute("aria-hidden", "true");
+            collapse_button_elt.append(collapse_icon_elt);
+            const $collapse_button = $(collapse_button_elt);
             $collapse_button.attr("aria-label", $t({defaultMessage: "Hide preview"}));
-            const collapse_button_elt = $collapse_button[0];
-            assert(collapse_button_elt !== undefined);
-            collapse_button_elt.dataset.collapsedImageHtml = original_html;
+            collapse_button_elt.dataset["collapsedImageHtml"] = original_html;
 
-            const $row = $('<span class="miatsuco-message-media-expanded-image-row"></span>');
+            const $row = $(document.createElement("span"));
+            $row.addClass("miatsuco-message-media-expanded-image-row");
             $row.append($expanded, $collapse_button);
 
             // This expanded markup is inserted directly, bypassing
@@ -801,8 +811,8 @@ export function initialize(): void {
             e.preventDefault();
             e.stopPropagation();
 
-            const $button = $(e.currentTarget);
-            const original_html = $button[0]?.dataset.collapsedImageHtml;
+            const $button = $(e.currentTarget).closest(".miatsuco-message-media-recollapse-button");
+            const original_html = $button[0]?.dataset["collapsedImageHtml"];
             if (original_html === undefined) {
                 blueslip.warn("Recollapse button is missing its original markup.");
                 return;
@@ -811,7 +821,9 @@ export function initialize(): void {
             const collapsed_html = postprocess_content(original_html, {
                 force_hide_upload_thumbnails: true,
             });
-            const $collapsed = $($.parseHTML(collapsed_html));
+            const collapsed_fragment = document.createDocumentFragment();
+            collapsed_fragment.append(...$.parseHTML(collapsed_html));
+            const $collapsed = $([...collapsed_fragment.children]);
             $button.closest(".miatsuco-message-media-expanded-image-row").replaceWith($collapsed);
         },
     );
