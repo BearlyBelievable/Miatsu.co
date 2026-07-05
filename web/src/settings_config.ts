@@ -785,6 +785,10 @@ export const all_group_setting_labels = {
         direct_message_initiator_group: $t({
             defaultMessage: "Who can start a direct message conversation",
         }),
+        direct_message_self_authorize_group: $t({
+            defaultMessage:
+                "Who can direct message others in this setting without an authorizer present",
+        }),
         can_manage_all_groups: $t({defaultMessage: "Who can administer all user groups"}),
         can_manage_billing_group: $t({defaultMessage: "Who can manage plans and billing"}),
         can_create_groups: $t({defaultMessage: "Who can create user groups"}),
@@ -890,7 +894,11 @@ export const realm_group_permission_settings: {
     {
         subsection_heading: $t({defaultMessage: "Direct message permissions"}),
         subsection_key: "org-direct-message-permissions",
-        settings: ["direct_message_permission_group", "direct_message_initiator_group"],
+        settings: [
+            "direct_message_permission_group",
+            "direct_message_initiator_group",
+            "direct_message_self_authorize_group",
+        ],
     },
     {
         subsection_heading: $t({defaultMessage: "Moving messages"}),

@@ -65,6 +65,7 @@ const realm_group_setting_names_supporting_anonymous_groups = [
     "create_multiuse_invite_group",
     "direct_message_initiator_group",
     "direct_message_permission_group",
+    "direct_message_self_authorize_group",
     "workplace_users_group",
 ] as const;
 

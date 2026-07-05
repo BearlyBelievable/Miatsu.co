@@ -520,6 +520,7 @@ test_ui("finish", ({override, override_rewire}) => {
         override(compose_pm_pill, "get_user_ids", () => [bob.user_id]);
         override(realm, "realm_direct_message_permission_group", everyone.id);
         override(realm, "realm_direct_message_initiator_group", everyone.id);
+        override(realm, "realm_direct_message_self_authorize_group", nobody.id);
 
         let send_message_called = false;
         override_rewire(compose, "send_message", () => {
@@ -847,6 +848,7 @@ test_ui("DM policy disabled", ({override}) => {
     // Disable sending direct messages in the organisation
     override(realm, "realm_direct_message_permission_group", nobody.id);
     override(realm, "realm_direct_message_initiator_group", everyone.id);
+    override(realm, "realm_direct_message_self_authorize_group", nobody.id);
     // For single bot recipient, Bot, the "Message X" button is not disabled
     let reply_disabled =
         compose_closed_ui.should_disable_compose_reply_button_for_direct_message("33");

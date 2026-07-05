@@ -346,6 +346,7 @@ test("respond_to_message", ({override, override_rewire, mock_template}) => {
 
     override(realm, "realm_direct_message_permission_group", nobody.id);
     override(realm, "realm_direct_message_initiator_group", everyone.id);
+    override(realm, "realm_direct_message_self_authorize_group", nobody.id);
 
     override_rewire(stream_data, "can_post_messages_in_stream", () => true);
 
@@ -471,6 +472,7 @@ test("quote_messages", ({disallow, override, override_rewire}) => {
 
     override(realm, "realm_direct_message_permission_group", nobody.id);
     override(realm, "realm_direct_message_initiator_group", everyone.id);
+    override(realm, "realm_direct_message_self_authorize_group", nobody.id);
 
     mock_banners();
     compose_state.set_message_type("stream");
@@ -1057,6 +1059,7 @@ test("on_narrow", ({override, override_rewire}) => {
     narrowed_by_pm_reply = true;
     override(realm, "realm_direct_message_permission_group", nobody.id);
     override(realm, "realm_direct_message_initiator_group", everyone.id);
+    override(realm, "realm_direct_message_self_authorize_group", nobody.id);
     let compose_defaults;
     override(narrow_state, "set_compose_defaults", () => compose_defaults);
     compose_defaults = {

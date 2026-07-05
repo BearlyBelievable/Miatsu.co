@@ -315,6 +315,7 @@ export function dispatch_normal_event(event) {
                 digest_weekday: noop,
                 direct_message_initiator_group: noop,
                 direct_message_permission_group: noop,
+                direct_message_self_authorize_group: noop,
                 email_changes_disabled: settings_account.update_email_change_display,
                 disallow_disposable_email_addresses: noop,
                 media_preview_size: message_live_update.update_thumbnails,
@@ -409,7 +410,8 @@ export function dispatch_normal_event(event) {
 
                                 if (
                                     key === "direct_message_initiator_group" ||
-                                    key === "direct_message_permission_group"
+                                    key === "direct_message_permission_group" ||
+                                    key === "direct_message_self_authorize_group"
                                 ) {
                                     settings_org.check_disable_direct_message_initiator_group_widget();
                                     compose_closed_ui.maybe_update_buttons_for_dm_recipient();

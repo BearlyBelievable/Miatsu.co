@@ -513,6 +513,7 @@ export const realm_schema = z.object({
     realm_digest_weekday: z.number(),
     realm_direct_message_initiator_group: group_setting_value_schema,
     realm_direct_message_permission_group: group_setting_value_schema,
+    realm_direct_message_self_authorize_group: group_setting_value_schema,
     realm_disallow_disposable_email_addresses: z.boolean(),
     realm_domains: z.array(realm_domain_schema),
     realm_email_auth_enabled: z.boolean(),

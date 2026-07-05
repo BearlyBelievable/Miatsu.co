@@ -176,6 +176,7 @@ class HomeTest(ZulipTestCase):
         "realm_digest_emails_enabled",
         "realm_digest_weekday",
         "realm_direct_message_initiator_group",
+        "realm_direct_message_self_authorize_group",
         "realm_direct_message_permission_group",
         "realm_disallow_disposable_email_addresses",
         "realm_domains",

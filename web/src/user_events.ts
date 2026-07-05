@@ -12,6 +12,8 @@ import * as bot_data from "./bot_data.ts";
 import {buddy_list} from "./buddy_list.ts";
 import * as compose_pm_pill from "./compose_pm_pill.ts";
 import * as compose_recipient from "./compose_recipient.ts";
+import * as compose_state from "./compose_state.ts";
+import * as compose_validate from "./compose_validate.ts";
 import * as message_live_update from "./message_live_update.ts";
 import * as message_view_header from "./message_view_header.ts";
 import * as navbar_alerts from "./navbar_alerts.ts";
@@ -179,6 +181,17 @@ export const update_person = function update(event: UserUpdate): void {
             current_user.is_moderator !== user.is_moderator
         ) {
             current_user.is_moderator = user.is_moderator;
+        }
+
+        // Fork feature (miatsuco): a role change can flip whether an open DM
+        // is still authorized (for example, demoting the only moderator in the
+        // conversation removes the escape hatch, or a role change moves someone
+        // in or out of direct_message_self_authorize_group). Re-validate so the
+        // send button reflects the new state immediately rather than only
+        // failing at send time. validate() no-ops unless the compose box is
+        // open on a DM, so this is cheap for the common case.
+        if (compose_state.get_message_type() === "private") {
+            compose_validate.validate_and_update_send_button_status();
         }
     }
 

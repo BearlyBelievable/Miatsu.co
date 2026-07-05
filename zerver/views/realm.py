@@ -144,6 +144,7 @@ def update_realm(
     digest_weekday: Json[DigestWeekdayEnum] | None = None,
     direct_message_initiator_group: Json[GroupSettingChangeRequest] | None = None,
     direct_message_permission_group: Json[GroupSettingChangeRequest] | None = None,
+    direct_message_self_authorize_group: Json[GroupSettingChangeRequest] | None = None,
     disallow_disposable_email_addresses: Json[bool] | None = None,
     email_changes_disabled: Json[bool] | None = None,
     emails_restricted_to_domains: Json[bool] | None = None,
