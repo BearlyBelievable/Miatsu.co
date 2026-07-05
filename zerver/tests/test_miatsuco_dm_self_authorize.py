@@ -31,8 +31,8 @@ class MiatsucoDMSelfAuthorizeTest(ZulipTestCase):
         guest = self.example_user("polonius")
         moderator = self.example_user("shiva")
 
-        do_change_user_role(guest, UserProfile.ROLE_GUEST, acting_user=None)
-        do_change_user_role(moderator, UserProfile.ROLE_MODERATOR, acting_user=None)
+        do_change_user_role(guest, UserProfile.ROLE_GUEST, acting_user=None, notify=False)
+        do_change_user_role(moderator, UserProfile.ROLE_MODERATOR, acting_user=None, notify=False)
 
         moderators_group = NamedUserGroup.objects.get(
             name=SystemGroups.MODERATORS, realm_for_sharding=realm, is_system_group=True

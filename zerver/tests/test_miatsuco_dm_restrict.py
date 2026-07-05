@@ -26,8 +26,10 @@ class MiatsucoRestrictDMsToAuthorizersTest(ZulipTestCase):
         g1_b = self.example_user("cordelia")
         moderator = self.example_user("shiva")
         another_moderator = self.example_user("iago")
-        do_change_user_role(moderator, UserProfile.ROLE_MODERATOR, acting_user=None)
-        do_change_user_role(another_moderator, UserProfile.ROLE_MODERATOR, acting_user=None)
+        do_change_user_role(moderator, UserProfile.ROLE_MODERATOR, acting_user=None, notify=False)
+        do_change_user_role(
+            another_moderator, UserProfile.ROLE_MODERATOR, acting_user=None, notify=False
+        )
 
         moderators_group = NamedUserGroup.objects.get(
             name=SystemGroups.MODERATORS, realm_for_sharding=realm, is_system_group=True
