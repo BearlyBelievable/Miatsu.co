@@ -817,15 +817,32 @@
             background: none;
         }
 
-        /* Give the player enough width for the browser's native controls to
-           show the volume slider (browsers collapse it to a mute toggle on
-           narrow players). Portrait videos are letterboxed by object-fit to
-           reach this width. We scale the floor with the organization's media
-           preview size setting rather than hardcoding it, so it tracks
-           --media-preview-max-height (the same basis the landscape width
-           uses) instead of overriding the admin's choice. */
+        /* The preview thumbnail carries a fixed width (see the base
+           .media-video-element rule above), which is fine for a static
+           poster but wrong for a real player: the native control bar is
+           drawn to fill the element's box, so a fixed width makes the
+           player and its controls overflow the message column in narrow or
+           responsive viewports. Make the playable video shrink with its
+           container instead, mirroring how the fork's inline audio player
+           handles the same problem (see .media-audio-element below). */
+        max-width: 100%;
+
         & .media-video-element {
-            min-width: calc(var(--media-preview-max-height) * 1.5);
+            /* The base rule sets a fixed landscape width and height so the
+               static poster has definite dimensions. Keep those as the
+               natural size, but cap the width to the container so a real
+               player and its native control bar shrink with the message
+               column instead of overflowing in narrow or responsive
+               viewports. object-fit (set upstream) letterboxes the frame so
+               it is not distorted as it narrows. */
+            max-width: 100%;
+
+            /* Give the native controls room for the volume slider (browsers
+               collapse it to a mute toggle on narrow players), scaling with
+               the org's media preview size setting. Clamp the floor to the
+               available width with min() so it never forces overflow on a
+               viewport narrower than the floor. */
+            min-width: min(100%, calc(var(--media-preview-max-height) * 1.5));
         }
     }
 
