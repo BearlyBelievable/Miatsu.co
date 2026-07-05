@@ -1219,6 +1219,13 @@ exports.fixtures = {
         value: "on_hover",
     },
 
+    user_settings__miatsuco_web_show_upload_thumbnails: {
+        type: "user_settings",
+        op: "update",
+        property: "miatsuco_web_show_upload_thumbnails",
+        value: false,
+    },
+
     user_settings__web_channel_default_view: {
         type: "user_settings",
         op: "update",

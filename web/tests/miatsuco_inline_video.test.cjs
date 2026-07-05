@@ -61,27 +61,25 @@ run_test("enhances a playable inline video", () => {
     assert.equal($video.attr("draggable"), "false");
     assert.equal($anchor.attr("draggable"), "false");
 
-    // Video click stops propagation (blocks the lightbox) without
-    // preventing default (native controls keep working).
-    let stopped = false;
-    let video_default_prevented = false;
-    $video.get_on_handler("click")({
+    // Video click stops propagation (blocks the lightbox). It must not
+    // call preventDefault, so the native controls keep working; we assert
+    // that by omitting preventDefault from the stub (a call would throw).
+    const video_event = {
+        stop_propagation_calls: 0,
         stopPropagation() {
-            stopped = true;
+            this.stop_propagation_calls += 1;
         },
-        preventDefault() {
-            video_default_prevented = true;
-        },
-    });
-    assert.ok(stopped);
-    assert.ok(!video_default_prevented);
+    };
+    $video.get_on_handler("click")(video_event);
+    assert.equal(video_event.stop_propagation_calls, 1);
 
     // Anchor click prevents navigation.
-    let anchor_default_prevented = false;
-    $anchor.get_on_handler("click")({
+    const anchor_event = {
+        prevent_default_calls: 0,
         preventDefault() {
-            anchor_default_prevented = true;
+            this.prevent_default_calls += 1;
         },
-    });
-    assert.ok(anchor_default_prevented);
+    };
+    $anchor.get_on_handler("click")(anchor_event);
+    assert.equal(anchor_event.prevent_default_calls, 1);
 });
