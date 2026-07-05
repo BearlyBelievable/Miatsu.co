@@ -22,6 +22,15 @@
       label=settings_label.send_stream_typing_notifications
       prefix=prefix
       }}
+    {{#unless for_realm_settings}}
+    {{> settings_checkbox
+      setting_name="miatsuco_restrict_dms_to_authorizers"
+      is_checked=settings_object.miatsuco_restrict_dms_to_authorizers
+      label=settings_label.miatsuco_restrict_dms_to_authorizers
+      post_setting_content_class="miatsuco-dm-authorizers"
+      prefix=prefix
+      }}
+    {{/unless}}
     {{> settings_checkbox
       setting_name="send_read_receipts"
       is_checked=settings_object.send_read_receipts

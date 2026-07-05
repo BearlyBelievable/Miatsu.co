@@ -20,5 +20,8 @@
         {{> ../components/icon_button icon="reset" intent="neutral" custom_classes="reset-user-setting-to-default" data-tippy-content=(t "Reset users to default") aria-label=(t "Reset users to default") }}
         {{/if}}
     </label>
+    {{#if post_setting_content_class}}
+    <div class="{{post_setting_content_class}}"></div>
+    {{/if}}
 </div>
 {{/unless}}

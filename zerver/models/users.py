@@ -112,6 +112,15 @@ class UserBaseSettings(models.Model):
     # inline_upload_preview.
     miatsuco_web_show_upload_thumbnails = models.BooleanField(default=True, db_default=True)
 
+    # Fork feature (miatsuco): personal DM restriction. When enabled, this
+    # user can only be a participant in a direct message (1:1 or group) that
+    # includes a member of the realm's direct_message_permission_group (the
+    # users who can authorize a DM). This lets an individual opt out of the
+    # realm's direct_message_self_authorize_group allowance, which otherwise
+    # permits a configured set to exchange DMs with no authorizer present.
+    # Default False preserves prior behavior (no personal restriction).
+    miatsuco_restrict_dms_to_authorizers = models.BooleanField(default=False, db_default=False)
+
     # UI setting controlling Zulip's behavior of demoting in the sort
     # order and graying out streams with no recent traffic.  The
     # default behavior, automatic, enables this behavior once a user
@@ -405,6 +414,7 @@ class UserBaseSettings(models.Model):
         web_mark_read_on_scroll_policy=int,
         web_navigate_to_sent_message=bool,
         miatsuco_web_show_upload_thumbnails=bool,
+        miatsuco_restrict_dms_to_authorizers=bool,
         web_stream_unreads_count_display_policy=int,
         web_suggest_update_timezone=bool,
     )

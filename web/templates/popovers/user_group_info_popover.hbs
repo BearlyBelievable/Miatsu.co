@@ -48,22 +48,26 @@
                     {{#unless display_all_subgroups_and_members}}
                         <li class="popover-group-menu-member">
                             <span class="popover-group-menu-member-name">
-                                {{#if is_system_group}}
-                                    {{#if has_bots}}
-                                        {{#tr class="popover-group-menu-member"}}
-                                            View all <z-link-users>users</z-link-users> and <z-link-bots>bots</z-link-bots>
-                                            {{#*inline "z-link-users"}}<a href="#organization/users">{{> @partial-block}}</a>{{/inline}}
-                                            {{#*inline "z-link-bots"}}<a href="#organization/bots">{{> @partial-block}}</a>{{/inline}}
-                                        {{/tr}}
+                                {{#if view_only}}
+                                    <i>{{t "Additional members not shown"}}</i>
+                                {{else}}
+                                    {{#if is_system_group}}
+                                        {{#if has_bots}}
+                                            {{#tr class="popover-group-menu-member"}}
+                                                View all <z-link-users>users</z-link-users> and <z-link-bots>bots</z-link-bots>
+                                                {{#*inline "z-link-users"}}<a href="#organization/users">{{> @partial-block}}</a>{{/inline}}
+                                                {{#*inline "z-link-bots"}}<a href="#organization/bots">{{> @partial-block}}</a>{{/inline}}
+                                            {{/tr}}
+                                        {{else}}
+                                            <a href="#organization/users" role="menuitem">
+                                                {{t "View all users"}}
+                                            </a>
+                                        {{/if}}
                                     {{else}}
-                                        <a href="#organization/users" role="menuitem">
-                                            {{t "View all users"}}
+                                        <a href="{{group_members_url}}" role="menuitem">
+                                            {{t "View all members"}}
                                         </a>
                                     {{/if}}
-                                {{else}}
-                                    <a href="{{group_members_url}}" role="menuitem">
-                                        {{t "View all members"}}
-                                    </a>
                                 {{/if}}
                             </span>
                         </li>
@@ -73,6 +77,7 @@
                 <span class="popover-group-menu-placeholder"><i>{{t 'This group has no members.'}}</i></span>
             {{/unless}}
         </li>
+        {{#unless view_only}}
         {{#unless is_guest}}
             <li role="separator" class="popover-menu-separator hidden-for-spectators"></li>
             <li role="none" class="link-item popover-menu-list-item hidden-for-spectators">
@@ -81,6 +86,7 @@
                     <span class="popover-menu-label">{{t "Group settings" }}</span>
                 </a>
             </li>
+        {{/unless}}
         {{/unless}}
     </ul>
 </div>

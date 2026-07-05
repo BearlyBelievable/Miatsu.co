@@ -609,8 +609,26 @@ class CannotSetTopicsPolicyError(JsonableError):
 
 
 class DirectMessagePermissionError(JsonableError):
-    def __init__(self, is_nobody_group: bool) -> None:
-        if is_nobody_group:
+    def __init__(
+        self, is_nobody_group: bool, *, restricted_recipient_count: int | None = None
+    ) -> None:
+        # Fork feature (miatsuco): restricted_recipient_count is set when the
+        # block is caused by one or more recipients enabling the personal
+        # "only receive direct messages from those who can authorize them"
+        # setting (miatsuco_restrict_dms_to_authorizers). In that case we surface
+        # a distinct, actionable message instead of the generic authorizer error,
+        # so the sender understands the conversation needs an authorizer because
+        # of the recipient's preference. The wording avoids naming a specific
+        # recipient in group conversations.
+        if restricted_recipient_count is not None:
+            if restricted_recipient_count > 1:
+                msg = _(
+                    "Some recipients only accept direct messages that include "
+                    "someone who can authorize them."
+                )
+            else:
+                msg = _("This user only accepts direct messages from those who can authorize them.")
+        elif is_nobody_group:
             msg = _("Direct messages are disabled in this organization.")
         else:
             msg = _("This conversation does not include any users who can authorize it.")

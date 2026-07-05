@@ -63,6 +63,12 @@ export function handle_keyboard(key: string): void {
 export function toggle_user_group_info_popover(
     element: tippy.ReferenceElement,
     message_id: number | undefined,
+    // Fork feature (miatsuco): when true, the popover hides navigation into
+    // group administration (the "Group settings" link and the navigating
+    // "View all members" link), leaving a strictly view-only member list. Used
+    // by the personal DM-restriction preference, where the authorizing group
+    // is shown for reference and must not be an entry point to editing.
+    view_only = false,
 ): void {
     if (is_open()) {
         hide();
@@ -131,6 +137,7 @@ export function toggle_user_group_info_popover(
                         settings_data.user_can_access_all_other_users(),
                     displayed_subgroups,
                     displayed_members,
+                    view_only,
                 };
                 instance.setContent(ui_util.parse_html(render_user_group_info_popover(args)));
             },

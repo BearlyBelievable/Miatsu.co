@@ -687,6 +687,9 @@ export const preferences_settings_labels = {
     miatsuco_web_show_upload_thumbnails: $t({
         defaultMessage: "Show image, video, and website preview thumbnails",
     }),
+    miatsuco_restrict_dms_to_authorizers: $t({
+        defaultMessage: "Restrict direct messages to only those who can authorize them",
+    }),
     web_left_sidebar_show_channel_folders: $t({
         defaultMessage: "Group channels by folder in the left sidebar",
     }),

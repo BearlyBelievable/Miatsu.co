@@ -35,6 +35,7 @@ import * as message_live_update from "./message_live_update.ts";
 import * as message_reminder from "./message_reminder.ts";
 import * as message_store from "./message_store.ts";
 import * as message_view from "./message_view.ts";
+import * as miatsuco_dm_authorizer_display from "./miatsuco_dm_authorizer_display.ts";
 import * as muted_users_ui from "./muted_users_ui.ts";
 import * as narrow_title from "./narrow_title.ts";
 import * as navbar_alerts from "./navbar_alerts.ts";
@@ -416,6 +417,14 @@ export function dispatch_normal_event(event) {
                                     settings_org.check_disable_direct_message_initiator_group_widget();
                                     compose_closed_ui.maybe_update_buttons_for_dm_recipient();
                                     compose_validate.validate_and_update_send_button_status();
+                                }
+
+                                if (key === "direct_message_permission_group") {
+                                    // Fork feature (miatsuco): keep the
+                                    // view-only "who can authorize DMs"
+                                    // disclosure in personal preferences in
+                                    // sync when the authorizer group changes.
+                                    miatsuco_dm_authorizer_display.rerender_if_present();
                                 }
 
                                 if (
@@ -977,6 +986,7 @@ export function dispatch_normal_event(event) {
                 "web_mark_read_on_scroll_policy",
                 "web_navigate_to_sent_message",
                 "miatsuco_web_show_upload_thumbnails",
+                "miatsuco_restrict_dms_to_authorizers",
                 "web_stream_unreads_count_display_policy",
                 "web_suggest_update_timezone",
                 "web_left_sidebar_unreads_count_summary",

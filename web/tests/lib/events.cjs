@@ -1135,6 +1135,13 @@ exports.fixtures = {
         value: true,
     },
 
+    user_settings__miatsuco_restrict_dms_to_authorizers: {
+        type: "user_settings",
+        op: "update",
+        property: "miatsuco_restrict_dms_to_authorizers",
+        value: true,
+    },
+
     user_settings__miatsuco_web_show_upload_thumbnails: {
         type: "user_settings",
         op: "update",

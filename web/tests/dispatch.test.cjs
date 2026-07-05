@@ -81,6 +81,7 @@ const settings_notifications = mock_esm("../src/settings_notifications");
 const settings_org = mock_esm("../src/settings_org");
 const settings_profile_fields = mock_esm("../src/settings_profile_fields");
 const settings_preferences = mock_esm("../src/settings_preferences");
+const miatsuco_dm_authorizer_display = mock_esm("../src/miatsuco_dm_authorizer_display");
 const settings_realm_user_settings_defaults = mock_esm(
     "../src/settings_realm_user_settings_defaults",
 );
@@ -671,6 +672,7 @@ run_test("realm settings", ({override}) => {
     override(realm, "realm_date_created", new Date("2023-01-01Z"));
 
     override(settings_org, "check_disable_direct_message_initiator_group_widget", noop);
+    override(miatsuco_dm_authorizer_display, "rerender_if_present", noop);
     override(settings_org, "sync_realm_settings", noop);
     override(settings_bots, "update_bot_permissions_ui", noop);
     override(settings_emoji, "update_custom_emoji_ui", noop);
@@ -1362,6 +1364,15 @@ run_test("user_settings", ({override}) => {
         assert_same(user_settings.miatsuco_web_show_upload_thumbnails, false);
         assert_same(called, true);
         assert_same(called_for_cached_msg_list, true);
+    }
+
+    {
+        // MiAtSu.Co fork: toggling the personal restrict-DMs preference
+        // updates the setting value; no message rerender is needed.
+        event = event_fixtures.user_settings__miatsuco_restrict_dms_to_authorizers;
+        override(user_settings, "miatsuco_restrict_dms_to_authorizers", false);
+        dispatch(event);
+        assert_same(user_settings.miatsuco_restrict_dms_to_authorizers, true);
     }
 
     {
