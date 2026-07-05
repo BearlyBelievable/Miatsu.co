@@ -1135,6 +1135,13 @@ exports.fixtures = {
         value: true,
     },
 
+    user_settings__miatsuco_web_show_upload_thumbnails: {
+        type: "user_settings",
+        op: "update",
+        property: "miatsuco_web_show_upload_thumbnails",
+        value: false,
+    },
+
     user_settings__notification_sound: {
         type: "user_settings",
         op: "update",
@@ -1217,13 +1224,6 @@ exports.fixtures = {
         op: "update",
         property: "web_animate_image_previews",
         value: "on_hover",
-    },
-
-    user_settings__miatsuco_web_show_upload_thumbnails: {
-        type: "user_settings",
-        op: "update",
-        property: "miatsuco_web_show_upload_thumbnails",
-        value: false,
     },
 
     user_settings__web_channel_default_view: {

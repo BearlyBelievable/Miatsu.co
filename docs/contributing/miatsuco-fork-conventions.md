@@ -312,6 +312,16 @@ A green `git apply` or `git rebase` only means the text merged. It is not
 evidence that lint, coverage, the docs build, or the tests still pass, so
 run the checks above locally rather than relying on a clean apply.
 
+To make that automatic, run `./tools/setup-git-repo` once in your
+checkout. Alongside upstream's advisory `pre-commit` linter, it installs a
+fork `pre-push` hook that runs the frontend lint, backend lint, and node
+tests with coverage (the same gate CI enforces) and blocks the push if any
+fail. The backend suite is opt-in with `RUN_BACKEND=1 git push` since it
+needs a provisioned database, and `git push --no-verify` overrides the
+hook when you really mean to. The hook cannot verify rendering, media
+playback, or browser quirks, so it prints a reminder to browser-test when
+a push touches those paths rather than pretending it checked them.
+
 ## Questions
 
 If something here is unclear, or you've hit a case this page doesn't cover, then

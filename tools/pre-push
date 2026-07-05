@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+
+# MiAtSu.Co fork pre-push hook.
+#
+# This runs the same checks CI runs, before anything leaves your machine,
+# and it BLOCKS the push if any of them fail. It exists because a clean
+# `git apply` or `git commit` proves nothing about lint, types, coverage,
+# or tests (see docs/contributing/miatsuco-fork-conventions.md). Every CI
+# failure this fork has hit was reproducible locally with these commands.
+#
+# Install it with `./tools/setup-git-repo`, which symlinks it into
+# `.git/hooks/`. To push despite a failure (rarely a good idea), use
+# `git push --no-verify`.
+#
+# Scope note: these are fast-to-moderate checks (lint, typecheck, node
+# tests with coverage). The backend suite is opt-in via RUN_BACKEND=1
+# because it needs a provisioned database. And no hook can verify
+# rendering, media playback, or browser quirks: when you touch those
+# paths this hook prints a reminder to test in a real browser, but it
+# cannot check them for you.
+
+set -uo pipefail
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+zero="0000000000000000000000000000000000000000"
+
+# git feeds pre-push one line per ref being pushed:
+#   <local ref> <local sha> <remote ref> <remote sha>
+# We collect the pushed local shas and the remote shas so we can both
+# decide whether there is anything to do and compute exactly which files
+# are being pushed (rather than relying on @{push}, which errors when the
+# branch has no upstream tracking).
+local_shas=()
+remote_shas=()
+while read -r _ local_sha _ remote_sha; do
+    if [ "${local_sha}" != "${zero}" ]; then
+        local_shas+=("${local_sha}")
+        remote_shas+=("${remote_sha}")
+    fi
+done
+
+# Nothing being pushed (for example a branch delete): do no work.
+if [ ${#local_shas[@]} -eq 0 ]; then
+    exit 0
+fi
+
+# The set of files changed by everything being pushed. For a brand-new
+# branch the remote sha is all zeros, so we fall back to diffing against
+# the local sha's parents via the merge base with origin/HEAD when we can,
+# and otherwise just list the files in the pushed commits.
+changed_files() {
+    local i
+    for i in "${!local_shas[@]}"; do
+        local lsha="${local_shas[$i]}"
+        local rsha="${remote_shas[$i]}"
+        if [ "${rsha}" != "${zero}" ]; then
+            git diff --name-only "${rsha}" "${lsha}"
+        else
+            # New ref: list files touched by commits unique to this push.
+            local base
+            base="$(git merge-base "${lsha}" origin/HEAD 2>/dev/null || true)"
+            if [ -n "${base}" ]; then
+                git diff --name-only "${base}" "${lsha}"
+            else
+                git diff --name-only "$(git hash-object -t tree /dev/null)" "${lsha}"
+            fi
+        fi
+    done | sort -u
+}
+
+pushed_files="$(changed_files)"
+
+failures=()
+
+run_check() {
+    # run_check "Human label" command args...
+    local label="$1"
+    shift
+    echo ""
+    echo "==> ${label}"
+    if "$@"; then
+        echo "    ok"
+    else
+        echo "    FAILED: ${label}"
+        failures+=("${label}")
+    fi
+}
+
+# The fork's CI gate, in the same form CI uses. gitlint is skipped to
+# match CI (it is flaky there); mypy is skipped in the backend lint group
+# for the same reason CI skips it.
+run_check "Frontend lint (eslint, prettier, ...)" \
+    ./tools/lint --groups=frontend --skip=gitlint
+run_check "Backend lint (ruff, ...)" \
+    ./tools/lint --groups=backend --skip=gitlint,mypy
+run_check "Node tests with coverage" \
+    ./tools/test-js-with-node --coverage
+
+# Fork-only migration consistency check, but only when a migration
+# actually changed, since it is otherwise a no-op.
+if printf '%s\n' "${pushed_files}" | grep -q '^zerver/migrations/miatsuco_'; then
+    run_check "Fork migration check" \
+        ./manage.py check_miatsuco_migrations
+fi
+
+# The backend suite needs a provisioned database, so it is opt-in rather
+# than a hard gate that would tempt a --no-verify habit on machines
+# without one. Turn it on with RUN_BACKEND=1 git push.
+if [ "${RUN_BACKEND:-0}" = "1" ]; then
+    run_check "Backend tests" \
+        ./tools/test-backend
+else
+    echo ""
+    echo "==> Backend tests: skipped (set RUN_BACKEND=1 to include them)"
+fi
+
+# Things no hook can verify. If the push touches media, rendering, or
+# upload code, remind the author to check the actual behavior in a
+# browser, because the node suite has no layout engine, no real browser,
+# and no media pipeline.
+browser_paths_re='web/src/(lightbox|rendered_markdown|postprocess_content|upload|miatsuco_inline_video)\.|web/styles/'
+if printf '%s\n' "${pushed_files}" | grep -qE "${browser_paths_re}"; then
+    echo ""
+    echo "==> Reminder: this push changes media/rendering/upload code."
+    echo "    Those paths have runtime behavior the node suite cannot check"
+    echo "    (native controls, Safari, buffering, layout). Test them in a"
+    echo "    real browser before relying on this push."
+fi
+
+echo ""
+if [ ${#failures[@]} -ne 0 ]; then
+    echo "Push blocked. The following checks failed:"
+    for f in "${failures[@]}"; do
+        echo "  - ${f}"
+    done
+    echo ""
+    echo "Fix them, or re-run with 'git push --no-verify' to override."
+    exit 1
+fi
+
+echo "All pre-push checks passed."
+exit 0
