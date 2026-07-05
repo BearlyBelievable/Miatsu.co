@@ -1352,6 +1352,19 @@ run_test("user_settings", ({override}) => {
     }
 
     {
+        // MiAtSu.Co fork: toggling the upload-thumbnail preference rerenders
+        // rendered message lists so previews collapse or expand in place.
+        event = event_fixtures.user_settings__miatsuco_web_show_upload_thumbnails;
+        override(user_settings, "miatsuco_web_show_upload_thumbnails", true);
+        called = false;
+        called_for_cached_msg_list = false;
+        dispatch(event);
+        assert_same(user_settings.miatsuco_web_show_upload_thumbnails, false);
+        assert_same(called, true);
+        assert_same(called_for_cached_msg_list, true);
+    }
+
+    {
         const stub = make_stub();
         event = event_fixtures.user_settings__emojiset;
         called = false;
