@@ -22,6 +22,7 @@ import * as dialog_widget from "./dialog_widget.ts";
 import * as dropdown_widget from "./dropdown_widget.ts";
 import {$t, $t_html} from "./i18n.ts";
 import * as keydown_util from "./keydown_util.ts";
+import * as miatsuco_dm_authorizer_display from "./miatsuco_dm_authorizer_display.ts";
 import * as modals from "./modals.ts";
 import * as overlays from "./overlays.ts";
 import {page_params} from "./page_params.ts";
@@ -353,6 +354,10 @@ export function set_up(): void {
     // Add custom profile fields elements to user account settings.
     add_custom_profile_fields_to_settings();
     $("#account-settings-status").hide();
+
+    // Fork feature (miatsuco): render the read-only "who can authorize DMs"
+    // pills under the miatsuco_restrict_dms_to_authorizers privacy setting.
+    miatsuco_dm_authorizer_display.set_up($("#privacy_settings_box"));
 
     const setup_api_key_modal = (): void => {
         function request_api_key(data: {password?: string}): void {

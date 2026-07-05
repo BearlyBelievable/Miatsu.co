@@ -2543,3 +2543,71 @@ label.preferences-radio-choice-label {
     opacity: var(--opacity-disabled-profile-field-choice-input);
     color: var(--color-text-default);
 }
+
+/* MiAtSu.Co fork: the view-only authorizer display under the personal
+   miatsuco_restrict_dms_to_authorizers setting. When the setting is enabled,
+   the current authorizers are shown beneath the checkbox as read-only pills in
+   a bordered container that reuses the editable settings pill look
+   (.pill-container). Visibility follows the checkbox state directly: the pills
+   are only shown while the setting is on. Interaction is limited to opening a
+   view-only members popover on group and role pills, so the pills are not
+   editable. */
+.miatsuco-dm-authorizers {
+    display: none;
+    /* The pills sit inside the setting's own checkbox wrapper, which already
+       carries the spacing between settings, so only a small gap above (below
+       the label) is needed here. */
+    margin: 6px 0 0 24px;
+
+    .miatsuco-dm-authorizers-hint {
+        margin-bottom: 4px;
+        color: var(--color-text-item);
+        font-size: 0.9em;
+    }
+
+    .miatsuco-dm-authorizers-pills {
+        /* The container is informational, not an input. */
+        cursor: default;
+
+        /* Group and role pills open a view-only popover; individual pills are
+           inert. Suppress the persistent focus box-shadow (which otherwise
+           masks the pill background after a click and only clears when focus
+           moves elsewhere) and use a hover/open highlight instead. */
+        .pill {
+            cursor: pointer;
+
+            &:focus {
+                box-shadow: none;
+            }
+
+            &:hover,
+            &[aria-expanded="true"] {
+                background-color: var(--color-background-input-pill-hover);
+            }
+        }
+
+        .pill:not([data-user-group-id]) {
+            /* Individual-user pills are non-interactive. */
+            cursor: default;
+
+            &:hover {
+                background-color: var(--color-background-input-pill);
+            }
+        }
+    }
+
+    .miatsuco-dm-authorizers-empty {
+        font-style: italic;
+        color: var(--color-text-item);
+    }
+}
+
+/* Show the authorizer pills only while the setting itself is enabled. Scoped to
+   this setting's checkbox via its setting-name class so other checkboxes in the
+   shared wrapper are unaffected. */
+.settings-checkbox-wrapper:has(
+        input.miatsuco_restrict_dms_to_authorizers:checked
+    )
+    .miatsuco-dm-authorizers {
+    display: block;
+}

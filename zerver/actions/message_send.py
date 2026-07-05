@@ -1653,6 +1653,53 @@ def check_can_send_direct_message(
             realm.direct_message_permission_group_id, participant_ids
         )
 
+    # Fork feature (miatsuco): the personal miatsuco_restrict_dms_to_authorizers
+    # setting. A participant who enables it opts out of any direct message that
+    # includes a non-authorizer: for that user, EVERY other human participant
+    # must be a member of direct_message_permission_group (an authorizer). This
+    # is stricter than merely requiring an authorizer to be present, and it
+    # overrides the self-authorize path below. It is bidirectional and applies
+    # per participant: it governs an opted-in user's outgoing DMs as well as
+    # incoming ones (a DM is a two-way conversation), and a fellow opted-in user
+    # is not an exception (a non-authorizer is still a non-authorizer). Bots are
+    # not subject to authorization, so they are ignored here.
+    permission_group_id = realm.direct_message_permission_group_id
+    permission_group_is_system = permission_group_id in system_groups_name_dict
+
+    def is_authorizer(user: UserProfile) -> bool:
+        if permission_group_is_system:
+            return check_user_has_permission_by_role(
+                user, permission_group_id, system_groups_name_dict
+            )
+        return is_user_in_group(permission_group_id, user)
+
+    human_participants = [user for user in participants if not user.is_bot]
+    opted_in_participants = [
+        user for user in human_participants if user.miatsuco_restrict_dms_to_authorizers
+    ]
+    if opted_in_participants:
+        # For each opted-in user, every OTHER human participant must be an
+        # authorizer. Equivalently: block if any opted-in user shares the
+        # conversation with a human who cannot authorize it (other than
+        # themselves).
+        for opted_in_user in opted_in_participants:
+            if any(
+                other.id != opted_in_user.id and not is_authorizer(other)
+                for other in human_participants
+            ):
+                # Use the singular "this user" message only when exactly one
+                # recipient (not the sender) triggered the block, so no
+                # individual is named in a group conversation and the sender's
+                # own restriction reads sensibly.
+                opted_in_recipients = [
+                    user for user in opted_in_participants if user.id != sender.id
+                ]
+                restricted_recipient_count = 1 if len(opted_in_recipients) == 1 else 2
+                raise DirectMessagePermissionError(
+                    is_nobody_group=False,
+                    restricted_recipient_count=restricted_recipient_count,
+                )
+
     # Only evaluate the self-authorize path when the permission group did not
     # authorize the conversation, to avoid a membership query per participant
     # in the common case.

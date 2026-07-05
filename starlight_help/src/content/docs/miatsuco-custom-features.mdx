@@ -102,3 +102,34 @@ given team) to message each other freely.
 
   <SaveChanges />
 </FlattenedSteps>
+
+## Restrict who can direct message you
+
+You can choose to only take part in direct message conversations where every
+other participant is able to authorize direct messages (a member of your
+organization's **Who can authorize a direct message conversation** group,
+such as moderators or admins). When this is enabled, a direct message that
+includes anyone who cannot authorize it will not be delivered, even if an
+authorizing user is also included.
+
+This is a personal setting, and it is stricter than any organization-level
+allowance: it applies even to users who could otherwise message you without
+an authorizer present. It also applies to direct messages you send, since a
+direct message is a two-way conversation.
+
+<ZulipNote>
+  Because this depends on your organization's **Who can authorize a direct
+  message conversation** group, the setting shows who can currently authorize
+  your direct messages once you enable it.
+</ZulipNote>
+
+<Tabs>
+  <TabItem label="Desktop/Web">
+    <FlattenedSteps>
+      <NavigationSteps target="settings/account-and-privacy" />
+
+      1. Under **Privacy**, toggle **Restrict direct messages to only those
+         who can authorize them**.
+    </FlattenedSteps>
+  </TabItem>
+</Tabs>
