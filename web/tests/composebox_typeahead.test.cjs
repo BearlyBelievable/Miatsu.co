@@ -2143,6 +2143,7 @@ test("get_person_suggestion_for_topic_typeahead respects DM permissions", ({over
     // Bot suggestion doesn't show up if there is no past conversation.
     override(realm, "realm_direct_message_permission_group", nobody.id);
     override(realm, "realm_direct_message_initiator_group", nobody.id);
+    override(realm, "realm_direct_message_self_authorize_group", nobody.id);
     let results = ct.get_person_suggestion_for_topic_typeahead("notification");
     assert.deepEqual(results, []);
 
@@ -3250,6 +3251,7 @@ test("get_pm_people respects DM permissions", ({override}) => {
     // When DMs are disabled realm-wide, lear should not appear in suggestions.
     override(realm, "realm_direct_message_permission_group", nobody.id);
     override(realm, "realm_direct_message_initiator_group", nobody.id);
+    override(realm, "realm_direct_message_self_authorize_group", nobody.id);
     let results = ct.get_pm_people("king lear");
     assert.deepEqual(results, []);
 
