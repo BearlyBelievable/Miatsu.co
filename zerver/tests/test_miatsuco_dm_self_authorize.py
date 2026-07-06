@@ -42,20 +42,16 @@ class MiatsucoDMSelfAuthorizeTest(ZulipTestCase):
         )
         group1 = check_add_user_group(realm, "group1", [g1_a, g1_b], acting_user=g1_a)
 
-        # Configure the stated scenario. Wrap realm setting changes in
-        # captureOnCommitCallbacks so their on_commit cache flushes run; the
-        # test transaction never commits, and without this a later send reads a
-        # stale cached realm (via sender.realm) and enforces the old setting.
-        with self.captureOnCommitCallbacks(execute=True):
-            do_change_realm_permission_group_setting(
-                realm, "direct_message_permission_group", moderators_group, acting_user=None
-            )
-            do_change_realm_permission_group_setting(
-                realm, "direct_message_initiator_group", members_group, acting_user=None
-            )
-            do_change_realm_permission_group_setting(
-                realm, "direct_message_self_authorize_group", group1, acting_user=None
-            )
+        # Configure the stated scenario.
+        do_change_realm_permission_group_setting(
+            realm, "direct_message_permission_group", moderators_group, acting_user=None
+        )
+        do_change_realm_permission_group_setting(
+            realm, "direct_message_initiator_group", members_group, acting_user=None
+        )
+        do_change_realm_permission_group_setting(
+            realm, "direct_message_self_authorize_group", group1, acting_user=None
+        )
         for user in (g1_a, g1_b, member, guest, moderator):
             user.refresh_from_db()
 
@@ -93,13 +89,12 @@ class MiatsucoDMSelfAuthorizeTest(ZulipTestCase):
             [member],
             [group1],
         )
-        with self.captureOnCommitCallbacks(execute=True):
-            do_change_realm_permission_group_setting(
-                realm,
-                "direct_message_self_authorize_group",
-                anonymous_self_authorize_group,
-                acting_user=None,
-            )
+        do_change_realm_permission_group_setting(
+            realm,
+            "direct_message_self_authorize_group",
+            anonymous_self_authorize_group,
+            acting_user=None,
+        )
         member.refresh_from_db()
         # Now member is a peer too, so group1 <-> member is authorized unmodded.
         self.send_personal_message(g1_a, member)
@@ -112,10 +107,9 @@ class MiatsucoDMSelfAuthorizeTest(ZulipTestCase):
         nobody_group = NamedUserGroup.objects.get(
             name=SystemGroups.NOBODY, realm_for_sharding=realm, is_system_group=True
         )
-        with self.captureOnCommitCallbacks(execute=True):
-            do_change_realm_permission_group_setting(
-                realm, "direct_message_self_authorize_group", nobody_group, acting_user=None
-            )
+        do_change_realm_permission_group_setting(
+            realm, "direct_message_self_authorize_group", nobody_group, acting_user=None
+        )
         for user in (g1_a, g1_b):
             user.refresh_from_db()
         with self.assertRaises(DirectMessagePermissionError):
