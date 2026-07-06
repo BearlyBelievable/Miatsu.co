@@ -125,3 +125,29 @@ class MiatsucoRestrictDMsToAuthorizersTest(ZulipTestCase):
             )
         g1_b.refresh_from_db()
         self.send_personal_message(g1_a, g1_b)
+
+        # When direct_message_permission_group is a named (non-system) group,
+        # authorizer membership is resolved by group membership rather than by
+        # role. Point the permission group at a named group and re-enable the
+        # restriction to exercise that path.
+        othello = self.example_user("othello")
+        named_authorizers = check_add_user_group(
+            realm, "named_authorizers", [othello], acting_user=g1_a
+        )
+        with self.captureOnCommitCallbacks(execute=True):
+            do_change_realm_permission_group_setting(
+                realm, "direct_message_permission_group", named_authorizers, acting_user=None
+            )
+            do_change_user_setting(
+                g1_b, "miatsuco_restrict_dms_to_authorizers", True, acting_user=None
+            )
+        for user in (g1_a, g1_b, othello):
+            user.refresh_from_db()
+
+        # othello is a member of the named authorizer group, so a DM to the
+        # opted-in g1_b is allowed.
+        self.send_personal_message(othello, g1_b)
+
+        # g1_a is not in the named authorizer group, so a DM to g1_b is blocked.
+        with self.assertRaises(DirectMessagePermissionError):
+            self.send_personal_message(g1_a, g1_b)
