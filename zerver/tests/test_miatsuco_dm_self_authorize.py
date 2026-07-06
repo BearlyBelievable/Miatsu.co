@@ -95,7 +95,11 @@ class MiatsucoDMSelfAuthorizeTest(ZulipTestCase):
             anonymous_self_authorize_group,
             acting_user=None,
         )
-        member.refresh_from_db()
+        # Refresh every participant, including the sender: check_message reads
+        # the realm via sender.realm, so a stale cached relation on the sender
+        # would enforce the previous self-authorize group.
+        for user in (g1_a, member, guest):
+            user.refresh_from_db()
         # Now member is a peer too, so group1 <-> member is authorized unmodded.
         self.send_personal_message(g1_a, member)
         # Guest is still not a peer, so still needs a mod.
