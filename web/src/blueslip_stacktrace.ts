@@ -128,25 +128,36 @@ export async function display_stacktrace(ex: unknown, message?: string): Promise
             });
             break;
         }
-        const stackframes: CleanStackFrame[] =
-            ex instanceof Error
-                ? await Promise.all(
-                      ErrorStackParser.parse(ex).map(async (location: StackFrame) => {
-                          try {
-                              location = await stack_trace_gps.getMappedLocation(location);
-                          } catch {
-                              // Use unmapped location
-                          }
-                          return {
-                              full_path: location.getFileName(),
-                              show_path: clean_path(location.getFileName()),
-                              line_number: location.getLineNumber(),
-                              function_name: clean_function_name(location.getFunctionName()),
-                              context: await get_context(location),
-                          };
-                      }),
-                  )
-                : [];
+        let parsed_stackframes: StackFrame[] = [];
+        if (ex instanceof Error) {
+            try {
+                parsed_stackframes = ErrorStackParser.parse(ex);
+            } catch {
+                // Some Error instances have no parseable stack (for example, a
+                // DOMException from a failed or interrupted
+                // HTMLMediaElement.play()), and ErrorStackParser throws on
+                // those. Degrade to an empty stacktrace rather than letting
+                // that throw escape the unhandledrejection handler and surface
+                // as a second, misleading "Cannot parse given Error object".
+                parsed_stackframes = [];
+            }
+        }
+        const stackframes: CleanStackFrame[] = await Promise.all(
+            parsed_stackframes.map(async (location: StackFrame) => {
+                try {
+                    location = await stack_trace_gps.getMappedLocation(location);
+                } catch {
+                    // Use unmapped location
+                }
+                return {
+                    full_path: location.getFileName(),
+                    show_path: clean_path(location.getFileName()),
+                    line_number: location.getLineNumber(),
+                    function_name: clean_function_name(location.getFunctionName()),
+                    context: await get_context(location),
+                };
+            }),
+        );
         let more_info: string | undefined;
         if (ex instanceof BlueslipError) {
             more_info = JSON.stringify(ex.more_info, null, 4);
