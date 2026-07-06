@@ -50,8 +50,14 @@ class MiatsucoRestrictDMsToAuthorizersTest(ZulipTestCase):
         # Baseline: group1 <-> group1 is allowed via the self-authorize path.
         self.send_personal_message(g1_a, g1_b)
 
-        # g1_b opts into the personal restriction.
-        do_change_user_setting(g1_b, "miatsuco_restrict_dms_to_authorizers", True, acting_user=None)
+        # g1_b opts into the personal restriction. Wrap the change in
+        # captureOnCommitCallbacks so the on_commit user-cache flush runs; the
+        # test transaction never commits, and without this a later send would
+        # read a stale cached UserProfile and miss the opt-in.
+        with self.captureOnCommitCallbacks(execute=True):
+            do_change_user_setting(
+                g1_b, "miatsuco_restrict_dms_to_authorizers", True, acting_user=None
+            )
         g1_b.refresh_from_db()
 
         # A self-authorized DM from non-authorizer g1_a to g1_b is now blocked:
@@ -91,7 +97,10 @@ class MiatsucoRestrictDMsToAuthorizersTest(ZulipTestCase):
 
         # With more than one opted-in recipient, the general message is used so
         # that no single recipient is identified.
-        do_change_user_setting(g1_a, "miatsuco_restrict_dms_to_authorizers", True, acting_user=None)
+        with self.captureOnCommitCallbacks(execute=True):
+            do_change_user_setting(
+                g1_a, "miatsuco_restrict_dms_to_authorizers", True, acting_user=None
+            )
         g1_a.refresh_from_db()
         with self.assertRaises(DirectMessagePermissionError) as blocked_group:
             self.send_group_direct_message(moderator, [moderator, g1_a, g1_b])
@@ -100,17 +109,19 @@ class MiatsucoRestrictDMsToAuthorizersTest(ZulipTestCase):
             "Some recipients only accept direct messages that include "
             "someone who can authorize them.",
         )
-        do_change_user_setting(
-            g1_a, "miatsuco_restrict_dms_to_authorizers", False, acting_user=None
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            do_change_user_setting(
+                g1_a, "miatsuco_restrict_dms_to_authorizers", False, acting_user=None
+            )
         g1_a.refresh_from_db()
 
         # Self-DMs are always allowed regardless of the setting.
         self.send_personal_message(g1_b, g1_b)
 
         # Turning the setting back off restores the self-authorize allowance.
-        do_change_user_setting(
-            g1_b, "miatsuco_restrict_dms_to_authorizers", False, acting_user=None
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            do_change_user_setting(
+                g1_b, "miatsuco_restrict_dms_to_authorizers", False, acting_user=None
+            )
         g1_b.refresh_from_db()
         self.send_personal_message(g1_a, g1_b)
