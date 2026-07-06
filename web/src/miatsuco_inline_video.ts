@@ -30,6 +30,29 @@ import $ from "jquery";
 // markdown output or editing its lightbox handler. See
 // docs/contributing/miatsuco-fork-conventions.md.
 
+// Map a video URL to the container MIME type the backend uses to decide the
+// file is an inline video (see is_video in zerver/lib/markdown/__init__.py:
+// video/mp4, video/quicktime, video/webm). The <video> carries only a src, no
+// type attribute, so the extension is all we have. This is a coarse container
+// check, not a codec check; it is used only to detect a browser that cannot
+// play the container at all, so returning undefined (proceed as normal) for
+// anything unrecognized is the safe default.
+function container_mime_type_for_url(src: string): string | undefined {
+    // Drop any query string or fragment before reading the extension.
+    const path = src.split(/[?#]/, 1)[0] ?? src;
+    const extension = path.split(".").pop()?.toLowerCase();
+    switch (extension) {
+        case "mp4":
+            return "video/mp4";
+        case "mov":
+            return "video/quicktime";
+        case "webm":
+            return "video/webm";
+        default:
+            return undefined;
+    }
+}
+
 export function enhance_inline_videos(content: JQuery): void {
     // Callers pass a container element whose inline videos are descendants
     // (the rendered-content hook passes the message content wrapper; the
@@ -47,6 +70,31 @@ export function enhance_inline_videos(content: JQuery): void {
         if ($video.length === 0) {
             return;
         }
+
+        // If the browser is certain it cannot play this container, present the
+        // download-link fallback instead of a player that would refuse to
+        // start. A refused native play() surfaces as a promise rejection, not
+        // an "error" event, so upstream's error handler never fires for it and
+        // the player would otherwise sit there snapping back to paused. We act
+        // only on canPlayType's definitive "" (cannot play); "maybe" and
+        // "probably" both proceed, so a file the browser might play is never
+        // hidden. This is a container check, not a codec check, so it does not
+        // catch a supported container holding an unsupported codec; that case
+        // still relies on the error-event fallback.
+        const video_element = $video[0];
+        const src = $video.attr("src");
+        if (
+            video_element !== undefined &&
+            typeof video_element.canPlayType === "function" &&
+            src !== undefined
+        ) {
+            const mime_type = container_mime_type_for_url(src);
+            if (mime_type !== undefined && video_element.canPlayType(mime_type) === "") {
+                $container.addClass("video-format-unsupported");
+                return;
+            }
+        }
+
         $container.attr("data-miatsuco-inline-video", "1");
 
         // Turn the poster preview into a real player.
