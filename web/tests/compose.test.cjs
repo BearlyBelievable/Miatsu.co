@@ -378,6 +378,17 @@ test_ui("send_message", ({override, override_rewire, mock_template}) => {
     (function test_param_error_function_passed_from_send_message() {
         stub_state = initialize_state_stub_dict();
 
+        // The locally-echoed failure path now also surfaces the reason as a
+        // compose banner, so the sender sees it even on touch devices where the
+        // message-row tooltip is not reachable.
+        let banner_rendered = false;
+        mock_template("compose_banner/compose_banner.hbs", false, (data) => {
+            assert.equal(data.classname, "generic_compose_error");
+            assert.equal(data.banner_text, "Error sending message: Server says 408");
+            banner_rendered = true;
+            return "<banner-stub>";
+        });
+
         compose.send_message();
 
         const state = {
@@ -387,6 +398,7 @@ test_ui("send_message", ({override, override_rewire, mock_template}) => {
         };
         assert.deepEqual(stub_state, state);
         assert.ok(echo_error_msg_checked);
+        assert.ok(banner_rendered);
     })();
 
     (function test_error_codepath_local_id_undefined() {
