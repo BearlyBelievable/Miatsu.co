@@ -408,6 +408,17 @@ export const update_elements = ($content: JQuery): void => {
     });
 
     $content.find("audio").each(function (): void {
+        // Skip audio we have already transformed. The rendered template below
+        // emits an <audio class="media-audio-element"> inside a wrapper, so a
+        // second update_elements pass on the same content (for example when a
+        // message row is re-rendered) would otherwise match that output and
+        // replace it again, destroying the live element and interrupting
+        // playback. Raw server-rendered audio has no class, so its absence
+        // marks an element as not yet enhanced.
+        if ($(this).hasClass("media-audio-element")) {
+            return;
+        }
+
         // We grab the audio source and title for
         // inserting into the template
         const audio_src = $(this).attr("src");

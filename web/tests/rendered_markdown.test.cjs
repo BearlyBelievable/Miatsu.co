@@ -220,6 +220,47 @@ run_test("message_inline_video_unsupported_format", () => {
     assert.ok($video_container.hasClass("video-format-unsupported"));
 });
 
+run_test("message_inline_video_unsupported_format_after_fork_enhance", () => {
+    // The fork turns inline video previews into real players (adds controls,
+    // the playable marker class). This must not disturb upstream's fallback:
+    // if playback then fails, the error handler should still hide the broken
+    // player via video-format-unsupported (CSS display:none), leaving the
+    // download link. Exercise both on the same element: enhance runs from
+    // update_elements, then a media error must still add the fallback class.
+    const $content = get_content_element();
+    const $video = $.create("video_element");
+    const $video_container = $.create("message_inline_video_container");
+    const $anchor = $.create("anchor_element");
+
+    // Wire the upstream error handler (matches ".message_inline_video video")
+    // and the fork enhancer (matches ".message_inline_video" containers) onto
+    // the same elements.
+    $video.set_closest_results(".message_inline_video", $video_container);
+    $content.set_find_results(".message_inline_video video", $video);
+    $content.set_find_results(".message_inline_video", $video_container);
+    $video_container.set_find_results("video", $video);
+    $video_container.set_find_results("a", $anchor);
+    // The container is playable enough to be enhanced (a non-empty
+    // canPlayType), so the fork turns it into a player; the error only comes
+    // later, at playback time.
+    $video.attr("src", "https://example.com/uploads/clip.webm");
+    $video[0].canPlayType = () => "probably";
+
+    rm.update_elements($content);
+
+    // The fork enhancement ran: the preview is now a marked player.
+    assert.equal($video_container.attr("data-miatsuco-inline-video"), "1");
+    assert.equal($video.attr("controls"), "true");
+    assert.ok($video_container.hasClass("miatsuco-inline-video-playable"));
+
+    // A later playback failure still triggers the fallback: the container is
+    // marked unsupported so the broken player is hidden and the download link
+    // remains reachable.
+    assert.ok(!$video_container.hasClass("video-format-unsupported"));
+    $video.trigger("error");
+    assert.ok($video_container.hasClass("video-format-unsupported"));
+});
+
 run_test("user-mention", ({override}) => {
     // Setup
     const $content = get_content_element();
@@ -752,6 +793,26 @@ run_test("audio error hides the player", () => {
     const error_handler = $audio.get_on_handler("error");
     error_handler();
     assert.ok($audio.hasClass("miatsuco-audio-format-unsupported"));
+});
+
+run_test("audio already enhanced is not replaced again", () => {
+    // A second update_elements pass on already-transformed content must not
+    // re-replace the audio, which would destroy a playing element and stop
+    // playback. Enhanced audio carries the media-audio-element class (raw
+    // server audio does not), so it is skipped and the template that would
+    // rebuild it is never rendered.
+    const $content = get_content_element();
+    const $audio = $.create("audio");
+    $audio.addClass("media-audio-element");
+    // Deliberately do not stub replaceWith: if the guard failed and the code
+    // tried to rebuild this element, the mock would throw on the unknown
+    // property and fail the test.
+    $content.set_find_results("audio", $audio);
+
+    rm.update_elements($content);
+
+    // Still the original element (not replaced), so playback would survive.
+    assert.ok($audio.hasClass("media-audio-element"));
 });
 
 run_test("timestamp", ({mock_template}) => {
