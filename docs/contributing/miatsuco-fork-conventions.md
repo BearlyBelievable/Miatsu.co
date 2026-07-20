@@ -322,6 +322,29 @@ hook when you really mean to. The hook cannot verify rendering, media
 playback, or browser quirks, so it prints a reminder to browser-test when
 a push touches those paths rather than pretending it checked them.
 
+## Upstreaming a Fork Feature
+
+Some fork features are improvements Zulip itself should have, not just
+fork-specific functionality. These follow a separate process from the
+rest when ready to send upstream.
+
+1. **Once a fork feature is proven stable, and if it's worth sending upstream,
+   build a second, independent implementation targeting current upstream `main`
+   directly.** This second implementation:
+   - Branches from a real upstream commit, since our `main` always carries
+     fork-only commits that must not appear in an upstream PR's history.
+   - Uses no `miatsuco_` prefix anywhere and follows upstream conventions
+     throughout for naming, tests, and commit style. None of the fork-specific
+     rules in this document apply to this branch.
+   - Stays rebased against upstream's current tip while the PR is open. Our fork
+     keeps running its own custom version, regardless of the upstream PR's
+     status.
+2. **Once accepted, reconciliation happens only during the periodic rebase onto
+   a new upstream stable release.** Acceptance upstream does not force any
+   immediate change to the fork. However, once the feature has been accepted and
+   is available in a new stable release, we will drop the custom implementation
+   and adopt the version that arrives with the rebase.
+
 ## Questions
 
 If something here is unclear, or you've hit a case this page doesn't cover, then
