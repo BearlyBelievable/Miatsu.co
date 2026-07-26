@@ -23,6 +23,8 @@ from zerver.lib.event_types import (
     BaseEvent,
     BotServicesEmbedded,
     BotServicesOutgoing,
+    BulkFieldRemediationCompletedEvent,
+    BulkFieldRemediationFailedEvent,
     ChannelFolderAddEvent,
     ChannelFolderReorderEvent,
     ChannelFolderUpdateEvent,
@@ -179,6 +181,8 @@ check_alert_words = make_checker(AlertWordsEvent)
 check_attachment_add = make_checker(AttachmentAddEvent)
 check_attachment_remove = make_checker(AttachmentRemoveEvent)
 check_attachment_update = make_checker(AttachmentUpdateEvent)
+check_bulk_field_remediation_completed = make_checker(BulkFieldRemediationCompletedEvent)
+check_bulk_field_remediation_failed = make_checker(BulkFieldRemediationFailedEvent)
 check_channel_folder_add = make_checker(ChannelFolderAddEvent)
 check_channel_folder_reorder = make_checker(ChannelFolderReorderEvent)
 check_custom_profile_fields = make_checker(CustomProfileFieldsEvent)

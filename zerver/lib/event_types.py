@@ -62,6 +62,18 @@ class AttachmentUpdateEvent(BaseEvent):
     upload_space_used: int
 
 
+class BulkFieldRemediationFailedEvent(BaseEvent):
+    type: Literal["bulk_field_remediation"]
+    op: Literal["failed"]
+    field_name: str
+
+
+class BulkFieldRemediationCompletedEvent(BaseEvent):
+    type: Literal["bulk_field_remediation"]
+    op: Literal["completed"]
+    field_name: str
+
+
 class ChannelFolderForChannelFolderAddEvent(BaseModel):
     id: int
     name: str
