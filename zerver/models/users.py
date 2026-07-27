@@ -753,6 +753,10 @@ class UserProfile(AbstractBaseUser, PermissionsMixin, UserBaseSettings):
         ]
         indexes = [
             models.Index(Upper("email"), name="upper_userprofile_email_idx"),
+            models.Index(
+                fields=["realm", "email_address_visibility"],
+                name="zerver_userprofile_realm_email_visibility",
+            ),
         ]
 
     @override
