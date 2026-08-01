@@ -20763,6 +20763,26 @@ paths:
                           Whether users are allowed to change their own email address in this
                           organization. This is typically disabled for organizations that
                           synchronize accounts from LDAP or a similar corporate database.
+                      realm_email_address_visibility_max:
+                        type: integer
+                        description: |
+                          Present if `realm` is present in `fetch_event_types`.
+
+                          The most open `email_address_visibility` value organization members
+                          are permitted to choose for themselves. Specific to the MiAtSu.Co
+                          fork.
+
+                          **Changes**: New in Miatsuco 0.1-dev.
+                      realm_email_address_visibility_min:
+                        type: integer
+                        description: |
+                          Present if `realm` is present in `fetch_event_types`.
+
+                          The most restrictive `email_address_visibility` value organization
+                          members are permitted to choose for themselves. Specific to the
+                          MiAtSu.Co fork.
+
+                          **Changes**: New in Miatsuco 0.1-dev.
                       realm_invite_required:
                         type: boolean
                         description: |

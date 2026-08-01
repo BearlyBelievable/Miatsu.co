@@ -123,6 +123,20 @@ files, rather than being added into a file that upstream maintains. For example:
 - **Contributor-facing docs**: This page and anything like it goes in
   `docs/contributing/`, alongside (not merged into) Zulip's own pages, and
   gets linked from `docs/contributing/index.md`'s toctree.
+- **API documentation**: For a genuinely new endpoint, tag it
+  `intentionally_undocumented` in `zproject/urls.py` and draft its
+  OpenAPI content in
+  [`docs/contributing/miatsuco-upstream-api-drafts.md`](miatsuco-upstream-api-drafts.md)
+  instead of `zerver/openapi/zulip.yaml`, dropping it back in essentially
+  as-is once the change has been discussed and approved in the
+  [#api design](https://chat.zulip.org/#narrow/channel/378-api-design)
+  channel and its PR has merged, per upstream's own [API change
+  process](../processes/api-design.md). At that point,
+  `tools/merge-api-changelogs` assigns the real `API_FEATURE_LEVEL`.
+  For a new field on an endpoint that's already documented (e.g.,
+  `/register`), document it normally instead, with `**Changes**: New
+in Miatsuco X.Y-dev.` in place of a real feature level, following
+  `miatsuco_version`'s own precedent.
 - **Tests**: each fork feature gets its own test module named for the
   feature, `zerver/tests/test_miatsuco_<feature>.py` (e.g.,
   `test_miatsuco_upload_preview.py`, `test_miatsuco_ogg_audio.py`). Do

@@ -7,6 +7,7 @@ maxdepth: 3
 
 contributing
 miatsuco-fork-conventions
+miatsuco-upstream-api-drafts
 ../code-of-conduct
 how-we-communicate
 asking-great-questions

@@ -476,6 +476,9 @@ def fetch_initial_state_data(
         # Most state is handled via the property_types framework;
         # these manual entries are for those realm settings that don't
         # fit into that framework.
+        state["realm_email_address_visibility_max"] = realm.email_address_visibility_max
+        state["realm_email_address_visibility_min"] = realm.email_address_visibility_min
+
         realm_authentication_methods_dict = realm.authentication_methods_dict()
         state["realm_authentication_methods"] = (
             get_realm_authentication_methods_for_page_params_api(

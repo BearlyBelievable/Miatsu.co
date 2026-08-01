@@ -383,6 +383,14 @@ class Realm(models.Model):
         "UserGroup", on_delete=models.RESTRICT, related_name="+"
     )
 
+    # Controls max/min email_address_visibility for users.
+    email_address_visibility_max = models.PositiveSmallIntegerField(
+        default=UserProfile.EMAIL_ADDRESS_VISIBILITY_EVERYONE
+    )
+    email_address_visibility_min = models.PositiveSmallIntegerField(
+        default=UserProfile.EMAIL_ADDRESS_VISIBILITY_NOBODY
+    )
+
     # on_delete field here is set to RESTRICT because we don't want to allow
     # deleting a user group in case it is referenced by this setting.
     # We are not using PROTECT since we want to allow deletion of user groups
