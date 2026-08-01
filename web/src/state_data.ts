@@ -516,6 +516,8 @@ export const realm_schema = z.object({
     realm_direct_message_self_authorize_group: group_setting_value_schema,
     realm_disallow_disposable_email_addresses: z.boolean(),
     realm_domains: z.array(realm_domain_schema),
+    realm_email_address_visibility_max: z.number(),
+    realm_email_address_visibility_min: z.number(),
     realm_email_auth_enabled: z.boolean(),
     realm_email_changes_disabled: z.boolean(),
     realm_emails_restricted_to_domains: z.boolean(),

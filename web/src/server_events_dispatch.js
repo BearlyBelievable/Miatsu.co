@@ -356,6 +356,8 @@ export function dispatch_normal_event(event) {
                 enable_guest_user_dm_warning: compose_validate.warn_if_guest_in_dm_recipient,
                 enable_guest_user_indicator: noop,
                 workplace_users_group: noop,
+                email_address_visibility_max: noop,
+                email_address_visibility_min: noop,
             };
             switch (event.op) {
                 case "update":
