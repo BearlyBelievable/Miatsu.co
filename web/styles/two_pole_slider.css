@@ -1,0 +1,215 @@
+.two-pole-slider {
+    --track-height: 4px;
+    --dot-size: 14px;
+    --handle-size: 16px;
+    --click-zone-top-offset: 0px;
+    --click-zone-bottom-offset: 0px;
+    --track-and-dot-color: light-dark(
+        color-mix(in srgb, hsl(0deg 0% 0%) 7%, var(--color-background)),
+        color-mix(in srgb, hsl(0deg 0% 0%) 30%, var(--color-background))
+    );
+    --handle-interior-color: light-dark(
+        hsl(0deg 0% 100%),
+        color-mix(in srgb, hsl(0deg 0% 100%) 7%, var(--color-background))
+    );
+
+    &.two-pole-slider-locked {
+        opacity: 0.6;
+    }
+
+    /* --- Generic styling, shared by any position --- */
+
+    &.noUi-target {
+        height: var(--track-height);
+        border: none;
+        border-radius: 2px;
+        background-color: var(--track-and-dot-color);
+        box-shadow: none;
+    }
+
+    & .noUi-base {
+        position: relative;
+    }
+
+    & .two-pole-slider-click-zones {
+        position: absolute;
+        top: calc(-1 * var(--click-zone-top-offset));
+        bottom: calc(-1 * var(--click-zone-bottom-offset));
+        left: 0;
+        right: 0;
+        z-index: 0;
+    }
+
+    & .two-pole-slider-click-zone {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: var(--zone-left);
+        right: var(--zone-right);
+        cursor: pointer;
+    }
+
+    & .noUi-connect {
+        background-color: var(--color-background-brand-solid-action-button);
+    }
+
+    & .noUi-handle {
+        right: calc(var(--handle-size) / -2);
+        width: var(--handle-size);
+        height: var(--handle-size);
+        top: -6px;
+        border: 2px solid var(--color-background-brand-solid-action-button);
+        border-radius: 50%;
+        background-color: var(--handle-interior-color);
+        box-shadow: none;
+        cursor: grab;
+
+        &::before,
+        &::after {
+            content: none;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--color-background-brand-solid-action-button);
+            outline-offset: 2px;
+        }
+
+        &:active {
+            cursor: grabbing;
+        }
+
+        & .noUi-touch-area {
+            /* Negative offsets expand the touch area beyond the handle's visible circle. */
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            bottom: -10px;
+            left: -10px;
+            width: auto;
+            height: auto;
+        }
+    }
+
+    &.two-pole-slider-tied {
+        & .noUi-handle-lower {
+            right: 0;
+
+            & .noUi-touch-area {
+                right: -2px;
+            }
+        }
+
+        & .noUi-handle-upper {
+            right: calc(var(--handle-size) * -1);
+
+            & .noUi-touch-area {
+                left: -2px;
+            }
+        }
+    }
+
+    & .noUi-pips-horizontal {
+        top: -15px;
+        height: 60px;
+    }
+
+    & .noUi-marker {
+        width: var(--dot-size);
+        height: var(--dot-size);
+        margin-left: calc(var(--dot-size) / -2);
+        border-radius: 50%;
+        background-color: var(--track-and-dot-color);
+        cursor: pointer;
+    }
+
+    & .noUi-value {
+        color: var(--color-text-placeholder);
+        font-size: 0.75em;
+        margin-top: 14px;
+        cursor: pointer;
+    }
+
+    & .noUi-tooltip {
+        color: var(--color-text-placeholder);
+        font-size: 0.75em;
+        background: none;
+        border: none;
+        padding: 0;
+        margin-bottom: 2px;
+        left: 50%;
+        right: auto;
+        transform: translate(-50%, 0);
+    }
+
+    &.two-pole-slider-tied .noUi-handle-upper .noUi-tooltip {
+        transform: translate(
+            calc(-50% - (var(--measured-handle-width) / 2)),
+            0
+        );
+    }
+
+    &.two-pole-slider-tied .noUi-handle-lower .noUi-tooltip,
+    &.two-pole-slider-tied-at-start .noUi-handle-lower .noUi-tooltip,
+    &.two-pole-slider-tied-at-end .noUi-handle-lower .noUi-tooltip {
+        display: none;
+    }
+
+    /* --- Left-edge-specific styling --- */
+
+    & .two-pole-slider-click-zone-start {
+        left: calc(0% - (var(--handle-size) / 2));
+    }
+
+    &.two-pole-slider-tied-at-start {
+        & .noUi-handle-lower {
+            right: calc(var(--handle-size) / -2);
+        }
+
+        & .noUi-handle-upper {
+            right: calc(var(--handle-size) * -1.5);
+        }
+    }
+
+    &.two-pole-slider-lower-at-start .noUi-handle-lower .noUi-tooltip {
+        left: -2px;
+        right: auto;
+        transform: translate(0, 0);
+    }
+
+    &.two-pole-slider-tied-at-start .noUi-handle-upper .noUi-tooltip {
+        left: -2px;
+        right: auto;
+        transform: translate(calc(var(--measured-handle-width) * -1), 0);
+    }
+
+    & .noUi-value.two-pole-slider-label-start {
+        transform: translate(calc(0% - (var(--handle-size) / 2)), 50%);
+    }
+
+    /* --- Right-edge-specific styling --- */
+
+    & .two-pole-slider-click-zone-end {
+        right: calc(0% - (var(--handle-size) / 2));
+    }
+
+    &.two-pole-slider-tied-at-end {
+        & .noUi-handle-lower {
+            right: calc(var(--handle-size) / 2);
+        }
+
+        & .noUi-handle-upper {
+            right: calc(var(--handle-size) / -2);
+        }
+    }
+
+    &.two-pole-slider-upper-at-end .noUi-handle-upper .noUi-tooltip,
+    &.two-pole-slider-tied-at-end .noUi-handle-upper .noUi-tooltip {
+        left: auto;
+        right: -2px;
+        transform: translate(0, 0);
+    }
+
+    & .noUi-value.two-pole-slider-label-end {
+        transform: translate(calc(-100% + (var(--handle-size) / 2)), 50%);
+    }
+}
