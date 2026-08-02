@@ -155,7 +155,7 @@ class BulkFieldRemediationWorkerTest(ZulipTestCase):
         ):
             worker.consume({"job_id": job.id})
 
-        self.assertEqual(len(error_logs.output), 1)
+        self.assert_length(error_logs.output, 1)
         self.assertIn("Failed email_address_visibility remediation for realm", error_logs.output[0])
 
         job.refresh_from_db()

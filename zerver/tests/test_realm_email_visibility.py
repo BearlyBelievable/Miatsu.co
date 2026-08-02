@@ -101,7 +101,7 @@ class UpdateEmailVisibilityPolicyTest(ZulipTestCase):
         with self.assertLogs(level="WARNING") as warn_logs:
             result = self.client_patch("/json/realm/email_visibility_policy", req)
         self.assert_json_success(result)
-        self.assertEqual(len(warn_logs.output), 1)
+        self.assert_length(warn_logs.output, 1)
         self.assertIn("Marking stale email_address_visibility remediation job", warn_logs.output[0])
 
         stale_job.refresh_from_db()
