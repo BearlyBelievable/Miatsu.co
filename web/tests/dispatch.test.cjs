@@ -31,6 +31,7 @@ const {electron_bridge} = mock_esm("../src/electron_bridge", {
 const theme = mock_esm("../src/theme");
 const emoji_frequency = mock_esm("../src/emoji_frequency");
 const emoji_picker = mock_esm("../src/emoji_picker");
+const email_visibility_policy = mock_esm("../src/email_visibility_policy");
 const gear_menu = mock_esm("../src/gear_menu");
 mock_esm("../src/inbox_ui", {
     complete_rerender: noop,
@@ -1710,4 +1711,62 @@ run_test("realm_user_settings_defaults", ({override}) => {
     dispatch(event);
     assert_same(realm_user_settings_defaults.notification_sound, "ding");
     assert_same(called, true);
+});
+
+run_test("bulk_field_remediation email_address_visibility failed", () => {
+    let called = false;
+    email_visibility_policy.handle_remediation_failed_event = () => {
+        called = true;
+    };
+    dispatch(event_fixtures.bulk_field_remediation__failed);
+    assert.ok(called);
+});
+
+run_test("bulk_field_remediation email_address_visibility completed", () => {
+    let called = false;
+    email_visibility_policy.handle_remediation_completed_event = () => {
+        called = true;
+    };
+    dispatch(event_fixtures.bulk_field_remediation__completed);
+    assert.ok(called);
+});
+
+run_test("bulk_field_remediation for an unrelated field does nothing", () => {
+    email_visibility_policy.handle_remediation_failed_event = () => {
+        /* istanbul ignore next */
+        throw new Error("handler should not be called for an unrelated field");
+    };
+    email_visibility_policy.handle_remediation_completed_event = () => {
+        /* istanbul ignore next */
+        throw new Error("handler should not be called for an unrelated field");
+    };
+    dispatch({
+        type: "bulk_field_remediation",
+        field_name: "some_other_field",
+        op: "failed",
+    });
+});
+
+run_test("bulk_field_remediation for an unrelated op does nothing", () => {
+    email_visibility_policy.handle_remediation_failed_event = () => {
+        /* istanbul ignore next */
+        throw new Error("handler should not be called for an unrelated op");
+    };
+    dispatch({
+        type: "bulk_field_remediation",
+        field_name: "email_address_visibility",
+        op: "some_other_op",
+    });
+});
+
+run_test("realm update_dict email_visibility_policy", () => {
+    let called_with;
+    email_visibility_policy.handle_policy_update_event = (data) => {
+        called_with = data;
+    };
+    const event = event_fixtures.realm__update_dict__email_visibility_policy;
+
+    dispatch(event);
+
+    assert.deepEqual(called_with, event.data);
 });

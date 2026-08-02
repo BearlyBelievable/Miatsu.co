@@ -33,19 +33,14 @@
 
     & .two-pole-slider-click-zones {
         position: absolute;
-        top: calc(-1 * var(--click-zone-top-offset));
-        bottom: calc(-1 * var(--click-zone-bottom-offset));
-        left: 0;
-        right: 0;
+        inset: calc(-1 * var(--click-zone-top-offset)) 0
+            calc(-1 * var(--click-zone-bottom-offset));
         z-index: 0;
     }
 
     & .two-pole-slider-click-zone {
         position: absolute;
-        top: 0;
-        bottom: 0;
-        left: var(--zone-left);
-        right: var(--zone-right);
+        inset: 0 var(--zone-right) 0 var(--zone-left);
         cursor: pointer;
     }
 
@@ -81,10 +76,7 @@
         & .noUi-touch-area {
             /* Negative offsets expand the touch area beyond the handle's visible circle. */
             position: absolute;
-            top: -10px;
-            right: -10px;
-            bottom: -10px;
-            left: -10px;
+            inset: -10px;
             width: auto;
             height: auto;
         }

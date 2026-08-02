@@ -1,6 +1,6 @@
-import noUiSlider from "nouislider";
+import assert from "minimalistic-assert";
 import type {API, PartialFormatter} from "nouislider";
-import {PipsMode} from "nouislider";
+import noUiSlider, {PipsMode} from "nouislider";
 
 export type TwoPoleSliderOptions = {
     container: HTMLElement;
@@ -37,6 +37,7 @@ export class TwoPoleSlider {
             {to: () => options.upper_pole_label},
         ];
 
+        // eslint-disable-next-line import/no-named-as-default-member
         this.slider = noUiSlider.create(options.container, {
             start: [this.saved_lower_index, this.saved_upper_index],
             connect: [false, true, false],
@@ -61,9 +62,9 @@ export class TwoPoleSlider {
             },
         });
 
-        const pip_labels = options.container.querySelectorAll<HTMLElement>(".noUi-value");
+        const pip_labels = [...options.container.querySelectorAll<HTMLElement>(".noUi-value")];
         pip_labels[0]?.classList.add(options.label_start_css_class);
-        pip_labels[pip_labels.length - 1]?.classList.add(options.label_end_css_class);
+        pip_labels.at(-1)?.classList.add(options.label_end_css_class);
 
         // Only the slider itself is clickable by default, so this
         // creates large clickable zones to make touch interaction
@@ -79,11 +80,14 @@ export class TwoPoleSlider {
         // element already sitting exactly at the pole, so centering
         // a tooltip within it needs no special-case CSS at all.
         const handles = options.container.querySelectorAll<HTMLElement>(".noUi-handle");
-        this.slider.getTooltips()?.forEach((tooltip, index) => {
-            if (tooltip) {
-                handles[index]!.append(tooltip);
+        const tooltip_elements = this.slider.getTooltips();
+        if (tooltip_elements) {
+            for (const [index, tooltip] of tooltip_elements.entries()) {
+                if (tooltip) {
+                    handles[index]!.append(tooltip);
+                }
             }
-        });
+        }
 
         this.slider.on("update", () => {
             this.sync_proxy_inputs();
@@ -93,8 +97,10 @@ export class TwoPoleSlider {
     }
 
     current_indices(): [number, number] {
-        const [lower_position, upper_position] = this.slider.get(true) as [number, number];
-        return [Math.round(lower_position), Math.round(upper_position)];
+        const result = this.slider.get(true);
+        assert(Array.isArray(result), "expected an array from a two-handle slider");
+        const [lower_position, upper_position] = result;
+        return [Math.round(Number(lower_position)), Math.round(Number(upper_position))];
     }
 
     is_dirty(): boolean {
@@ -225,11 +231,9 @@ export class TwoPoleSlider {
         );
 
         const tooltips = this.slider.getTooltips();
-        const lower_tooltip = tooltips ? tooltips[0] : false;
-        const upper_tooltip = tooltips ? tooltips[1] : false;
-        if (!lower_tooltip || !upper_tooltip) {
-            return;
-        }
+        assert(tooltips, "expected tooltips to be configured");
+        const [lower_tooltip, upper_tooltip] = tooltips;
+        assert(lower_tooltip && upper_tooltip, "expected both handles to have a tooltip");
 
         upper_tooltip.textContent = tied ? options.tied_label : options.upper_pole_label;
 

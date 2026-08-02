@@ -942,6 +942,7 @@ input[type="checkbox"] {
 
     & #email_visibility_policy_slider {
         margin: 0 10px;
+
         --click-zone-top-offset: 8px;
         --click-zone-bottom-offset: 40px;
     }
