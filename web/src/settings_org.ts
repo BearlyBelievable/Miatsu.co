@@ -83,6 +83,12 @@ export function maybe_disable_widgets(): void {
         $("#org-message-retention").find("input, select").prop("disabled", true);
         $("#org-join-settings").find("input, select, button").prop("disabled", true);
         $("#id_realm_invite_required_label").parent().addClass("control-label-disabled");
+        // Owner-only now too, matching emails_restricted_to_domains and
+        // disallow_disposable_email_addresses just above.
+        $("#realm_email_address_visibility").prop("disabled", true);
+        $("#realm_email_address_visibility")
+            .closest(".input-group")
+            .addClass("control-label-disabled");
         return;
     }
 

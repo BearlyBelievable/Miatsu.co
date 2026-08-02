@@ -71,7 +71,7 @@ from zerver.lib.user_groups import (
     get_recursive_group_members_union_for_groups,
     user_group_ids_to_user_groups,
 )
-from zerver.lib.users import user_ids_to_users
+from zerver.lib.users import email_address_visibility_allowed, user_ids_to_users
 from zerver.models import EmailChangeStatus, RealmAuditLog, UserBaseSettings, UserProfile
 from zerver.models.realm_audit_logs import AuditLogEventType
 from zerver.models.realms import avatar_changes_disabled, name_changes_disabled
@@ -538,6 +538,12 @@ def json_change_settings(
         else:
             # Note that check_change_full_name strips the passed name automatically
             check_change_full_name(user_profile, full_name, user_profile)
+
+    # This only ever applies to a user changing their own value.
+    if email_address_visibility and not email_address_visibility_allowed(
+        user_profile.realm, email_address_visibility
+    ):
+        raise JsonableError(_("That email address visibility is not allowed in this organization."))
 
     for k, v in request_settings.items():
         if getattr(user_profile, k) != v:
