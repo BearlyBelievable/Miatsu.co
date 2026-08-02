@@ -7,7 +7,6 @@ import render_confirm_reset_user_configuration from "../templates/settings/confi
 import * as audible_notifications from "./audible_notifications.ts";
 import * as channel from "./channel.ts";
 import * as dialog_widget from "./dialog_widget.ts";
-import * as email_visibility_policy from "./email_visibility_policy.ts";
 import {$t, $t_html} from "./i18n.ts";
 import * as information_density from "./information_density.ts";
 import * as overlays from "./overlays.ts";
@@ -181,14 +180,6 @@ export function set_up(): void {
     settings_notifications.set_up(realm_default_settings_panel);
 
     $("#realm_email_address_visibility").val(realm_user_settings_defaults.email_address_visibility);
-
-    email_visibility_policy.setup();
-
-    settings_org.register_save_discard_widget_handlers(
-        $("#org-email-visibility-policy"),
-        "/json/realm/email_visibility_policy",
-        false,
-    );
 
     settings_org.register_save_discard_widget_handlers(
         $container,
