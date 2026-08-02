@@ -580,7 +580,13 @@ export function change_save_button_state(
         fadeout_callback: (this: HTMLElement) => void,
     ): void {
         if (show) {
-            $element.removeClass("hide").addClass(".show").fadeIn(300);
+            if ($element.is(":visible")) {
+                return;
+            }
+            $element.hide().removeClass("hide").addClass(".show").fadeIn(300);
+            return;
+        }
+        if (!$element.is(":visible")) {
             return;
         }
         setTimeout(() => {
