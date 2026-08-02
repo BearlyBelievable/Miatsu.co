@@ -8,6 +8,7 @@ import FlattenedSteps from "../../components/FlattenedSteps.astro";
 import NavigationSteps from "../../components/NavigationSteps.astro";
 import ZulipNote from "../../components/ZulipNote.astro";
 import AdminOnly from "../include/_AdminOnly.mdx";
+import OwnerOnly from "../include/_OwnerOnly.mdx";
 import SaveChanges from "../include/_SaveChanges.mdx";
 
 This page documents features specific to Miatsuco's fork of Zulip. They are
@@ -133,3 +134,35 @@ direct message is a two-way conversation.
     </FlattenedSteps>
   </TabItem>
 </Tabs>
+
+## Configure a permitted range for email address visibility
+
+<OwnerOnly />
+
+Each organization member can independently choose their own [email address
+visibility](/help/configure-email-visibility) setting, anywhere from visible
+to everyone down to visible to nobody. This fork adds a companion setting
+that lets organization owners constrain that choice to a permitted range, so
+a member can still pick their own value, but only within bounds the owner
+allows.
+
+If any member's personal visibility setting would fall outside the new
+range, they'll be included in a sum total of affected users displayed below
+the setting, before any change is actually made. If the changes are saved,
+any members outside that range will have their visibility moved to the next
+closest allowed option automatically.
+
+<ZulipNote>
+  This range applies uniformly to every member, including organization owners.
+</ZulipNote>
+
+If you are an organization owner, you can set this range as follows.
+
+<FlattenedSteps>
+  <NavigationSteps target="settings/organization-permissions" />
+
+  1. Under **Email visibility range**, drag the two handles to set the
+     maximum and minimum visibility members may choose.
+
+  <SaveChanges />
+</FlattenedSteps>
