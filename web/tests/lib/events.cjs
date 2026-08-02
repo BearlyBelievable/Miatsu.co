@@ -148,6 +148,18 @@ exports.fixtures = {
         upload_space_used: 90000,
     },
 
+    bulk_field_remediation__completed: {
+        type: "bulk_field_remediation",
+        field_name: "email_address_visibility",
+        op: "completed",
+    },
+
+    bulk_field_remediation__failed: {
+        type: "bulk_field_remediation",
+        field_name: "email_address_visibility",
+        op: "failed",
+    },
+
     channel_folder__add: {
         type: "channel_folder",
         op: "add",
@@ -482,6 +494,17 @@ exports.fixtures = {
             upload_quota_mib: 50000,
             max_file_upload_size_mib: 1024,
             topics_policy: "disable_empty_topic",
+        },
+    },
+
+    realm__update_dict__email_visibility_policy: {
+        type: "realm",
+        op: "update_dict",
+        property: "email_visibility_policy",
+        data: {
+            max: 1,
+            min: 4,
+            running: false,
         },
     },
 

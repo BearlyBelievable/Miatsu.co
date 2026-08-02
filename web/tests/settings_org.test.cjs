@@ -28,6 +28,10 @@ mock_esm("../src/ui_util", {
     disable_element_and_add_tooltip: noop,
     enable_element_and_remove_tooltip: noop,
 });
+mock_esm("../src/email_visibility_policy", {
+    setup: noop,
+    reset_slider_to_saved: noop,
+});
 set_global("document", "document-stub");
 
 set_global("requestAnimationFrame", (func) => func());

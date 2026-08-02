@@ -7,6 +7,7 @@ import render_settings_organization_settings_tip from "../templates/settings/org
 
 import * as bot_data from "./bot_data.ts";
 import * as demo_organizations_ui from "./demo_organizations_ui.ts";
+import * as email_visibility_policy from "./email_visibility_policy.ts";
 import {$t, language_list} from "./i18n.ts";
 import * as information_density from "./information_density.ts";
 import {page_params} from "./page_params.ts";
@@ -246,7 +247,8 @@ export function build_page(): void {
         msg_edit_limit_dropdown_values: settings_config.msg_edit_limit_dropdown_values,
         msg_delete_limit_dropdown_values: settings_config.msg_delete_limit_dropdown_values,
         msg_move_limit_dropdown_values: settings_config.msg_move_limit_dropdown_values,
-        email_address_visibility_values: settings_config.email_address_visibility_values,
+        email_address_visibility_values:
+            email_visibility_policy.get_allowed_email_address_visibility_values(),
         waiting_period_threshold_dropdown_values:
             settings_config.waiting_period_threshold_dropdown_values,
         message_edit_history_visibility_policy_values:

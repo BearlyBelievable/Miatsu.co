@@ -14,6 +14,7 @@ import {csrf_token} from "./csrf.ts";
 import * as demo_organization_ui from "./demo_organizations_ui.ts";
 import * as dialog_widget from "./dialog_widget.ts";
 import * as dropdown_widget from "./dropdown_widget.ts";
+import * as email_visibility_policy from "./email_visibility_policy.ts";
 import * as group_permission_settings from "./group_permission_settings.ts";
 import {
     type RealmGroupSettingNameSupportingAnonymousGroups,
@@ -783,6 +784,10 @@ export function discard_realm_property_element_changes(elem: HTMLElement): void 
             unsaved_welcome_message_custom_text = "";
             set_welcome_message_custom_text_visibility();
             break;
+        case "realm_email_address_visibility_max":
+        case "realm_email_address_visibility_min":
+            email_visibility_policy.reset_slider_to_saved();
+            break;
         default:
             if (property_value !== undefined) {
                 const validated_property_value = z
@@ -1312,6 +1317,7 @@ export function save_organization_settings(
 export function set_up(): void {
     build_page();
     maybe_disable_widgets();
+    email_visibility_policy.setup();
 }
 
 function set_up_dropdown_widget(
@@ -1688,6 +1694,11 @@ export function build_page(): void {
     set_two_tier_billing_settings_visibility();
 
     register_save_discard_widget_handlers($(".admin-realm-form"), "/json/realm", false);
+    register_save_discard_widget_handlers(
+        $("#org-email-visibility-policy"),
+        "/json/realm/email_visibility_policy",
+        false,
+    );
     maybe_restore_unsaved_welcome_message_custom_text();
 
     update_description_empty_state();

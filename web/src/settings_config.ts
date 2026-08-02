@@ -32,7 +32,7 @@ import * as util from "./util.ts";
     API documentation) without a ton of copying.
 */
 
-type SettingDescription<T> = {
+export type SettingDescription<T> = {
     code: T;
     description: string;
 };

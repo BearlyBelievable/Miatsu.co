@@ -9,6 +9,7 @@ import render_settings_tab from "../templates/settings_tab.hbs";
 import * as bot_data from "./bot_data.ts";
 import * as browser_history from "./browser_history.ts";
 import * as common from "./common.ts";
+import * as email_visibility_policy from "./email_visibility_policy.ts";
 import * as flatpickr from "./flatpickr.ts";
 import {$t} from "./i18n.ts";
 import * as information_density from "./information_density.ts";
@@ -149,7 +150,8 @@ export function build_page(): void {
             defaultMessage: "Read receipts are currently disabled in this organization.",
         }),
         user_is_only_organization_owner: people.is_current_user_only_owner(),
-        email_address_visibility_values: settings_config.email_address_visibility_values,
+        email_address_visibility_values:
+            email_visibility_policy.get_allowed_email_address_visibility_values(),
         owner_is_only_user_in_organization: people.get_active_human_count() === 1,
         user_can_change_password: user_can_change_password(),
         user_role_values: settings_config.user_role_values,

@@ -18,6 +18,7 @@ import * as compose_recipient from "./compose_recipient.ts";
 import * as compose_state from "./compose_state.ts";
 import * as compose_validate from "./compose_validate.ts";
 import {electron_bridge} from "./electron_bridge.ts";
+import * as email_visibility_policy from "./email_visibility_policy.ts";
 import * as emoji from "./emoji.ts";
 import * as emoji_frequency from "./emoji_frequency.ts";
 import * as emoji_picker from "./emoji_picker.ts";
@@ -464,6 +465,9 @@ export function dispatch_normal_event(event) {
                                 );
                             }
                             break;
+                        case "email_visibility_policy":
+                            email_visibility_policy.handle_policy_update_event(event.data);
+                            break;
                         case "icon":
                             realm.realm_icon_url = event.data.icon_url;
                             realm.realm_icon_source = event.data.icon_source;
@@ -548,6 +552,16 @@ export function dispatch_normal_event(event) {
                 default:
                     blueslip.error("Unexpected event type realm_emoji/" + event.op);
                     break;
+            }
+            break;
+
+        case "bulk_field_remediation":
+            if (event.field_name === "email_address_visibility") {
+                if (event.op === "failed") {
+                    email_visibility_policy.handle_remediation_failed_event();
+                } else if (event.op === "completed") {
+                    email_visibility_policy.handle_remediation_completed_event();
+                }
             }
             break;
 
