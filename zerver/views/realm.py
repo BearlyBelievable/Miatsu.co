@@ -56,6 +56,7 @@ from zerver.lib.user_groups import (
     validate_can_manage_all_groups,
     validate_group_setting_value_change,
 )
+from zerver.lib.users import email_address_visibility_allowed
 from zerver.lib.validator import check_capped_url, check_string
 from zerver.lib.workplace_users import (
     realm_eligible_for_non_workplace_pricing,
@@ -830,9 +831,21 @@ def update_realm_user_settings_defaults(
     if notification_sound is not None or email_notifications_batching_period_seconds is not None:
         check_settings_values(notification_sound, email_notifications_batching_period_seconds)
 
+    if email_address_visibility:
+        # Matches its closest siblings in update_realm
+        # (emails_restricted_to_domains, disallow_disposable_email_addresses).
+        if not user_profile.is_realm_owner:
+            raise OrganizationOwnerRequiredError
+
+        if not email_address_visibility_allowed(user_profile.realm, email_address_visibility):
+            raise JsonableError(
+                _("That email address visibility is not allowed in this organization.")
+            )
+
     realm_user_default = RealmUserDefault.objects.get(realm=user_profile.realm)
 
     request_settings = {k: v for k, v in locals().items() if k in RealmUserDefault.property_types}
+
     for k, v in request_settings.items():
         if v is not None and getattr(realm_user_default, k) != v:
             do_set_realm_user_default_setting(realm_user_default, k, v, acting_user=user_profile)

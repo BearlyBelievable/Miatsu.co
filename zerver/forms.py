@@ -40,7 +40,7 @@ from zerver.lib.rate_limiter import (
     should_rate_limit,
 )
 from zerver.lib.subdomains import get_subdomain, is_root_domain_available
-from zerver.lib.users import check_full_name
+from zerver.lib.users import check_full_name, email_address_visibility_options
 from zerver.models import PreregistrationRealm, Realm, UserProfile
 from zerver.models.realm_audit_logs import RealmAuditLog
 from zerver.models.realms import (
@@ -212,6 +212,15 @@ class RegistrationForm(HowFoundZulipFormMixin, RealmDetailsForm):
         if settings.TERMS_OF_SERVICE_VERSION is not None:
             self.fields["terms"] = forms.BooleanField(required=True)
         self.fields["how_realm_creator_found_zulip"].required = self.realm_creation
+        if self.realm:
+            allowed_values = email_address_visibility_options(self.realm)
+            visibility_map = UserProfile.EMAIL_ADDRESS_VISIBILITY_ID_TO_NAME_MAP
+            self.fields["email_address_visibility"] = forms.TypedChoiceField(
+                required=False,
+                coerce=int,
+                empty_value=None,
+                choices=[(value, visibility_map[value]) for value in allowed_values],
+            )
 
     def clean_full_name(self) -> str:
         try:

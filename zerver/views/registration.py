@@ -101,7 +101,7 @@ from zerver.lib.typed_endpoint_validators import (
 )
 from zerver.lib.upload import all_message_attachments
 from zerver.lib.url_encoding import append_url_query_string
-from zerver.lib.users import get_accounts_for_email
+from zerver.lib.users import email_address_visibility_options, get_accounts_for_email
 from zerver.lib.utils import assert_is_not_none
 from zerver.models import (
     Message,
@@ -951,9 +951,19 @@ def registration_helper(
         return login_and_redirect(request, auth_result, next)
 
     default_email_address_visibility = None
-    if realm is not None:
+    # The signup form's options are already filtered to the realm's
+    # max/min, so nothing here needs to reject or clamp again.
+    # Realm creation itself (realm is None) has no policy yet to
+    # filter against.
+    email_address_visibility_options_dict = UserProfile.EMAIL_ADDRESS_VISIBILITY_ID_TO_NAME_MAP
+    if realm:
         realm_user_default = RealmUserDefault.objects.get(realm=realm)
         default_email_address_visibility = realm_user_default.email_address_visibility
+        allowed_values = email_address_visibility_options(realm)
+        visibility_map = UserProfile.EMAIL_ADDRESS_VISIBILITY_ID_TO_NAME_MAP
+        email_address_visibility_options_dict = {
+            value: visibility_map[value] for value in allowed_values
+        }
 
     context = {
         "form": form,
@@ -981,7 +991,7 @@ def registration_helper(
         "email_address_visibility_admins_only": RealmUserDefault.EMAIL_ADDRESS_VISIBILITY_ADMINS,
         "email_address_visibility_moderators": RealmUserDefault.EMAIL_ADDRESS_VISIBILITY_MODERATORS,
         "email_address_visibility_nobody": RealmUserDefault.EMAIL_ADDRESS_VISIBILITY_NOBODY,
-        "email_address_visibility_options_dict": UserProfile.EMAIL_ADDRESS_VISIBILITY_ID_TO_NAME_MAP,
+        "email_address_visibility_options_dict": email_address_visibility_options_dict,
         "how_realm_creator_found_zulip_options": RealmAuditLog.HOW_REALM_CREATOR_FOUND_ZULIP_OPTIONS.items(),
     }
     context["next"] = next
