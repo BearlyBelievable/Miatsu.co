@@ -34,6 +34,8 @@ import "../../styles/message_view_header.css";
 import "../../styles/message_header.css";
 import "../../styles/message_row.css";
 import "../../styles/modal.css";
+import "nouislider/dist/nouislider.css";
+import "../../styles/two_pole_slider.css";
 import "../../styles/settings.css";
 import "../../styles/image_upload_widget.css";
 import "../../styles/subscriptions.css";
