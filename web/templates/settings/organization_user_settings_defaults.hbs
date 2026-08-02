@@ -11,4 +11,53 @@
     {{> preferences . prefix="realm_" for_realm_settings=true full_name=full_name}}
 
     {{> notification_settings . prefix="realm_" for_realm_settings=true}}
+
+    {{#unless is_owner}}
+    <div class="banner-wrapper">
+        {{> ../components/banner
+          label=(t "Only organization owners can edit these settings.")
+          intent="info"
+          custom_classes="admin-permissions-banner"
+          }}
+    </div>
+    {{/unless}}
+    <div id="org-email-visibility-policy" class="settings-subsection-parent">
+        <div class="subsection-header">
+            <h3>{{t "Email address visibility limits" }}</h3>
+        </div>
+        <div class="email-visibility-policy-content">
+            <p>
+                {{t "Set limits on how open or how restricted members may set their own email address visibility." }}
+            </p>
+            <div class="email-visibility-policy-slider-wrapper">
+                <div id="email_visibility_policy_slider" class="two-pole-slider"></div>
+            </div>
+            <input
+              type="hidden"
+              id="id_realm_email_address_visibility_max"
+              class="prop-element"
+              data-setting-widget-type="number"
+              />
+            <input
+              type="hidden"
+              id="id_realm_email_address_visibility_min"
+              class="prop-element"
+              data-setting-widget-type="number"
+              />
+            <div class="save-button-controls hide">
+                <div class="inline-block subsection-changes-save">
+                    {{> ../components/action_button custom_classes="email-visibility-policy-save-button save-button" variant="solid" intent="brand" label=(t "Save changes") }}
+                </div>
+                <div class="inline-block subsection-changes-discard">
+                    {{> ../components/action_button custom_classes="email-visibility-policy-discard-button discard-button" variant="subtle" intent="neutral" label=(t "Discard") }}
+                </div>
+            </div>
+            <div class="alert-notification email-visibility-policy-status"></div>
+            {{> ../components/banner
+              label=" "
+              intent="warning"
+              custom_classes="email-visibility-policy-impact hide"
+              }}
+        </div>
+    </div>
 </div>

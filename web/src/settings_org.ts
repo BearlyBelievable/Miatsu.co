@@ -14,6 +14,7 @@ import {csrf_token} from "./csrf.ts";
 import * as demo_organization_ui from "./demo_organizations_ui.ts";
 import * as dialog_widget from "./dialog_widget.ts";
 import * as dropdown_widget from "./dropdown_widget.ts";
+import * as email_visibility_policy from "./email_visibility_policy.ts";
 import * as group_permission_settings from "./group_permission_settings.ts";
 import {
     type RealmGroupSettingNameSupportingAnonymousGroups,
@@ -782,6 +783,10 @@ export function discard_realm_property_element_changes(elem: HTMLElement): void 
         case "realm_welcome_message_custom_text":
             unsaved_welcome_message_custom_text = "";
             set_welcome_message_custom_text_visibility();
+            break;
+        case "realm_email_address_visibility_max":
+        case "realm_email_address_visibility_min":
+            email_visibility_policy.reset_slider_to_saved();
             break;
         default:
             if (property_value !== undefined) {

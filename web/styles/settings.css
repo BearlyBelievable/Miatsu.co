@@ -923,6 +923,30 @@ input[type="checkbox"] {
     color: hsl(0deg 0% 50%);
 }
 
+#org-email-visibility-policy {
+    & .email-visibility-policy-content {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    & .email-visibility-policy-slider-wrapper {
+        /* noUiSlider positions its children absolutely, contributing
+           nothing to flow height, so padding reserves real space for
+           the tooltip above and the pip dots/labels below, letting
+           the wrapper's own box genuinely contain them. */
+        position: relative;
+        padding: 8px 0 40px;
+        max-width: var(--modal-input-width);
+    }
+
+    & #email_visibility_policy_slider {
+        margin: 0 10px;
+        --click-zone-top-offset: 8px;
+        --click-zone-bottom-offset: 40px;
+    }
+}
+
 .admin-realm-message-retention-days {
     width: 5ch;
     text-align: right;
