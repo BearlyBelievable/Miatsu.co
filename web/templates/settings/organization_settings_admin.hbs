@@ -178,7 +178,9 @@
         {{/unless}}
         <div id="org-email-visibility-policy" class="settings-subsection-parent">
             <div class="subsection-header">
-                <h3>{{t "Email visibility range" }}</h3>
+                <h3>{{t "Email visibility range" }}
+                    {{> ../help_link_widget link="/help/miatsuco-custom-features#configure-a-permitted-range-for-email-address-visibility" }}
+                </h3>
                 <div class="save-button-controls hide">
                     <div class="inline-block subsection-changes-save">
                         {{> ../components/action_button custom_classes="email-visibility-policy-save-button save-button" variant="solid" intent="brand" label=(t "Save changes") }}
