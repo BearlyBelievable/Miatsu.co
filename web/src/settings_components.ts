@@ -580,7 +580,16 @@ export function change_save_button_state(
         fadeout_callback: (this: HTMLElement) => void,
     ): void {
         if (show) {
-            $element.removeClass("hide").addClass(".show").fadeIn(300);
+            // eslint-disable-next-line no-jquery/no-sizzle
+            if ($element.is(":visible")) {
+                return;
+            }
+            $element.hide().removeClass("hide").addClass(".show").fadeIn(300);
+            return;
+        }
+        // eslint-disable-next-line no-jquery/no-sizzle
+        if (!$element.is(":visible")) {
+            fadeout_callback.call($element[0]!);
             return;
         }
         setTimeout(() => {
