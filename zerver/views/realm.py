@@ -148,14 +148,8 @@ def update_realm(
     direct_message_self_authorize_group: Json[GroupSettingChangeRequest] | None = None,
     disallow_disposable_email_addresses: Json[bool] | None = None,
     email_changes_disabled: Json[bool] | None = None,
-    email_address_visibility_max: Json[
-        Annotated[int, check_int_in_validator(UserProfile.EMAIL_ADDRESS_VISIBILITY_TYPES)]
-    ]
-    | None = None,
-    email_address_visibility_min: Json[
-        Annotated[int, check_int_in_validator(UserProfile.EMAIL_ADDRESS_VISIBILITY_TYPES)]
-    ]
-    | None = None,
+    email_address_visibility_max: Json[int] | None = None,
+    email_address_visibility_min: Json[int] | None = None,
     emails_restricted_to_domains: Json[bool] | None = None,
     enable_guest_user_dm_warning: Json[bool] | None = None,
     enable_guest_user_indicator: Json[bool] | None = None,
@@ -273,6 +267,25 @@ def update_realm(
         raise JsonableError(
             _("Invalid gif_rating_policy {gif_rating_policy}").format(
                 gif_rating_policy=gif_rating_policy
+            )
+        )
+
+    if (
+        email_address_visibility_max is not None
+        and email_address_visibility_max not in UserProfile.EMAIL_ADDRESS_VISIBILITY_TYPES
+    ):
+        raise JsonableError(
+            _("Invalid email_address_visibility_max {email_address_visibility_max}").format(
+                email_address_visibility_max=email_address_visibility_max
+            )
+        )
+    if (
+        email_address_visibility_min is not None
+        and email_address_visibility_min not in UserProfile.EMAIL_ADDRESS_VISIBILITY_TYPES
+    ):
+        raise JsonableError(
+            _("Invalid email_address_visibility_min {email_address_visibility_min}").format(
+                email_address_visibility_min=email_address_visibility_min
             )
         )
     if email_address_visibility_max is not None and email_address_visibility_min is not None:
