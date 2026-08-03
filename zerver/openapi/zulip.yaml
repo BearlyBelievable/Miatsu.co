@@ -15170,6 +15170,7 @@ paths:
           in: query
           schema:
             type: integer
+          example: 1
           description: |
             The prospective most-open `email_address_visibility` value
             to preview.
@@ -15177,6 +15178,7 @@ paths:
           in: query
           schema:
             type: integer
+          example: 4
           description: |
             The prospective most-restrictive `email_address_visibility`
             value to preview.
