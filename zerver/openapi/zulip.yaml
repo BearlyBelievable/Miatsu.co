@@ -15103,6 +15103,14 @@ paths:
                           Present under the same condition as `failed`. The
                           number of users the failed job had already
                           processed before failing.
+                    example:
+                      {
+                        "result": "success",
+                        "msg": "",
+                        "max": 1,
+                        "min": 4,
+                        "running": false,
+                      }
     patch:
       operationId: update-email-visibility-policy
       summary: Update the email visibility policy
@@ -15197,6 +15205,7 @@ paths:
                           The number of existing users whose current
                           `email_address_visibility` is more restrictive
                           than the prospective `visibility_min`.
+                    example: {"result": "success", "msg": "", "too_open_count": 5, "too_closed_count": 3}
   /realm/email_visibility_policy/distribution:
     get:
       operationId: get-email-visibility-distribution
@@ -15231,6 +15240,7 @@ paths:
                           it.
                         additionalProperties:
                           type: integer
+                    example: {"result": "success", "msg": "", "counts": {"1": 8, "2": 3, "3": 1, "4": 0, "5": 0}}
   /realm/profile_fields:
     get:
       operationId: get-custom-profile-fields

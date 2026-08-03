@@ -148,6 +148,14 @@ def update_realm(
     direct_message_self_authorize_group: Json[GroupSettingChangeRequest] | None = None,
     disallow_disposable_email_addresses: Json[bool] | None = None,
     email_changes_disabled: Json[bool] | None = None,
+    email_address_visibility_max: Json[
+        Annotated[int, check_int_in_validator(UserProfile.EMAIL_ADDRESS_VISIBILITY_TYPES)]
+    ]
+    | None = None,
+    email_address_visibility_min: Json[
+        Annotated[int, check_int_in_validator(UserProfile.EMAIL_ADDRESS_VISIBILITY_TYPES)]
+    ]
+    | None = None,
     emails_restricted_to_domains: Json[bool] | None = None,
     enable_guest_user_dm_warning: Json[bool] | None = None,
     enable_guest_user_indicator: Json[bool] | None = None,
@@ -267,6 +275,11 @@ def update_realm(
                 gif_rating_policy=gif_rating_policy
             )
         )
+    if email_address_visibility_max is not None and email_address_visibility_min is not None:
+        max_index = UserProfile.EMAIL_ADDRESS_VISIBILITY_TYPES.index(email_address_visibility_max)
+        min_index = UserProfile.EMAIL_ADDRESS_VISIBILITY_TYPES.index(email_address_visibility_min)
+        if max_index > min_index:
+            raise JsonableError(_("The maximum visibility cannot be less than the minimum."))
 
     message_retention_days: int | None = None
     if message_retention_days_raw is not None:
