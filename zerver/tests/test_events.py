@@ -313,7 +313,7 @@ from zerver.models.clients import get_client
 from zerver.models.groups import SystemGroups
 from zerver.models.realm_audit_logs import AuditLogEventType
 from zerver.models.streams import StreamTopicsPolicyEnum, get_stream
-from zerver.models.users import get_user_by_delivery_email
+from zerver.models.users import UserBaseSettings, get_user_by_delivery_email
 from zerver.openapi.openapi import validate_against_openapi_schema
 from zerver.tornado.django_api import send_event_rollback_unsafe
 from zerver.tornado.event_queue import (
@@ -4536,6 +4536,14 @@ class RealmPropertyActionTest(BaseAction):
             topics_policy=Realm.REALM_TOPICS_POLICY_TYPES,
             media_preview_size=[100, 150, 200],
             default_avatar_source=["G", "J"],
+            email_address_visibility_max=[
+                UserBaseSettings.EMAIL_ADDRESS_VISIBILITY_EVERYONE,
+                UserBaseSettings.EMAIL_ADDRESS_VISIBILITY_ADMINS,
+            ],
+            email_address_visibility_min=[
+                UserBaseSettings.EMAIL_ADDRESS_VISIBILITY_MODERATORS,
+                UserBaseSettings.EMAIL_ADDRESS_VISIBILITY_NOBODY,
+            ],
         )
 
         vals = test_values.get(name)

@@ -134,18 +134,6 @@ exports.fixtures = {
         alert_words: ["fire", "lunch"],
     },
 
-    bulk_field_remediation__failed: {
-        type: "bulk_field_remediation",
-        field_name: "email_address_visibility",
-        op: "failed",
-    },
-
-    bulk_field_remediation__completed: {
-        type: "bulk_field_remediation",
-        field_name: "email_address_visibility",
-        op: "completed",
-    },
-
     attachment__add: {
         type: "attachment",
         op: "add",
@@ -158,6 +146,18 @@ exports.fixtures = {
             message_ids: [1000],
         },
         upload_space_used: 90000,
+    },
+
+    bulk_field_remediation__completed: {
+        type: "bulk_field_remediation",
+        field_name: "email_address_visibility",
+        op: "completed",
+    },
+
+    bulk_field_remediation__failed: {
+        type: "bulk_field_remediation",
+        field_name: "email_address_visibility",
+        op: "failed",
     },
 
     channel_folder__add: {
@@ -497,6 +497,17 @@ exports.fixtures = {
         },
     },
 
+    realm__update_dict__email_visibility_policy: {
+        type: "realm",
+        op: "update_dict",
+        property: "email_visibility_policy",
+        data: {
+            max: 1,
+            min: 4,
+            running: false,
+        },
+    },
+
     realm__update_dict__icon: {
         type: "realm",
         op: "update_dict",
@@ -514,17 +525,6 @@ exports.fixtures = {
         data: {
             logo_url: "logo.png",
             logo_source: "U",
-        },
-    },
-
-    realm__update_dict__email_visibility_policy: {
-        type: "realm",
-        op: "update_dict",
-        property: "email_visibility_policy",
-        data: {
-            max: 1,
-            min: 4,
-            running: false,
         },
     },
 

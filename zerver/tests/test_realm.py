@@ -92,7 +92,7 @@ from zerver.models.realms import get_realm
 from zerver.models.recipients import get_or_create_direct_message_group
 from zerver.models.scheduled_jobs import ScheduledMessage
 from zerver.models.streams import get_stream
-from zerver.models.users import get_system_bot, get_user_profile_by_id
+from zerver.models.users import UserBaseSettings, get_system_bot, get_user_profile_by_id
 
 if settings.ZILENCER_ENABLED:
     from corporate.lib.stripe import get_seat_count
@@ -1190,6 +1190,8 @@ class RealmTest(ZulipTestCase):
             message_content_edit_limit_seconds=0,
             move_messages_within_stream_limit_seconds=0,
             move_messages_between_streams_limit_seconds=0,
+            email_address_visibility_max=10,
+            email_address_visibility_min=10,
         )
 
         # We need an admin user.
@@ -2321,6 +2323,14 @@ class RealmAPITest(ZulipTestCase):
             topics_policy=Realm.REALM_TOPICS_POLICY_TYPES,
             media_preview_size=[100, 150, 200],
             default_avatar_source=["G", "J"],
+            email_address_visibility_max=[
+                UserBaseSettings.EMAIL_ADDRESS_VISIBILITY_EVERYONE,
+                UserBaseSettings.EMAIL_ADDRESS_VISIBILITY_ADMINS,
+            ],
+            email_address_visibility_min=[
+                UserBaseSettings.EMAIL_ADDRESS_VISIBILITY_MODERATORS,
+                UserBaseSettings.EMAIL_ADDRESS_VISIBILITY_NOBODY,
+            ],
         )
 
         vals = test_values.get(name)

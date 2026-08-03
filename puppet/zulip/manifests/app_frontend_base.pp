@@ -151,6 +151,7 @@ class zulip::app_frontend_base {
   $queues_multiprocess_default = $zulip::common::total_memory_mb > 3800
   $queues_multiprocess = zulipconf('application_server', 'queue_workers_multiprocess', $queues_multiprocess_default)
   $base_queues = [
+    'bulk_remediation',
     'deferred_work',
     'digest_emails',
     'email_mirror',

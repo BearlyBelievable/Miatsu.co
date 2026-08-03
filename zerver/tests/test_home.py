@@ -180,6 +180,8 @@ class HomeTest(ZulipTestCase):
         "realm_direct_message_permission_group",
         "realm_disallow_disposable_email_addresses",
         "realm_domains",
+        "realm_email_address_visibility_max",
+        "realm_email_address_visibility_min",
         "realm_email_auth_enabled",
         "realm_email_changes_disabled",
         "realm_emails_restricted_to_domains",
