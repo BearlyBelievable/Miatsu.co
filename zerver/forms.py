@@ -215,9 +215,12 @@ class RegistrationForm(HowFoundZulipFormMixin, RealmDetailsForm):
         if self.realm:
             allowed_values = email_address_visibility_options(self.realm)
             visibility_map = UserProfile.EMAIL_ADDRESS_VISIBILITY_ID_TO_NAME_MAP
-            self.fields["email_address_visibility"].choices = [
-                (value, visibility_map[value]) for value in allowed_values
-            ]
+            self.fields["email_address_visibility"] = forms.TypedChoiceField(
+                required=False,
+                coerce=int,
+                empty_value=None,
+                choices=[(value, visibility_map[value]) for value in allowed_values],
+            )
 
     def clean_full_name(self) -> str:
         try:

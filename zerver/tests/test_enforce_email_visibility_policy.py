@@ -1,4 +1,7 @@
+from typing import cast
+
 import orjson
+from django import forms
 
 from zerver.forms import RegistrationForm
 from zerver.lib.test_classes import ZulipTestCase
@@ -101,7 +104,11 @@ class RegistrationFormEmailVisibilityFilterTest(ZulipTestCase):
         realm.save(update_fields=["email_address_visibility_max"])
 
         form = RegistrationForm(realm_creation=False, realm=realm)
-        choice_values = [choice[0] for choice in form.fields["email_address_visibility"].choices]
+        email_visibility_field = cast(
+            forms.TypedChoiceField, form.fields["email_address_visibility"]
+        )
+        choices = cast(list[tuple[int, str]], email_visibility_field.choices)
+        choice_values = [choice[0] for choice in choices]
 
         self.assertNotIn(UserProfile.EMAIL_ADDRESS_VISIBILITY_EVERYONE, choice_values)
         self.assertIn(UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS, choice_values)
