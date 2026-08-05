@@ -1204,6 +1204,19 @@ class RealmTest(ZulipTestCase):
 
             self.do_test_invalid_integer_attribute_value(name, invalid_value)
 
+    def test_email_address_visibility_max_less_than_min(self) -> None:
+        self.login("iago")
+        req = dict(
+            email_address_visibility_max=orjson.dumps(
+                UserProfile.EMAIL_ADDRESS_VISIBILITY_NOBODY
+            ).decode(),
+            email_address_visibility_min=orjson.dumps(
+                UserProfile.EMAIL_ADDRESS_VISIBILITY_EVERYONE
+            ).decode(),
+        )
+        result = self.client_patch("/json/realm", req)
+        self.assert_json_error(result, "The maximum visibility cannot be less than the minimum.")
+
     def do_test_invalid_integer_attribute_value(self, val_name: str, invalid_val: int) -> None:
         possible_messages = {
             f"Invalid {val_name}",

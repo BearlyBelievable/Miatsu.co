@@ -302,7 +302,7 @@ def main() -> None:
     if options.processes is not None and options.processes < 1:
         raise argparse.ArgumentTypeError("option processes: Only positive integers are allowed.")
 
-    test_dirs = ["zerver/tests/", "corporate/tests", "analytics/tests"]
+    test_dirs = ["zerver/tests/", "corporate/tests", "analytics/tests", "bulk_remediation/tests"]
 
     # While running --rerun, we read var/last_test_failure.json to get
     # the list of tests that failed on the last run, and then pretend
@@ -372,6 +372,7 @@ def main() -> None:
             "zerver.tests",
             "analytics.tests",
             "corporate.tests",
+            "bulk_remediation.tests",
         ]
     else:
         suites = args

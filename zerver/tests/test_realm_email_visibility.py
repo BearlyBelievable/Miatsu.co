@@ -4,7 +4,7 @@ import orjson
 
 from bulk_remediation.models import BulkFieldRemediationJob
 from zerver.lib.test_classes import ZulipTestCase
-from zerver.models import UserProfile
+from zerver.models import RealmUserDefault, UserProfile
 
 
 class UpdateEmailVisibilityPolicyTest(ZulipTestCase):
@@ -54,6 +54,79 @@ class UpdateEmailVisibilityPolicyTest(ZulipTestCase):
         self.assertEqual(
             realm.email_address_visibility_min, UserProfile.EMAIL_ADDRESS_VISIBILITY_ADMINS
         )
+
+    def test_starts_remediation_job_for_violating_users(self) -> None:
+        self.login("desdemona")
+        realm = self.example_user("desdemona").realm
+        hamlet = self.example_user("hamlet")
+        hamlet.email_address_visibility = UserProfile.EMAIL_ADDRESS_VISIBILITY_EVERYONE
+        hamlet.save(update_fields=["email_address_visibility"])
+
+        req = dict(
+            email_address_visibility_max=orjson.dumps(
+                UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS
+            ).decode(),
+        )
+        result = self.client_patch("/json/realm/email_visibility_policy", req)
+        self.assert_json_success(result)
+
+        job = BulkFieldRemediationJob.objects.get(
+            realm=realm, field_name="email_address_visibility"
+        )
+        self.assertEqual(job.to_value, UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS)
+        self.assertGreaterEqual(job.total_violating_count, 1)
+
+    def test_clamps_realm_default_when_too_open(self) -> None:
+        self.login("desdemona")
+        realm = self.example_user("desdemona").realm
+        realm_user_default = RealmUserDefault.objects.get(realm=realm)
+        realm_user_default.email_address_visibility = UserProfile.EMAIL_ADDRESS_VISIBILITY_EVERYONE
+        realm_user_default.save(update_fields=["email_address_visibility"])
+
+        req = dict(
+            email_address_visibility_max=orjson.dumps(
+                UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS
+            ).decode(),
+        )
+        result = self.client_patch("/json/realm/email_visibility_policy", req)
+        self.assert_json_success(result)
+
+        realm_user_default.refresh_from_db()
+        self.assertEqual(
+            realm_user_default.email_address_visibility,
+            UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS,
+        )
+
+    def test_clamps_realm_default_when_too_closed(self) -> None:
+        self.login("desdemona")
+        realm = self.example_user("desdemona").realm
+        realm_user_default = RealmUserDefault.objects.get(realm=realm)
+        realm_user_default.email_address_visibility = UserProfile.EMAIL_ADDRESS_VISIBILITY_NOBODY
+        realm_user_default.save(update_fields=["email_address_visibility"])
+
+        req = dict(
+            email_address_visibility_min=orjson.dumps(
+                UserProfile.EMAIL_ADDRESS_VISIBILITY_ADMINS
+            ).decode(),
+        )
+        result = self.client_patch("/json/realm/email_visibility_policy", req)
+        self.assert_json_success(result)
+
+        realm_user_default.refresh_from_db()
+        self.assertEqual(
+            realm_user_default.email_address_visibility,
+            UserProfile.EMAIL_ADDRESS_VISIBILITY_ADMINS,
+        )
+
+    def test_setting_only_min_reports_no_too_open_violations(self) -> None:
+        self.login("desdemona")
+        req = dict(
+            email_address_visibility_min=orjson.dumps(
+                UserProfile.EMAIL_ADDRESS_VISIBILITY_ADMINS
+            ).decode(),
+        )
+        result = self.client_patch("/json/realm/email_visibility_policy", req)
+        self.assert_json_success(result)
 
     def test_blocks_update_while_job_running(self) -> None:
         self.login("desdemona")
