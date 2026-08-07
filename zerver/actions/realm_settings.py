@@ -169,6 +169,38 @@ def do_set_realm_property(
         update_users_in_full_members_system_group(realm, acting_user=acting_user)
 
 
+def do_change_email_visibility_policy_bound(
+    realm: Realm, name: str, value: int, *, acting_user: UserProfile | None
+) -> None:
+    # Variant of do_set_realm_property for
+    # email_address_visibility_max and email_address_visibility_min.
+    # Changing either bound needs organization-owner permission and
+    # can enqueue a bulk remediation job for already-violating users,
+    # neither of which do_set_realm_property (or the property_types
+    # framework it requires) can express, so this does the same
+    # setattr/save/event/audit-log work by hand instead.
+    assert name in ("email_address_visibility_max", "email_address_visibility_min")
+
+    old_value = getattr(realm, name)
+    setattr(realm, name, value)
+    realm.save(update_fields=[name])
+
+    event = dict(type="realm", op="update", property=name, value=value)
+    send_event_on_commit(realm, event, active_user_ids(realm.id))
+
+    RealmAuditLog.objects.create(
+        realm=realm,
+        event_type=AuditLogEventType.REALM_PROPERTY_CHANGED,
+        event_time=timezone_now(),
+        acting_user=acting_user,
+        extra_data={
+            RealmAuditLog.OLD_VALUE: old_value,
+            RealmAuditLog.NEW_VALUE: value,
+            "property": name,
+        },
+    )
+
+
 @transaction.atomic(durable=True)
 def do_set_push_notifications_enabled_end_timestamp(
     realm: Realm, value: int | None, *, acting_user: UserProfile | None

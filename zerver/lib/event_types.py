@@ -662,13 +662,23 @@ class PlanTypeData(BaseModel):
     max_file_upload_size_mib: int
 
 
+class EmailVisibilityPolicyData(BaseModel):
+    max: int
+    min: int
+    running: bool
+    total_violating_count: int | None = None
+    failed: bool | None = None
+    processed_count: int | None = None
+
+
 class RealmUpdateDictEvent(BaseEvent):
     type: Literal["realm"]
     op: Literal["update_dict"]
-    property: Literal["default", "icon", "logo", "night_logo"]
+    property: Literal["default", "email_visibility_policy", "icon", "logo", "night_logo"]
     data: (
         AllowMessageEditingData
         | AuthenticationData
+        | EmailVisibilityPolicyData
         | IconData
         | LogoData
         | MessageContentEditLimitSecondsData

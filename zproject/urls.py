@@ -132,6 +132,12 @@ from zerver.views.realm_domains import (
     list_realm_domains,
     patch_realm_domain,
 )
+from zerver.views.realm_email_visibility import (
+    get_email_visibility_distribution,
+    get_email_visibility_policy_status,
+    preview_email_visibility_policy_impact,
+    update_email_visibility_policy,
+)
 from zerver.views.realm_emoji import delete_emoji, list_emoji, upload_emoji
 from zerver.views.realm_export import (
     delete_realm_export,
@@ -313,6 +319,22 @@ v1_api_and_json_patterns = [
     # realm-level calls
     rest_path("realm", PATCH=update_realm),
     rest_path("realm/user_settings_defaults", PATCH=update_realm_user_settings_defaults),
+    # Specific to the MiAtSu.Co fork; not documented via the normal API
+    # docs pipeline until it is submitted upstream, see
+    # docs/contributing/miatsuco-upstream-api-drafts.md.
+    rest_path(
+        "realm/email_visibility_policy",
+        PATCH=(update_email_visibility_policy, {"intentionally_undocumented"}),
+        GET=(get_email_visibility_policy_status, {"intentionally_undocumented"}),
+    ),
+    rest_path(
+        "realm/email_visibility_policy/preview",
+        GET=(preview_email_visibility_policy_impact, {"intentionally_undocumented"}),
+    ),
+    rest_path(
+        "realm/email_visibility_policy/distribution",
+        GET=(get_email_visibility_distribution, {"intentionally_undocumented"}),
+    ),
     path("realm/subdomain/<subdomain>", check_subdomain_available),
     # realm/domains -> zerver.views.realm_domains
     rest_path("realm/domains", GET=list_realm_domains, POST=create_realm_domain),
