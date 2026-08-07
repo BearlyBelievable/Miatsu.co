@@ -1203,3 +1203,47 @@ def max_message_id_for_user(user_profile: UserProfile | None) -> int:
         return max_message.message_id
     else:
         return -1
+
+
+def email_address_visibility_allowed(realm: Realm, value: int) -> bool:
+    openness_order = UserProfile.EMAIL_ADDRESS_VISIBILITY_TYPES
+    value_index = openness_order.index(value)
+    if realm.email_address_visibility_max:
+        max_index = openness_order.index(realm.email_address_visibility_max)
+        if value_index < max_index:
+            return False
+    if realm.email_address_visibility_min:
+        min_index = openness_order.index(realm.email_address_visibility_min)
+        if value_index > min_index:
+            return False
+    return True
+
+
+def email_address_visibility_options(realm: Realm) -> list[int]:
+    return [
+        value
+        for value in UserProfile.EMAIL_ADDRESS_VISIBILITY_TYPES
+        if email_address_visibility_allowed(realm, value)
+    ]
+
+
+# Used by the remediation job and the preview/status endpoints, which
+# need to reason about a prospective (not-yet-saved) max/min
+# pair, not just the realm's current one.
+def email_address_visibility_violations(
+    visibility_max: int | None, visibility_min: int | None
+) -> tuple[list[int], list[int]]:
+    openness_order = UserProfile.EMAIL_ADDRESS_VISIBILITY_TYPES
+    if visibility_max:
+        max_index = openness_order.index(visibility_max)
+        above_max_visibility_values = openness_order[:max_index]
+    else:
+        above_max_visibility_values = []
+
+    if visibility_min:
+        min_index = openness_order.index(visibility_min)
+        below_min_visibility_values = openness_order[min_index + 1 :]
+    else:
+        below_min_visibility_values = []
+
+    return above_max_visibility_values, below_min_visibility_values
