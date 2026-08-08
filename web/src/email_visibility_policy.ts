@@ -21,6 +21,7 @@ const policy_status_response_schema = z.object({
     min: z.number(),
     running: z.boolean(),
     failed: z.optional(z.boolean()),
+    completed: z.optional(z.boolean()),
     processed_count: z.optional(z.number()),
     total_violating_count: z.optional(z.number()),
 });
@@ -251,7 +252,18 @@ export function handle_remediation_failed_event(): void {
 }
 
 export function handle_remediation_completed_event(): void {
-    clear_locked_state();
+    void channel.get({
+        url: "/json/realm/email_visibility_policy",
+        success(raw_data) {
+            const data = policy_status_response_schema.parse(raw_data);
+            if (data.completed) {
+                bulk_remediation_ui.unlock_widget_after_completion(
+                    slider_widget,
+                    bulk_remediation_ui.get_completed_message(data.total_violating_count ?? 0),
+                );
+            }
+        },
+    });
 }
 
 export function reset_slider_to_saved(): void {

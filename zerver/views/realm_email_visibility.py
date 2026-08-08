@@ -192,6 +192,9 @@ def get_email_visibility_policy_status(
             data["failed"] = True
             data["processed_count"] = last_job.processed_count
             data["total_violating_count"] = last_job.total_violating_count
+        elif last_job and last_job.status == BulkFieldRemediationJob.STATUS_COMPLETED:
+            data["completed"] = True
+            data["total_violating_count"] = last_job.total_violating_count
     return json_success(request, data=data)
 
 

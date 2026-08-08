@@ -36,3 +36,20 @@ export function get_failed_message(processed_count: number, total_violating_coun
         {processed_count, total_violating_count},
     );
 }
+
+const COMPLETED_MESSAGE_DISPLAY_MS = 4000;
+
+export function get_completed_message(total_violating_count: number): string {
+    return $t(
+        {defaultMessage: "Changes applied successfully to {total_violating_count} users."},
+        {total_violating_count},
+    );
+}
+
+export function unlock_widget_after_completion(widget: LockableWidget, message: string): void {
+    widget.enable();
+    widget.set_message(message);
+    setTimeout(() => {
+        widget.set_message("");
+    }, COMPLETED_MESSAGE_DISPLAY_MS);
+}

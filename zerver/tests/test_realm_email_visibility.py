@@ -272,6 +272,25 @@ class GetEmailVisibilityPolicyStatusTest(ZulipTestCase):
         self.assertEqual(response_dict["processed_count"], 2)
         self.assertEqual(response_dict["total_violating_count"], 5)
 
+    def test_reports_past_completion(self) -> None:
+        self.login("hamlet")
+        realm = self.example_user("hamlet").realm
+        BulkFieldRemediationJob.objects.create(
+            realm=realm,
+            field_name="email_address_visibility",
+            from_values=[UserProfile.EMAIL_ADDRESS_VISIBILITY_EVERYONE],
+            to_value=UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS,
+            total_violating_count=5,
+            processed_count=5,
+            status=BulkFieldRemediationJob.STATUS_COMPLETED,
+        )
+
+        result = self.client_get("/json/realm/email_visibility_policy")
+        response_dict = self.assert_json_success(result)
+        self.assertFalse(response_dict["running"])
+        self.assertTrue(response_dict["completed"])
+        self.assertEqual(response_dict["total_violating_count"], 5)
+
 
 class EmailVisibilityDistributionTest(ZulipTestCase):
     def test_returns_counts_for_all_values(self) -> None:
