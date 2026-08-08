@@ -253,6 +253,33 @@ run_test("reset_slider_to_saved moves the slider back to its saved indices", () 
     // "reset_to_saved" test.
 });
 
+run_test(
+    "reset_slider_to_saved uses the current realm state, not a stale cached one",
+    () => {
+        setup_with_slider({
+            realm_email_address_visibility_max: 1,
+            realm_email_address_visibility_min: 4,
+        });
+
+        // Simulate the realm's own value having already changed (e.g. via
+        // the live-push event that arrives before the slider's cached
+        // saved indices are refreshed), without going through
+        // handle_policy_update_event, which is the only other place that
+        // normally does that refresh.
+        set_up_realm({
+            realm_email_address_visibility_max: 3,
+            realm_email_address_visibility_min: 4,
+        });
+
+        email_visibility_policy.reset_slider_to_saved();
+
+        assert.equal(
+            document.querySelector("#id_realm_email_address_visibility_max").value,
+            "3",
+        );
+    },
+);
+
 run_test("handle_remediation_failed_event shows the failed state", () => {
     setup_with_slider();
     let failed_message;
