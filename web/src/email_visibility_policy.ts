@@ -271,7 +271,6 @@ export function reset_slider_to_saved(): void {
     saved_min_index = index_of_value(realm.realm_email_address_visibility_min);
     two_pole_slider?.set_saved_indices(saved_max_index, saved_min_index);
     two_pole_slider?.reset_to_saved();
-    update_impact_readout();
 }
 
 function create_slider(container: HTMLElement): void {

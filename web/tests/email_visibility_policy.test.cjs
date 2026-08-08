@@ -499,5 +499,5 @@ run_test("update_impact_readout is a no-op on a page without the impact banner",
     setup_with_slider();
     document.querySelector(".email-visibility-policy-impact").remove();
 
-    email_visibility_policy.reset_slider_to_saved();
+    click_zone(1);
 });
