@@ -10,22 +10,14 @@ and rebases fork-specific features on top of it.
 
 **Contributing to this fork?** Read
 [`docs/contributing/miatsuco-fork-conventions.md`](https://github.com/BearlyBelievable/Miatsu.co/blob/main/docs/contributing/miatsuco-fork-conventions.md)
-first. It covers the handful of things specific to this fork (naming
-conventions, migration conventions, how we signal fork-specific features to
-our companion mobile client, and how we structure PRs), layered on top of
-upstream Zulip's own contributing documentation.
+first. It covers things specific to this fork (naming conventions,
+migration conventions, how we signal fork-specific features to our
+companion mobile client, and how we structure PRs).
 
 **For everything else** (setting up a development environment, code
 style, commit discipline, the review process, and so on), follow [upstream
 Zulip's contributing
-guide](https://zulip.readthedocs.io/en/latest/contributing/contributing.html)
-as-is. This fork doesn't duplicate or maintain a parallel copy of that
-documentation; our conventions page above only covers what's actually
-different here, and defers to upstream for the rest.
-
-This fork is distributed under the same
-[Apache 2.0](https://github.com/zulip/zulip/blob/main/LICENSE) license as
-upstream Zulip.
+guide](https://zulip.readthedocs.io/en/latest/contributing/contributing.html).
 
 ---
 
