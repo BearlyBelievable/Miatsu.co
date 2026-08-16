@@ -6,9 +6,7 @@
 
 This is MiAtSu.Co's fork of [Zulip](https://zulip.com), an open-source
 organized team chat app. It tracks upstream Zulip's latest stable release
-and rebases fork-specific features on top of it. See
-[`docs/contributing/miatsuco-fork-conventions.md`](https://github.com/BearlyBelievable/Miatsu.co/blob/main/docs/contributing/miatsuco-fork-conventions.md)
-for how this fork is organized and why.
+and rebases fork-specific features on top of it.
 
 **Contributing to this fork?** Read
 [`docs/contributing/miatsuco-fork-conventions.md`](https://github.com/BearlyBelievable/Miatsu.co/blob/main/docs/contributing/miatsuco-fork-conventions.md)
