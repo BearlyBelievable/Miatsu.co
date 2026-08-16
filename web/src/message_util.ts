@@ -8,6 +8,7 @@ import {realm} from "./state_data.ts";
 import * as unread from "./unread.ts";
 import * as unread_ui from "./unread_ui.ts";
 import * as user_groups from "./user_groups.ts";
+import {user_settings} from "./user_settings.ts";
 
 type DirectMessagePermissionHints = {
     is_known_empty_conversation: boolean;
@@ -126,6 +127,16 @@ export function make_check_message_permission_for_dm_candidate(
     recipient_ids: number[],
 ): ((candidate_user_id: number) => boolean) | null {
     const current_user_id = people.my_current_user_id();
+
+    if (user_settings.miatsuco_restrict_dms_to_authorizers) {
+        const permission_group_user_ids = user_groups.get_user_ids_in_setting_group(
+            realm.realm_direct_message_permission_group,
+        );
+        return (candidate_user_id: number): boolean =>
+            people.is_valid_bot_user(candidate_user_id) ||
+            permission_group_user_ids.has(candidate_user_id);
+    }
+
     const is_current_user_in_initiator_group = user_groups.is_user_in_setting_group(
         realm.realm_direct_message_initiator_group,
         current_user_id,

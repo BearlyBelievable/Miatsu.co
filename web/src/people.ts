@@ -734,6 +734,16 @@ export function user_can_initiate_direct_message_thread(recipient_ids_string: st
 
 export function user_can_direct_message(recipient_ids_string: string): boolean {
     const recipient_ids = user_ids_string_to_ids_array(recipient_ids_string);
+
+    if (user_settings.miatsuco_restrict_dms_to_authorizers) {
+        return recipient_ids.every(
+            (recipient_id) =>
+                is_valid_bot_user(recipient_id) ||
+                recipient_id === my_user_id ||
+                is_user_in_setting_group(realm.realm_direct_message_permission_group, recipient_id),
+        );
+    }
+
     if (is_user_in_setting_group(realm.realm_direct_message_permission_group, my_user_id)) {
         return true;
     }
