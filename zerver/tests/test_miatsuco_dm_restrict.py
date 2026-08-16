@@ -61,24 +61,23 @@ class MiatsucoRestrictDMsToAuthorizersTest(ZulipTestCase):
         g1_b.refresh_from_db()
 
         # A self-authorized DM from non-authorizer g1_a to g1_b is now blocked:
-        # g1_a is not an authorizer. A single opted-in recipient gets the
-        # specific "this user" message.
+        # g1_a is not an authorizer. The message names the opted-in g1_b.
         with self.assertRaises(DirectMessagePermissionError) as blocked_1to1:
             self.send_personal_message(g1_a, g1_b)
         self.assertEqual(
             str(blocked_1to1.exception),
-            "This user only accepts direct messages from those who can authorize them.",
+            "Cordelia, Lear's daughter only accepts direct messages with someone "
+            "that can authorize them.",
         )
 
         # The restriction is bidirectional: g1_b also cannot start a DM with a
-        # non-authorizer. When only the sender has opted in there is no opted-in
-        # recipient to name, so the general "some recipients" message is used.
+        # non-authorizer. Only the sender is opted in here, so the message is
+        # about the sender's own setting instead of naming anyone.
         with self.assertRaises(DirectMessagePermissionError) as blocked_as_sender:
             self.send_personal_message(g1_b, g1_a)
         self.assertEqual(
             str(blocked_as_sender.exception),
-            "Some recipients only accept direct messages that include "
-            "someone who can authorize them.",
+            "Your settings only allow direct messages with someone that can authorize them.",
         )
 
         # A group DM in which any participant is a non-authorizer is blocked,
@@ -95,8 +94,7 @@ class MiatsucoRestrictDMsToAuthorizersTest(ZulipTestCase):
         # g1_b with two moderators and no non-authorizer.
         self.send_group_direct_message(moderator, [moderator, another_moderator, g1_b])
 
-        # With more than one opted-in recipient, the general message is used so
-        # that no single recipient is identified.
+        # With two opted-in, non-sender participants, the message names both.
         with self.captureOnCommitCallbacks(execute=True):
             do_change_user_setting(
                 g1_a, "miatsuco_restrict_dms_to_authorizers", True, acting_user=None
@@ -106,10 +104,28 @@ class MiatsucoRestrictDMsToAuthorizersTest(ZulipTestCase):
             self.send_group_direct_message(moderator, [moderator, g1_a, g1_b])
         self.assertEqual(
             str(blocked_group.exception),
-            "Some recipients only accept direct messages that include "
-            "someone who can authorize them.",
+            "Cordelia, Lear's daughter and King Hamlet only accept direct messages "
+            "with someone that can authorize them.",
+        )
+
+        # With three, the names join with an Oxford comma.
+        third = self.example_user("polonius")
+        with self.captureOnCommitCallbacks(execute=True):
+            do_change_user_setting(
+                third, "miatsuco_restrict_dms_to_authorizers", True, acting_user=None
+            )
+        third.refresh_from_db()
+        with self.assertRaises(DirectMessagePermissionError) as blocked_group_of_three:
+            self.send_group_direct_message(moderator, [moderator, g1_a, g1_b, third])
+        self.assertEqual(
+            str(blocked_group_of_three.exception),
+            "Cordelia, Lear's daughter, King Hamlet, and Polonius only accept direct "
+            "messages with someone that can authorize them.",
         )
         with self.captureOnCommitCallbacks(execute=True):
+            do_change_user_setting(
+                third, "miatsuco_restrict_dms_to_authorizers", False, acting_user=None
+            )
             do_change_user_setting(
                 g1_a, "miatsuco_restrict_dms_to_authorizers", False, acting_user=None
             )
