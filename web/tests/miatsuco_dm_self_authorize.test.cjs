@@ -9,6 +9,7 @@ const {run_test} = require("./lib/test.cjs");
 
 const people = zrequire("people");
 const {set_realm} = zrequire("state_data");
+const {initialize_user_settings} = zrequire("user_settings");
 
 // Fork feature (miatsuco): direct_message_self_authorize_group lets a
 // configured set exchange DMs among themselves without a permission-group
@@ -17,6 +18,9 @@ const {set_realm} = zrequire("state_data");
 
 const realm = make_realm({});
 set_realm(realm);
+
+const user_settings = {miatsuco_restrict_dms_to_authorizers: false};
+initialize_user_settings({user_settings});
 
 const me = make_user({email: "me@example.com", user_id: 1, full_name: "Me"});
 const peer = make_user({email: "peer@example.com", user_id: 2, full_name: "Peer"});
