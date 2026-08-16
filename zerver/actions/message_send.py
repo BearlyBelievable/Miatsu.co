@@ -1674,31 +1674,28 @@ def check_can_send_direct_message(
         return is_user_in_group(permission_group_id, user)
 
     human_participants = [user for user in participants if not user.is_bot]
-    opted_in_participants = [
-        user for user in human_participants if user.miatsuco_restrict_dms_to_authorizers
-    ]
-    if opted_in_participants:
-        # For each opted-in user, every OTHER human participant must be an
-        # authorizer. Equivalently: block if any opted-in user shares the
-        # conversation with a human who cannot authorize it (other than
-        # themselves).
-        for opted_in_user in opted_in_participants:
-            if any(
-                other.id != opted_in_user.id and not is_authorizer(other)
-                for other in human_participants
-            ):
-                # Use the singular "this user" message only when exactly one
-                # recipient (not the sender) triggered the block, so no
-                # individual is named in a group conversation and the sender's
-                # own restriction reads sensibly.
-                opted_in_recipients = [
-                    user for user in opted_in_participants if user.id != sender.id
-                ]
-                restricted_recipient_count = 1 if len(opted_in_recipients) == 1 else 2
-                raise DirectMessagePermissionError(
-                    is_nobody_group=False,
-                    restricted_recipient_count=restricted_recipient_count,
-                )
+    opted_in_ids = {
+        user.id for user in human_participants if user.miatsuco_restrict_dms_to_authorizers
+    }
+
+    if opted_in_ids:
+        non_authorizer_ids = {user.id for user in human_participants if not is_authorizer(user)}
+        blocking_ids = {
+            opted_in_id for opted_in_id in opted_in_ids if non_authorizer_ids - {opted_in_id}
+        }
+
+        if blocking_ids:
+            restricting_full_names = sorted(
+                user.full_name
+                for user in human_participants
+                if user.id in blocking_ids and user.id != sender.id
+            )
+
+            raise DirectMessagePermissionError(
+                is_nobody_group=False,
+                blocked_by_own_restriction=sender.id in blocking_ids,
+                restricting_full_names=restricting_full_names,
+            )
 
     # Only evaluate the self-authorize path when the permission group did not
     # authorize the conversation, to avoid a membership query per participant

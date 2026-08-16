@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from enum import Enum, auto
 from typing import Any
 
@@ -610,24 +611,32 @@ class CannotSetTopicsPolicyError(JsonableError):
 
 class DirectMessagePermissionError(JsonableError):
     def __init__(
-        self, is_nobody_group: bool, *, restricted_recipient_count: int | None = None
+        self,
+        is_nobody_group: bool,
+        *,
+        blocked_by_own_restriction: bool = False,
+        restricting_full_names: Sequence[str] = (),
     ) -> None:
-        # Fork feature (miatsuco): restricted_recipient_count is set when the
-        # block is caused by one or more recipients enabling the personal
-        # "only receive direct messages from those who can authorize them"
-        # setting (miatsuco_restrict_dms_to_authorizers). In that case we surface
-        # a distinct, actionable message instead of the generic authorizer error,
-        # so the sender understands the conversation needs an authorizer because
-        # of the recipient's preference. The wording avoids naming a specific
-        # recipient in group conversations.
-        if restricted_recipient_count is not None:
-            if restricted_recipient_count > 1:
-                msg = _(
-                    "Some recipients only accept direct messages that include "
-                    "someone who can authorize them."
-                )
-            else:
-                msg = _("This user only accepts direct messages from those who can authorize them.")
+        if blocked_by_own_restriction:
+            msg = _(
+                "Your settings only allow direct messages with someone that can authorize them."
+            )
+        elif len(restricting_full_names) == 1:
+            msg = _(
+                "{full_name} only accepts direct messages with someone that can authorize them."
+            ).format(full_name=restricting_full_names[0])
+        elif len(restricting_full_names) == 2:
+            joined_names = restricting_full_names[0] + " and " + restricting_full_names[1]
+            msg = _(
+                "{full_names} only accept direct messages with someone that can authorize them."
+            ).format(full_names=joined_names)
+        elif restricting_full_names:
+            joined_names = (
+                ", ".join(restricting_full_names[:-1]) + ", and " + restricting_full_names[-1]
+            )
+            msg = _(
+                "{full_names} only accept direct messages with someone that can authorize them."
+            ).format(full_names=joined_names)
         elif is_nobody_group:
             msg = _("Direct messages are disabled in this organization.")
         else:
