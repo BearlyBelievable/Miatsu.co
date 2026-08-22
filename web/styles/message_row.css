@@ -84,13 +84,6 @@
       padding on either side of the message box. */
     padding: 0 5px 0 3px;
 
-    &:hover .message_controls {
-        > .message_control_button {
-            opacity: 1;
-            visibility: visible;
-        }
-    }
-
     &:hover .reveal-hidden-message {
         opacity: 1;
     }
@@ -115,27 +108,19 @@
     display: grid;
     align-content: baseline;
     padding-left: 10px;
-    /* Prevent the message column from overflowing the 1fr
-       space allotted by specifying `minmax(0,1fr)`, which
-       sets 0 as the minimum size, not the grid default of
-       `auto`.
-
-        The calculated `--message-box-timestamp-column-width`
-        should match `max-content` exactly, but `max-content`
-        ensures the timestamp will always have enough space
-        in the column. */
+    padding-right: 10px;
+    position: relative;
     grid-template:
         minmax(var(--message-box-sender-line-height), auto) repeat(4, auto) /
-        var(--message-box-avatar-column-width) minmax(0, 1fr) max-content
-        8px minmax(var(--message-box-timestamp-column-width), max-content);
+        var(--message-box-avatar-column-width) minmax(0, 1fr);
     /* Named grid areas provide flexibility for positioning grid items
        reliably, even if the row or column definitions of the grid change. */
     grid-template-areas:
-        "edited message   controls . time"
-        ".      message   .        . .   "
-        ".      more      .        . .   "
-        ".      reactions .        . .   "
-        ".      reminders .        . .   ";
+        "gutter-top    message"
+        "gutter-bottom message"
+        ".             more"
+        ".             reactions"
+        ".             reminders";
 
     &:has(.message-reminders) {
         .message_reactions {
@@ -147,14 +132,6 @@
 
     &.content_edit_mode {
         cursor: default;
-        /* Set the controls area to 0 to give more space
-           to the edit/source view area. */
-        grid-template-columns:
-            var(--message-box-avatar-column-width) minmax(0, 1fr)
-            0 8px minmax(
-                var(--message-box-timestamp-column-width),
-                max-content
-            );
 
         /* Hide reactions, scheduled reminders in edit mode. */
         .message_reactions,
@@ -163,14 +140,33 @@
         }
     }
 
-    .message_edit_notice {
-        grid-area: edited;
-        align-self: center;
+    .message_sender {
+        grid-area: gutter-top;
     }
 
+    .message_edit_notice,
     .edit-notifications {
-        grid-area: edited;
-        align-self: center;
+        grid-area: gutter-top;
+        /* Match .message-time's line-height so the notice's text
+           lines up with the message's first line the same way the
+           timestamp it replaces does. */
+        line-height: var(--message-box-sender-line-height);
+        padding-right: 0;
+    }
+
+    > .message_edit_notice,
+    > .edit-notifications {
+        place-self: start start;
+        width: calc(var(--message-box-avatar-width) / 0.75);
+        text-align: center;
+        overflow: visible;
+    }
+
+    &:has(.message_edit_notice) {
+        .message-time,
+        .slow-send-spinner {
+            display: none;
+        }
     }
 
     .slow-send-spinner {
@@ -180,7 +176,7 @@
         margin-top: 1px;
         margin-right: 10px;
         text-align: end;
-        grid-area: time;
+        grid-area: gutter-top;
     }
 
     .message_content:not(.status-message) {
@@ -356,12 +352,54 @@
 
 .messagebox-includes-sender {
     .messagebox-content {
-        grid-template-areas:
-            "avatar sender    controls . time"
-            "avatar message   .        . .   "
-            ".      more      .        . .   "
-            ".      reactions .        . .   "
-            ".      reminders .        . .   ";
+        &:not(.is-me-message) {
+            grid-template-columns:
+                var(--message-box-avatar-column-width)
+                minmax(0, 1fr);
+            grid-template-areas:
+                "avatar sender"
+                "avatar message"
+                ".      more"
+                ".      reactions"
+                ".      reminders";
+
+            .message_sender {
+                padding-right: var(--message-box-timestamp-column-width);
+
+                .sender_name {
+                    min-width: 0;
+                }
+            }
+
+            .message-time,
+            .slow-send-spinner {
+                grid-area: sender;
+                place-self: start end;
+            }
+
+            .message-time {
+                width: auto;
+                padding-right: 5px;
+            }
+
+            .slow-send-spinner {
+                align-self: center;
+            }
+
+            &:has(.message_edit_notice) .message-time {
+                display: block;
+            }
+
+            .message_controls {
+                top: calc(
+                    (
+                            var(--message-box-markdown-aligned-vertical-space) *
+                                0.5 * -1
+                        ) -
+                        var(--message-box-markdown-aligned-vertical-space) + 1px
+                );
+            }
+        }
 
         .message_edit {
             /* No top margin when there's a sender row */
@@ -369,15 +407,19 @@
         }
 
         &.is-me-message {
+            grid-template:
+                var(--message-box-vertical-margin)
+                minmax(var(--message-box-avatar-height), auto)
+                repeat(3, auto) /
+                var(--message-box-avatar-column-width) minmax(0, 1fr)
+                max-content 8px
+                minmax(var(--message-box-timestamp-column-width), max-content);
             grid-template-areas:
                 ".      .         .        . .   "
                 "avatar sender    controls . time"
                 ".      more      .        . .   "
                 ".      reactions .        . .   "
                 ".      reminders .        . .   ";
-            grid-template-rows:
-                var(--message-box-vertical-margin)
-                minmax(var(--message-box-avatar-height), auto) repeat(3, auto);
             /* We align items to the baseline on me messages,
                and unset the align-content property. */
             align-items: baseline;
@@ -401,6 +443,12 @@
             }
 
             .message_controls {
+                grid-area: controls;
+                position: static;
+                top: auto;
+                right: auto;
+                z-index: auto;
+                pointer-events: auto;
                 /* Because the controls height is smaller than the
                    available grid row height on me-messages, we
                    align to center here. */
@@ -575,7 +623,6 @@
 }
 
 .message_controls {
-    grid-area: controls;
     /* Let the controls occupy the entire height
        of the row; inner flexboxes handle the
        centering of the icons. */
@@ -587,25 +634,37 @@
     align-items: center;
     /* Ensure square icons for better centering. */
     line-height: 1;
+    grid-area: message;
+    position: absolute;
+    top: 1px;
+    right: 0;
+    z-index: 1;
+    pointer-events: none;
 
-    @container message-lists (width < $cq_sm_min) {
-        /* This is intended to target the first message_controls child
-           when there are 3 displayed. */
-        .message_control_button:nth-last-child(3) {
-            display: none;
+    .messagebox:hover & {
+        background-color: var(--color-background-popover-menu);
+        border-radius: 6px;
+        box-shadow: var(--box-shadow-popover-menu);
+        padding: 2px;
+        pointer-events: auto;
+
+        > .message_control_button {
+            opacity: 1;
+            visibility: visible;
         }
     }
 
-    /* Media-query fallback. Note that because we're treating
-       #message-lists-container as its own container, we can
-       express a much simpler query there. The more complex
-       conditions are necessary only for media queries. */
-    @media (width < $sm_min), ((width >= $md_min) and (width < $mc_min)) {
-        .without-container-query-support {
-            /* This is intended to target the first message_controls child
-            when there are 3 displayed. */
-            .message_control_button:nth-last-child(3) {
-                display: none;
+    @media (hover: none) {
+        .message_row.selected_msg_for_touchscreen & {
+            background-color: var(--color-background-popover-menu);
+            border-radius: 6px;
+            box-shadow: var(--box-shadow-popover-menu);
+            padding: 2px;
+            pointer-events: auto;
+
+            > .message_control_button {
+                opacity: 1;
+                visibility: visible;
             }
         }
     }
@@ -631,6 +690,7 @@
            to more gracefully center the icons. */
         display: flex;
         place-items: center center;
+        padding: calc(var(--icon-button-padding) - 5px);
         color: var(--color-message-action-visible);
 
         .emoji-message-control-button-container {
@@ -689,24 +749,14 @@
         overflow-wrap: unset;
     }
 
-    .edit_content {
+    .edit_content_button_container,
+    .move_message_button_container {
         width: var(--message-box-icon-width);
+        display: none;
 
-        .move_message_button,
-        .edit_content_button {
-            display: none;
-        }
-
-        &.can-edit-content {
-            .edit_content_button {
-                display: inline;
-            }
-        }
-
+        &.can-edit-content,
         &.can-move-message {
-            .move_message_button {
-                display: inline;
-            }
+            display: flex;
         }
     }
 
@@ -728,6 +778,34 @@
             color: var(--color-message-star-action);
             opacity: 1;
             visibility: visible !important;
+        }
+    }
+}
+
+.messagebox:hover .messagebox-content.is-me-message .message_controls {
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+
+    > .message_control_button {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+@media (hover: none) {
+    .message_row.selected_msg_for_touchscreen
+        .messagebox-content.is-me-message
+        .message_controls {
+        background-color: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
+
+        > .message_control_button {
+            opacity: 1;
+            visibility: visible;
         }
     }
 }
@@ -775,8 +853,10 @@
 }
 
 .message-time {
-    justify-self: end;
-    padding-right: 5px;
+    place-self: start start;
+    width: calc(var(--message-box-avatar-width) / 0.75);
+    white-space: nowrap;
+    overflow: visible;
     /* Maintain first-line baseline regardless of
        what happens in the message-content area (e.g., a
        collapsed message, or source/edit view). This
@@ -784,12 +864,12 @@
        in place, care of their baseline-group participation
        within the grid. */
     line-height: var(--message-box-sender-line-height);
-    grid-area: time;
+    grid-area: gutter-top;
     display: block;
-    /* 13px at 14px/1em */
-    font-size: 0.9286em;
+    /* 12px at 16px/1em */
+    font-size: 0.75em;
     font-weight: 350;
-    text-align: end;
+    text-align: center;
     opacity: 0.8;
     color: var(--color-text-default);
     letter-spacing: 0.02em;
@@ -1092,8 +1172,8 @@
 }
 
 .message_edit_notice {
-    /* 10px at 14px/1em */
-    font-size: 0.7143em;
+    /* 12px at 16px/1em */
+    font-size: 0.75em;
     opacity: 0.5;
     user-select: none;
     white-space: nowrap;

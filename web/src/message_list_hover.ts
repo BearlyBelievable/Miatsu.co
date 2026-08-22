@@ -41,7 +41,7 @@ export function message_hover($message_row: JQuery): void {
 
     $current_message_hover = $message_row;
 
-    if (!message.sent_by_me || message.locally_echoed) {
+    if (message.locally_echoed) {
         // The actions and reactions icon hover logic is handled entirely by CSS
         return;
     }
@@ -68,39 +68,30 @@ export function reapply_hover_on_row_replace(
         return;
     }
     $current_message_hover = $new_row;
-    if (!message.sent_by_me || message.locally_echoed) {
+    if (message.locally_echoed) {
         return;
     }
     change_edit_content_button($new_row, message);
 }
 
 function change_edit_content_button($message_row: JQuery, message: Message): void {
-    // But the message edit hover icon is determined by whether the message is still editable
+    // The edit and move icons are independent of each other, since a
+    // message can still be movable after its content edit window has
+    // closed (or vice versa).
     const is_content_editable = message_edit.is_content_editable(message);
     const can_move_message = message_edit.can_move_message(message);
 
-    const $edit_content = $message_row.find(".edit_content");
-    if (is_content_editable && !$edit_content.hasClass("can-edit-content")) {
-        $edit_content.addClass("can-edit-content");
-        $edit_content.removeClass("can-move-message");
-        $edit_content.attr("data-tooltip-template-id", "edit-content-tooltip-template");
-    } else if (
-        !is_content_editable &&
-        can_move_message &&
-        !$edit_content.hasClass("can-move-message")
-    ) {
-        $edit_content.addClass("can-move-message");
-        $edit_content.removeClass("can-edit-content");
-        $edit_content.attr("data-tooltip-template-id", "move-message-tooltip-template");
-    } else if (!is_content_editable && !can_move_message) {
-        $edit_content.removeClass("can-edit-content can-move-message");
-    }
+    const $edit_content_button = $message_row.find(".edit_content_button_container");
+    const $move_message_button = $message_row.find(".move_message_button_container");
+
+    $edit_content_button.toggleClass("can-edit-content", is_content_editable);
+    $move_message_button.toggleClass("can-move-message", can_move_message);
 
     if (edit_timeout === undefined) {
         const remaining_edit_time = message_edit.remaining_content_edit_time(message) * 1000;
         if (remaining_edit_time > 0 && remaining_edit_time < Infinity) {
             edit_timeout = setTimeout(() => {
-                const visible = $.contains(document.body, $edit_content[0]!);
+                const visible = $.contains(document.body, $edit_content_button[0]!);
                 if (!visible) {
                     return;
                 }
@@ -113,7 +104,7 @@ function change_edit_content_button($message_row: JQuery, message: Message): voi
         const remaining_move_time = message_edit.remaining_message_move_time(message) * 1000;
         if (remaining_move_time > 0 && remaining_move_time < Infinity) {
             move_timeout = setTimeout(() => {
-                const visible = $.contains(document.body, $edit_content[0]!);
+                const visible = $.contains(document.body, $move_message_button[0]!);
                 if (!visible) {
                     return;
                 }
