@@ -181,11 +181,19 @@ export const update_elements = ($content: JQuery): void => {
         });
     }
 
-    // Hide video preview for browsers that cannot play the format.
-    // The download link remains available.
+    // Replace the video preview with a fallback link for browsers that
+    // cannot play the format.
     $content.find<HTMLMediaElement>(".message_inline_video video").each((_index, video) => {
         $(video).on("error", () => {
-            $(video).closest(".message_inline_video").addClass("video-format-unsupported");
+            // Codes 1/2 (aborted/network) are typically transient, not a
+            // real playback failure. Only 3/4 (decode/src not supported)
+            // mean the browser can't play this file. Compared as literals
+            // since MediaError isn't defined in every environment this runs in.
+            if (video.error?.code === 3 || video.error?.code === 4) {
+                miatsuco_inline_video.mark_video_format_unsupported(
+                    $(video).closest(".message_inline_video"),
+                );
+            }
         });
     });
 

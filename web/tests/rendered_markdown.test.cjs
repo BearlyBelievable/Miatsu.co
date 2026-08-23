@@ -206,9 +206,11 @@ run_test("message_inline_video_unsupported_format", () => {
     const $content = get_content_element();
     const $video = $.create("video_element");
     const $video_container = $.create("message_inline_video_container");
+    const $anchor = $.create("anchor_element");
 
     $video.set_closest_results(".message_inline_video", $video_container);
     $content.set_find_results(".message_inline_video video", $video);
+    $video_container.set_find_results("a", $anchor);
 
     rm.update_elements($content);
 
@@ -216,18 +218,40 @@ run_test("message_inline_video_unsupported_format", () => {
     assert.ok(!$video_container.hasClass("video-format-unsupported"));
 
     // Simulate video error (browser cannot play the format).
+    // 4 is MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED.
+    $video[0].error = {code: 4};
     $video.trigger("error");
 
     assert.ok($video_container.hasClass("video-format-unsupported"));
+    assert.equal($anchor.text(), "translated: Video preview unavailable");
+});
+
+run_test("message_inline_video_transient_error_is_not_unsupported_format", () => {
+    const $content = get_content_element();
+    const $video = $.create("video_element");
+    const $video_container = $.create("message_inline_video_container");
+    const $anchor = $.create("anchor_element");
+
+    $video.set_closest_results(".message_inline_video", $video_container);
+    $content.set_find_results(".message_inline_video video", $video);
+    $video_container.set_find_results("a", $anchor);
+
+    rm.update_elements($content);
+
+    // 2 is MediaError.MEDIA_ERR_NETWORK.
+    $video[0].error = {code: 2};
+    $video.trigger("error");
+
+    assert.ok(!$video_container.hasClass("video-format-unsupported"));
 });
 
 run_test("message_inline_video_unsupported_format_after_fork_enhance", () => {
     // The fork turns inline video previews into real players (adds controls,
     // the playable marker class). This must not disturb upstream's fallback:
-    // if playback then fails, the error handler should still hide the broken
-    // player via video-format-unsupported (CSS display:none), leaving the
-    // download link. Exercise both on the same element: enhance runs from
-    // update_elements, then a media error must still add the fallback class.
+    // if playback then fails, the error handler should still replace the
+    // broken player with a fallback link. Exercise both on the same element:
+    // enhance runs from update_elements, then a media error must still mark
+    // the container unsupported.
     const $content = get_content_element();
     const $video = $.create("video_element");
     const $video_container = $.create("message_inline_video_container");
@@ -255,11 +279,14 @@ run_test("message_inline_video_unsupported_format_after_fork_enhance", () => {
     assert.ok($video_container.hasClass("miatsuco-inline-video-playable"));
 
     // A later playback failure still triggers the fallback: the container is
-    // marked unsupported so the broken player is hidden and the download link
-    // remains reachable.
+    // marked unsupported and the anchor gets visible fallback text, so a
+    // link remains reachable instead of the container just disappearing.
     assert.ok(!$video_container.hasClass("video-format-unsupported"));
+    // 3 is MediaError.MEDIA_ERR_DECODE.
+    $video[0].error = {code: 3};
     $video.trigger("error");
     assert.ok($video_container.hasClass("video-format-unsupported"));
+    assert.equal($anchor.text(), "translated: Video preview unavailable");
 });
 
 run_test("user-mention", ({override}) => {

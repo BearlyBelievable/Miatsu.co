@@ -1800,6 +1800,14 @@
         hsl(0deg 0% 80%),
         hsl(0deg 0% 33%)
     );
+    --color-background-social-post-twitter: light-dark(
+        hsl(210deg 20% 96%),
+        hsl(210deg 15% 12%)
+    );
+    --color-background-social-post-bluesky: light-dark(
+        hsl(206deg 100% 96%),
+        hsl(206deg 45% 14%)
+    );
 
     /* Tab-switcher colors */
     /* The non-selected colors here are shared with numerous other

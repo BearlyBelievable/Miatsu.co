@@ -50,14 +50,11 @@ run_test("enhances a playable inline video", () => {
     const $anchor = $.create("anchor-element");
     $container.set_find_results("video", $video);
     $container.set_find_results("a", $anchor);
-    // A real video element exposes canPlayType; a playable file reports a
-    // non-empty result, so enhancement proceeds.
     $video.attr("src", "https://example.com/uploads/clip.webm");
     $video[0].canPlayType = () => "probably";
 
     miatsuco_inline_video.enhance_inline_videos(make_content($container));
 
-    // Became a real, marked player.
     assert.equal($container.attr("data-miatsuco-inline-video"), "1");
     assert.equal($video.attr("controls"), "true");
     assert.ok($container.hasClass("miatsuco-inline-video-playable"));
@@ -65,9 +62,6 @@ run_test("enhances a playable inline video", () => {
     assert.equal($video.attr("draggable"), "false");
     assert.equal($anchor.attr("draggable"), "false");
 
-    // Video click stops propagation (blocks the lightbox). It must not
-    // call preventDefault, so the native controls keep working; we assert
-    // that by omitting preventDefault from the stub (a call would throw).
     const video_event = {
         stop_propagation_calls: 0,
         stopPropagation() {
@@ -77,15 +71,19 @@ run_test("enhances a playable inline video", () => {
     $video.get_on_handler("click")(video_event);
     assert.equal(video_event.stop_propagation_calls, 1);
 
-    // Anchor click prevents navigation.
     const anchor_event = {
         prevent_default_calls: 0,
         preventDefault() {
             this.prevent_default_calls += 1;
         },
+        stop_propagation_calls: 0,
+        stopPropagation() {
+            this.stop_propagation_calls += 1;
+        },
     };
     $anchor.get_on_handler("click")(anchor_event);
     assert.equal(anchor_event.prevent_default_calls, 1);
+    assert.equal(anchor_event.stop_propagation_calls, 1);
 });
 
 run_test("falls back when the browser cannot play the container", () => {
@@ -100,11 +98,10 @@ run_test("falls back when the browser cannot play the container", () => {
 
     miatsuco_inline_video.enhance_inline_videos(make_content($container));
 
-    // The preview is marked unsupported (hidden, download link remains) and
-    // never turned into a player.
     assert.ok($container.hasClass("video-format-unsupported"));
     assert.equal($container.attr("data-miatsuco-inline-video"), undefined);
     assert.ok(!$container.hasClass("miatsuco-inline-video-playable"));
+    assert.equal($anchor.text(), "translated: Video preview unavailable");
 });
 
 run_test("enhances when the browser might play the container", () => {
@@ -114,7 +111,6 @@ run_test("enhances when the browser might play the container", () => {
     $container.set_find_results("video", $video);
     $container.set_find_results("a", $anchor);
     $video.attr("src", "https://example.com/uploads/clip.mp4?v=2");
-    // "maybe" (and "probably") are not definitive, so we proceed.
     $video[0].canPlayType = () => "maybe";
 
     miatsuco_inline_video.enhance_inline_videos(make_content($container));
@@ -130,11 +126,6 @@ run_test("enhances when the extension is unrecognized", () => {
     const $anchor = $.create("anchor-element");
     $container.set_find_results("video", $video);
     $container.set_find_results("a", $anchor);
-    // No recognizable extension, so there is no container type to check;
-    // canPlayType is left as noop (its presence lets the capability check run,
-    // but an unrecognized extension means it is never consulted) and
-    // enhancement proceeds, leaving a genuine failure to the error-event
-    // fallback.
     $video.attr("src", "https://example.com/uploads/clip");
     $video[0].canPlayType = noop;
 
