@@ -1071,6 +1071,39 @@ class PreviewTestCase(ZulipTestCase):
             '<p><a href="http://test.org/">http://test.org/</a></p>', msg.rendered_content
         )
 
+    def test_social_embed_hosts_skip_content_type_check(self) -> None:
+        url = "https://x.com/jack/status/20"
+        social_data = UrlOEmbedData(type="rich")
+
+        with (
+            mock.patch(
+                "zerver.lib.url_preview.preview.valid_content_type", side_effect=lambda k: False
+            ),
+            mock.patch(
+                "zerver.lib.url_preview.preview.get_oembed_data",
+                side_effect=lambda *args, **kwargs: social_data,
+            ),
+            self.settings(TEST_SUITE=False),
+        ):
+            data = get_link_embed_data(url)
+        self.assertIs(data, social_data)
+
+    def test_non_social_hosts_still_require_valid_content_type(self) -> None:
+        url = "http://test.org/"
+
+        with (
+            mock.patch(
+                "zerver.lib.url_preview.preview.valid_content_type", side_effect=lambda k: False
+            ),
+            mock.patch(
+                "zerver.lib.url_preview.preview.get_oembed_data",
+                side_effect=lambda *args, **kwargs: None,
+            ),
+            self.settings(TEST_SUITE=False),
+        ):
+            data = get_link_embed_data(url)
+        self.assertIsNone(data)
+
     @responses.activate
     @override_settings(INLINE_URL_EMBED_PREVIEW=True)
     def test_invalid_url(self) -> None:

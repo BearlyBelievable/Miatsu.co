@@ -2,7 +2,7 @@ import re
 from collections.abc import Callable
 from re import Match
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 import magic
 import requests
@@ -13,6 +13,7 @@ from version import ZULIP_VERSION
 from zerver.lib.cache import cache_with_key, preview_url_cache_key
 from zerver.lib.outgoing_http import OutgoingSession
 from zerver.lib.pysa import mark_sanitized
+from zerver.lib.url_preview.miatsuco_fxembed import SOCIAL_EMBED_HOSTS
 from zerver.lib.url_preview.oembed import get_oembed_data
 from zerver.lib.url_preview.parsers import GenericParser, OpenGraphParser
 from zerver.lib.url_preview.types import UrlEmbedData, UrlOEmbedData
@@ -88,7 +89,11 @@ def get_link_embed_data(url: str, maxwidth: int = 640, maxheight: int = 480) -> 
     if not is_link(url):
         return None
 
-    if not valid_content_type(url):
+    # Twitter/Bluesky status pages don't serve a plain HTML
+    # content-type to unauthenticated requests, so this check would
+    # otherwise reject them before get_oembed_data gets a chance to
+    # fetch structured post data from fxembed instead.
+    if urlsplit(url).hostname not in SOCIAL_EMBED_HOSTS and not valid_content_type(url):
         return None
 
     # The oembed data from pyoembed may be complete enough to return

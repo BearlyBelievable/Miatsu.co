@@ -825,26 +825,22 @@
         max-width: 100%;
 
         & .media-video-element {
-            /* The base rule sets a fixed landscape width and height so the
-               static poster has definite dimensions. Keep those as the
-               natural size, but cap the width to the container so a real
-               player and its native control bar shrink with the message
-               column instead of overflowing in narrow or responsive
-               viewports. object-fit (set upstream) letterboxes the frame so
-               it is not distorted as it narrows. */
-            max-width: 100%;
-
-            /* Give the native controls room for the volume slider (browsers
-               collapse it to a mute toggle on narrow players), scaling with
-               the org's media preview size setting. Clamp the floor to the
-               available width with min() so it never forces overflow on a
-               viewport narrower than the floor. */
-            min-width: min(100%, calc(var(--media-preview-max-height) * 1.5));
+            width: auto;
+            max-width: calc(100% - 14px);
+            height: auto;
+            margin: 0 auto;
         }
     }
 
     .message_inline_video.video-format-unsupported {
-        display: none;
+        display: block;
+        width: auto;
+        height: auto;
+        cursor: pointer;
+
+        &::after {
+            content: none;
+        }
     }
 
     .miatsuco-inline-embed-loaded {

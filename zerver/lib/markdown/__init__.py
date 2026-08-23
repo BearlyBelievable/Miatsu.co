@@ -708,9 +708,139 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         else:
             img.set("src", image_url)
 
+    SOCIAL_POST_PLATFORM_ICONS = {"twitter": ("X", "x"), "bluesky": ("Bluesky", "bluesky")}
+
+    def add_social_post_header(
+        self,
+        container: Element,
+        avatar_url: str | None,
+        author_name: str | None,
+        author_handle: str | None,
+        permalink: str | None,
+        fallback_link: str,
+        platform_icon: tuple[str, str] | None = None,
+    ) -> None:
+        header = SubElement(container, "div")
+        header.set("class", "social-post-header")
+
+        safe_avatar_url = sanitize_url(avatar_url) if avatar_url is not None else None
+        if safe_avatar_url is not None:
+            avatar = SubElement(header, "img")
+            avatar.set("class", "social-post-avatar")
+            avatar.set("src", safe_avatar_url)
+
+        author = SubElement(header, "a")
+        author.set("class", "social-post-author")
+        safe_permalink = sanitize_url(permalink) if permalink is not None else None
+        author.set("href", safe_permalink or fallback_link)
+
+        if author_name is not None:
+            name_elm = SubElement(author, "span")
+            name_elm.set("class", "social-post-author-name")
+            name_elm.text = author_name
+
+        if author_handle is not None:
+            handle_elm = SubElement(author, "span")
+            handle_elm.set("class", "social-post-author-handle")
+            handle_elm.text = "@" + author_handle
+
+        if platform_icon is not None:
+            label_text, icon_name = platform_icon
+            badge = SubElement(header, "span")
+            badge.set("class", "social-post-badge")
+            badge.set("aria-label", label_text)
+            icon = SubElement(badge, "i")
+            icon.set("class", f"zulip-icon zulip-icon-{icon_name}")
+            icon.set("aria-hidden", "true")
+
+    def add_social_post_media(
+        self, container: Element, media: list[UrlOEmbedData.SocialPost.MediaItem]
+    ) -> None:
+        candidates = [(item, sanitize_url(item.url)) for item in media]
+        safe_items: list[tuple[UrlOEmbedData.SocialPost.MediaItem, str]] = [
+            (item, url) for item, url in candidates if url is not None
+        ]
+        if not safe_items:
+            return
+        media_container = SubElement(container, "div")
+        media_container.set("class", "social-post-media")
+        for item, safe_url in safe_items:
+            if item.kind == "video":
+                self.add_video(media_container, safe_url, title=None)
+            else:
+                self.add_a(media_container, image_url=safe_url, link=safe_url, title=item.alt_text)
+
+    def add_social_post_quote(
+        self, container: Element, quote: UrlOEmbedData.SocialPost.Quote, fallback_link: str
+    ) -> None:
+        if quote.unavailable_reason is not None:
+            unavailable = SubElement(container, "div")
+            unavailable.set("class", "social-post-quote-unavailable")
+            unavailable.text = f"Quoted post unavailable ({quote.unavailable_reason})"
+            return
+
+        quote_container = SubElement(container, "div")
+        quote_container.set("class", "social-post-quote")
+        self.add_social_post_header(
+            quote_container,
+            quote.author_avatar_url,
+            quote.author_name,
+            quote.author_handle,
+            quote.permalink,
+            fallback_link,
+        )
+        if quote.text:
+            text_elm = SubElement(quote_container, "div")
+            text_elm.set("class", "social-post-text")
+            text_elm.text = quote.text
+        self.add_social_post_media(quote_container, quote.media)
+
+    def add_social_post_embed(
+        self, root: Element, link: str, social_post: UrlOEmbedData.SocialPost
+    ) -> None:
+        container = SubElement(root, "div")
+        container.set("class", f"social-post social-post-{social_post.platform}")
+
+        self.add_social_post_header(
+            container,
+            social_post.author_avatar_url,
+            social_post.author_name,
+            social_post.author_handle,
+            social_post.permalink,
+            link,
+            self.SOCIAL_POST_PLATFORM_ICONS.get(social_post.platform),
+        )
+
+        if social_post.text:
+            text_elm = SubElement(container, "div")
+            text_elm.set("class", "social-post-text")
+            text_elm.text = social_post.text
+
+        self.add_social_post_media(container, social_post.media)
+
+        stat_labels = [
+            (social_post.like_count, "likes"),
+            (social_post.repost_count, "reposts"),
+            (social_post.reply_count, "replies"),
+        ]
+        stats_text = " · ".join(
+            f"{count} {label}" for count, label in stat_labels if count is not None
+        )
+        if stats_text:
+            stats_elm = SubElement(container, "div")
+            stats_elm.set("class", "social-post-stats")
+            stats_elm.text = stats_text
+
+        if social_post.quote is not None:
+            self.add_social_post_quote(container, social_post.quote, link)
+
     def add_oembed_data(self, root: Element, link: str, extracted_data: UrlOEmbedData) -> None:
         if not self.zmd.image_preview_enabled:
             self.add_plain_embed(root, link, extracted_data)
+            return
+
+        if extracted_data.social_post is not None:
+            self.add_social_post_embed(root, link, extracted_data.social_post)
             return
 
         if extracted_data.image is None:

@@ -29,6 +29,7 @@ import "../../styles/banners.css";
 import "../../styles/components.css";
 import "../../styles/app_components.css";
 import "../../styles/rendered_markdown.css";
+import "../../styles/miatsuco.css";
 import "../../styles/zulip.css";
 import "../../styles/message_view_header.css";
 import "../../styles/message_header.css";

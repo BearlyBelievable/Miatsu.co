@@ -1,0 +1,181 @@
+.rendered_markdown {
+    .social-post {
+        display: block;
+        max-width: var(--embed-max-width);
+        margin: 0 0 var(--markdown-interelement-space-px) 0;
+        padding: 0.5em 0.75em;
+        border: 1px solid var(--color-border-rendered-markdown-table);
+        border-radius: 8px;
+        box-sizing: border-box;
+        container-type: inline-size;
+        container-name: social-post;
+
+        .social-post-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            margin-bottom: 0.4em;
+        }
+
+        .social-post-avatar {
+            width: 2em;
+            height: 2em;
+            border-radius: 50%;
+            object-fit: cover;
+            flex: 0 0 auto;
+        }
+
+        .social-post-author {
+            display: flex;
+            align-items: baseline;
+            gap: 0.4em;
+            overflow: hidden;
+            min-width: 0;
+            text-decoration: none;
+            color: inherit;
+
+            &:hover {
+                text-decoration: underline;
+            }
+
+            @container social-post (width < 14em) {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0;
+                font-size: 0.8em;
+                line-height: 1.2;
+            }
+
+            @container message-lists (width < $cq_md_min) {
+                @container social-post (width < 20em) {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 0;
+                    font-size: 0.8em;
+                    line-height: 1.2;
+                }
+            }
+        }
+
+        .social-post-author-name {
+            font-weight: 700;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .social-post-author-handle {
+            color: var(--color-text-default);
+            opacity: 0.7;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .social-post-badge {
+            margin-left: auto;
+            flex: 0 0 auto;
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+        .social-post-text {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            margin-bottom: 0.4em;
+        }
+
+        .social-post-media {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            justify-items: center;
+            gap: 4px;
+            margin: 0 -0.75em 0.4em;
+
+            &:has(> :only-child) {
+                grid-template-columns: 1fr;
+            }
+
+            .message-thumbnail-gallery,
+            .message_inline_image,
+            .message_inline_video {
+                margin: 0;
+                justify-content: center;
+            }
+
+            .message_inline_animated_image_still {
+                justify-content: center;
+            }
+
+            .media-image-element {
+                max-width: calc(100% - 14px);
+                margin: 0 auto;
+            }
+        }
+
+        .social-post-stats {
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+        .social-post-quote {
+            margin: 0.4em 0;
+            padding: 0.5em 0.75em;
+            border: 1px solid var(--color-border-rendered-markdown-table);
+            border-radius: 8px;
+
+            .social-post-header {
+                margin-bottom: 0.3em;
+            }
+
+            .social-post-avatar {
+                width: 1.5em;
+                height: 1.5em;
+            }
+
+            .social-post-text,
+            .social-post-media {
+                margin-bottom: 0;
+            }
+
+            .social-post-media {
+                margin-top: 0.4em;
+            }
+        }
+
+        .social-post-quote-unavailable {
+            margin: 0.4em 0;
+            padding: 0.5em 0.75em;
+            border: 1px solid var(--color-border-rendered-markdown-table);
+            border-radius: 8px;
+            font-style: italic;
+            opacity: 0.7;
+        }
+    }
+
+    .social-post-twitter {
+        background-color: var(--color-background-social-post-twitter);
+
+        .social-post-quote,
+        .social-post-quote-unavailable {
+            background-color: color-mix(
+                in srgb,
+                var(--color-background-social-post-twitter) 96%,
+                hsl(0deg 0% 100%)
+            );
+        }
+    }
+
+    .social-post-bluesky {
+        background-color: var(--color-background-social-post-bluesky);
+
+        .social-post-quote,
+        .social-post-quote-unavailable {
+            background-color: color-mix(
+                in srgb,
+                var(--color-background-social-post-bluesky) 96%,
+                hsl(0deg 0% 100%)
+            );
+        }
+    }
+}

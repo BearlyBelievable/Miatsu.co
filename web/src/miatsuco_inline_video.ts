@@ -1,26 +1,27 @@
 import $ from "jquery";
 
+import {$t} from "./i18n.ts";
+
 // MiAtSu.Co fork: make inline videos play in place with the native HTML5
 // player, instead of acting as a poster-frame link that opens the lightbox.
 //
-// Upstream renders an inline video as a non-interactive preview: a <video>
-// with no `controls`, wrapped in an <a href> pointing at the file, with a
+// Upstream renders an inline video as a non-interactive preview <video>
+// with no controls, wrapped in an <a href> pointing at the file, with a
 // CSS play-button overlay drawn via ::after. A delegated handler (see
 // lightbox.ts) catches clicks on the container and opens the lightbox (a
 // separate <video controls>). Audio, by contrast, embeds a real player and
 // plays inline. This brings video in line with audio and with an ordinary
-// HTML5 player: the embed itself plays, and the player's own fullscreen
-// control handles enlarging, so the lightbox is unnecessary.
+// HTML5 player, making the lightbox unnecessary for anything but images.
 //
 // For each supported inline video we:
-//   - add `controls`, making the embed a real player;
-//   - add a marker class so the CSS play-button overlay and zoom cursor are
-//     suppressed (see rendered_markdown.css);
-//   - stop click propagation from the <video> so upstream's delegated
+//   - Add `controls`, making the embed a real player
+//   - Add a marker class so the CSS play-button overlay and zoom cursor are
+//     suppressed (see rendered_markdown.css)
+//   - Stop click propagation from the <video> so upstream's delegated
 //     lightbox handler does not fire (we do not call preventDefault here, so
-//     the native player's own controls keep working); and
-//   - preventDefault on the wrapping <a> so interacting with the player does
-//     not navigate to the raw file.
+//     the native player's own controls keep working)
+//   - Call preventDefault on the wrapping <a> so interacting with the player does
+//     not navigate to the raw file
 //
 // Unsupported-format videos are left alone, so upstream's fallback (hidden
 // preview, download link) still applies.
@@ -34,7 +35,7 @@ import $ from "jquery";
 // file is an inline video (see is_video in zerver/lib/markdown/__init__.py:
 // video/mp4, video/quicktime, video/webm). The <video> carries only a src, no
 // type attribute, so the extension is all we have. This is a coarse container
-// check, not a codec check; it is used only to detect a browser that cannot
+// check, not a codec check. It's used only to detect a browser that cannot
 // play the container at all, so returning undefined (proceed as normal) for
 // anything unrecognized is the safe default.
 function container_mime_type_for_url(src: string): string | undefined {
@@ -51,6 +52,13 @@ function container_mime_type_for_url(src: string): string | undefined {
         default:
             return undefined;
     }
+}
+
+// Marks a video container as unplayable and turns its wrapping <a> into a
+// visible fallback link, instead of the container just disappearing.
+export function mark_video_format_unsupported($container: JQuery): void {
+    $container.addClass("video-format-unsupported");
+    $container.find("a").text($t({defaultMessage: "Video preview unavailable"}));
 }
 
 export function enhance_inline_videos(content: JQuery): void {
@@ -71,16 +79,8 @@ export function enhance_inline_videos(content: JQuery): void {
             return;
         }
 
-        // If the browser is certain it cannot play this container, present the
-        // download-link fallback instead of a player that would refuse to
-        // start. A refused native play() surfaces as a promise rejection, not
-        // an "error" event, so upstream's error handler never fires for it and
-        // the player would otherwise sit there snapping back to paused. We act
-        // only on canPlayType's definitive "" (cannot play); "maybe" and
-        // "probably" both proceed, so a file the browser might play is never
-        // hidden. This is a container check, not a codec check, so it does not
-        // catch a supported container holding an unsupported codec; that case
-        // still relies on the error-event fallback.
+        // If the browser is certain it can't play this container, present the
+        // download link instead of a player that would refuse to start.
         const video_element = $video[0];
         const src = $video.attr("src");
         if (
@@ -90,7 +90,7 @@ export function enhance_inline_videos(content: JQuery): void {
         ) {
             const mime_type = container_mime_type_for_url(src);
             if (mime_type !== undefined && video_element.canPlayType(mime_type) === "") {
-                $container.addClass("video-format-unsupported");
+                mark_video_format_unsupported($container);
                 return;
             }
         }
@@ -102,21 +102,11 @@ export function enhance_inline_videos(content: JQuery): void {
         $container.addClass("miatsuco-inline-video-playable");
 
         // Drop the media-image-element class (postprocess_content adds it to
-        // inline videos alongside media-video-element). That class is what
-        // gives the preview its zoom-in cursor and its "Click to view or
-        // download" hover tooltip, both of which describe the old
-        // click-to-open-lightbox behavior and no longer apply to a player
-        // that plays in place. The media-video-element class, which carries
-        // the layout, is left in place.
+        // inline videos alongside media-video-element).
         $video.removeClass("media-image-element");
 
         // Disable native drag-and-drop on the player and its wrapping
-        // anchor. Both a <video> and an <a href> are draggable by default,
-        // so dragging the seek bar across the video surface (which overlaps
-        // the video for tall/portrait clips) would otherwise start dragging
-        // the file or link instead of seeking. This is drag-and-drop only
-        // and does not affect the native player controls. Upstream uses the
-        // same draggable="false" approach on its own anchors.
+        // anchor.
         const $anchor = $container.find("a");
         $video.attr("draggable", "false");
         $anchor.attr("draggable", "false");
@@ -127,9 +117,9 @@ export function enhance_inline_videos(content: JQuery): void {
             event.stopPropagation();
         });
 
-        // Stop the wrapping <a> from navigating to the raw file.
         $anchor.on("click", (event) => {
             event.preventDefault();
+            event.stopPropagation();
         });
     });
 }
