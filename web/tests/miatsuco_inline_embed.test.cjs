@@ -35,7 +35,7 @@ function last_iframe() {
 
 run_test("skips already-loaded embeds", () => {
     const {$container, $anchor} = make_container("loaded-container", "youtube-video");
-    $container.addClass("miatsuco-inline-embed-loaded");
+    $container.addClass("inline-embed-loaded");
     $anchor.attr("data-id", "dQw4w9WgXcQ");
     $anchor.attr("href", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
 
@@ -51,7 +51,7 @@ run_test("loads a YouTube embed", () => {
 
     miatsuco_inline_embed.enhance_inline_embeds(make_content($container));
 
-    assert.ok($container.hasClass("miatsuco-inline-embed-loaded"));
+    assert.ok($container.hasClass("inline-embed-loaded"));
 
     const $iframe = last_iframe();
     assert.equal(
@@ -202,7 +202,7 @@ run_test("does nothing if the anchor has no href", () => {
 
     miatsuco_inline_embed.enhance_inline_embeds(make_content($container));
 
-    assert.ok(!$container.hasClass("miatsuco-inline-embed-loaded"));
+    assert.ok(!$container.hasClass("inline-embed-loaded"));
 });
 
 run_test("a second enhance call does not reload an already-loaded embed", () => {

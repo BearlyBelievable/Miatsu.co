@@ -761,7 +761,7 @@ export function initialize(): void {
 
     $("#main_div, #compose .preview_content").on(
         "click",
-        ".miatsuco-message-media-collapsed-image-link, .miatsuco-message-media-expand-button",
+        ".message-media-collapsed-image-link, .message-media-expand-button",
         (e) => {
             // Personal preference: previews were collapsed to a
             // plain link to save bandwidth. Expand this one preview
@@ -769,7 +769,7 @@ export function initialize(): void {
             e.preventDefault();
             e.stopPropagation();
 
-            const $wrapper = $(e.currentTarget).closest(".miatsuco-message-media-collapsed-image");
+            const $wrapper = $(e.currentTarget).closest(".message-media-collapsed-image");
             const original_html = $wrapper[0]?.dataset["collapsedImageHtml"];
             if (original_html === undefined) {
                 blueslip.warn("Collapsed media wrapper is missing its original markup.");
@@ -799,7 +799,7 @@ export function initialize(): void {
             collapse_button_elt.setAttribute("role", "button");
             collapse_button_elt.setAttribute("tabindex", "0");
             collapse_button_elt.classList.add(
-                "miatsuco-message-media-recollapse-button",
+                "message-media-recollapse-button",
                 "icon-button",
                 "icon-button-square",
                 "icon-button-neutral",
@@ -813,7 +813,7 @@ export function initialize(): void {
             collapse_button_elt.dataset["collapsedImageHtml"] = original_html;
 
             const $row = $(document.createElement("span"));
-            $row.addClass("miatsuco-message-media-expanded-image-row");
+            $row.addClass("message-media-expanded-image-row");
             $row.append($expanded, $collapse_button);
 
             // This expanded markup is inserted directly, bypassing
@@ -841,12 +841,12 @@ export function initialize(): void {
 
     $("#main_div, #compose .preview_content").on(
         "click",
-        ".miatsuco-message-media-recollapse-button",
+        ".message-media-recollapse-button",
         (e) => {
             e.preventDefault();
             e.stopPropagation();
 
-            const $button = $(e.currentTarget).closest(".miatsuco-message-media-recollapse-button");
+            const $button = $(e.currentTarget).closest(".message-media-recollapse-button");
             const original_html = $button[0]?.dataset["collapsedImageHtml"];
             if (original_html === undefined) {
                 blueslip.warn("Recollapse button is missing its original markup.");
@@ -859,7 +859,7 @@ export function initialize(): void {
             const collapsed_fragment = document.createDocumentFragment();
             collapsed_fragment.append(...$.parseHTML(collapsed_html));
             const $collapsed = $([...collapsed_fragment.children]);
-            $button.closest(".miatsuco-message-media-expanded-image-row").replaceWith($collapsed);
+            $button.closest(".message-media-expanded-image-row").replaceWith($collapsed);
         },
     );
 

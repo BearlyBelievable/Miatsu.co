@@ -77,7 +77,7 @@ run_test("render_pills populates the pill container", ({override}) => {
     override(realm, "realm_direct_message_permission_group", moderators.id);
     const $pills = $.create("pills");
     const $container = $.create("render-container");
-    $container.set_find_results(".miatsuco-dm-authorizers-pills", $pills);
+    $container.set_find_results(".dm-authorizers-pills", $pills);
 
     miatsuco_dm_authorizer_display.render_pills($container);
 
@@ -91,7 +91,7 @@ run_test("render_pills shows an empty message when no one can authorize", ({over
     });
     const $pills = $.create("empty-pills");
     const $container = $.create("empty-container");
-    $container.set_find_results(".miatsuco-dm-authorizers-pills", $pills);
+    $container.set_find_results(".dm-authorizers-pills", $pills);
 
     // Should not throw; the empty-state span is appended.
     miatsuco_dm_authorizer_display.render_pills($container);
@@ -99,7 +99,7 @@ run_test("render_pills shows an empty message when no one can authorize", ({over
 
 run_test("render_pills is a no-op without a pill container", () => {
     const $container = $.create("no-pills-container");
-    $container.set_find_results(".miatsuco-dm-authorizers-pills", []);
+    $container.set_find_results(".dm-authorizers-pills", []);
     // Should not throw.
     miatsuco_dm_authorizer_display.render_pills($container);
 });
@@ -110,14 +110,14 @@ run_test("set_up mounts the pill container and wires the popover handler", ({ove
     const $pills = $.create("setup-pills");
     const $disclosure = $.create("disclosure");
     const $container = $.create("setup-container");
-    $container.set_find_results(".miatsuco-dm-authorizers", $disclosure);
-    $container.set_find_results(".miatsuco-dm-authorizers-pills", $pills);
+    $container.set_find_results(".dm-authorizers", $disclosure);
+    $container.set_find_results(".dm-authorizers-pills", $pills);
 
     miatsuco_dm_authorizer_display.set_up($container);
 
     const popover_handler = $disclosure.get_on_handler(
         "click",
-        ".miatsuco-dm-authorizers-pills .pill[data-user-group-id]",
+        ".dm-authorizers-pills .pill[data-user-group-id]",
     );
     assert.ok(popover_handler !== undefined);
 
@@ -137,7 +137,7 @@ run_test("rerender_if_present updates the settings panel when open", ({override}
     const $pills = $.create("live-pills");
     $.reset_selector("#settings_content");
     const $settings = $.create("#settings_content");
-    $settings.set_find_results(".miatsuco-dm-authorizers-pills", $pills);
+    $settings.set_find_results(".dm-authorizers-pills", $pills);
 
     miatsuco_dm_authorizer_display.rerender_if_present();
 
@@ -155,7 +155,7 @@ run_test("rerender_if_present is a no-op when settings are closed", () => {
 
 run_test("set_up is a no-op without a disclosure element", () => {
     const $container = $.create("no-disclosure-container");
-    $container.set_find_results(".miatsuco-dm-authorizers", []);
+    $container.set_find_results(".dm-authorizers", []);
     // Should not throw and should not require a pill container.
     miatsuco_dm_authorizer_display.set_up($container);
 });

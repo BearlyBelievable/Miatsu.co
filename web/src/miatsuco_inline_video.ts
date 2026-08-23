@@ -99,7 +99,7 @@ export function enhance_inline_videos(content: JQuery): void {
 
         // Turn the poster preview into a real player.
         $video.attr("controls", "true");
-        $container.addClass("miatsuco-inline-video-playable");
+        $container.addClass("inline-video-playable");
 
         // Drop the media-image-element class (postprocess_content adds it to
         // inline videos alongside media-video-element).

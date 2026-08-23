@@ -81,7 +81,7 @@ export function build_pills_html(setting_value: GroupSettingValue): string {
 }
 
 export function render_pills($container: JQuery): void {
-    const $pills = $container.find(".miatsuco-dm-authorizers-pills");
+    const $pills = $container.find(".dm-authorizers-pills");
     if ($pills.length === 0) {
         return;
     }
@@ -90,7 +90,7 @@ export function render_pills($container: JQuery): void {
         $pills.empty();
         $pills.append(
             $("<span>")
-                .addClass("miatsuco-dm-authorizers-empty")
+                .addClass("dm-authorizers-empty")
                 .text(
                     $t({
                         defaultMessage: "No one can currently authorize direct messages.",
@@ -103,7 +103,7 @@ export function render_pills($container: JQuery): void {
 }
 
 export function set_up($container: JQuery): void {
-    const $disclosure = $container.find(".miatsuco-dm-authorizers");
+    const $disclosure = $container.find(".dm-authorizers");
     if ($disclosure.length === 0) {
         return;
     }
@@ -116,10 +116,10 @@ export function set_up($container: JQuery): void {
     $disclosure.empty();
     $disclosure.append(
         $("<div>")
-            .addClass("miatsuco-dm-authorizers-hint")
+            .addClass("dm-authorizers-hint")
             .text($t({defaultMessage: "People who can authorize direct messages:"})),
     );
-    $disclosure.append($("<div>").addClass("miatsuco-dm-authorizers-pills pill-container"));
+    $disclosure.append($("<div>").addClass("dm-authorizers-pills pill-container"));
 
     render_pills($container);
 
@@ -128,7 +128,7 @@ export function set_up($container: JQuery): void {
     // and are ignored here.
     $disclosure.on(
         "click",
-        ".miatsuco-dm-authorizers-pills .pill[data-user-group-id]",
+        ".dm-authorizers-pills .pill[data-user-group-id]",
         function (this: HTMLElement, e) {
             e.stopPropagation();
             user_group_popover.toggle_user_group_info_popover(this, undefined, true);
