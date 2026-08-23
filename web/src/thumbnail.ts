@@ -12,10 +12,18 @@ export let preferred_format: ThumbnailFormat;
 export let animated_format: ThumbnailFormat;
 
 const DEFAULT_PREVIEW_SIZE_EM = 10;
+const SPOTIFY_EMBED_COMPACT_HEIGHT_PX = 80;
+const SPOTIFY_EMBED_EXPANDED_HEIGHT_PX = 152;
 
 export function set_media_preview_size_css_variable(): void {
     const size_em = (realm.realm_media_preview_size / 100) * DEFAULT_PREVIEW_SIZE_EM;
     $(":root").css("--media-preview-max-height", `${size_em}em`);
+
+    const spotify_embed_height_px =
+        realm.realm_media_preview_size > 150
+            ? SPOTIFY_EMBED_EXPANDED_HEIGHT_PX
+            : SPOTIFY_EMBED_COMPACT_HEIGHT_PX;
+    $(":root").css("--spotify-embed-height", `${spotify_embed_height_px}px`);
 }
 
 export function get_media_preview_size(): number {

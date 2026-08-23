@@ -69,6 +69,7 @@ from zerver.lib.test_classes import ZulipTestCase
 from zerver.lib.tex import render_tex
 from zerver.lib.types import UserGroupMembersData
 from zerver.lib.upload import get_emoji_url, upload_message_attachment
+from zerver.lib.url_preview.types import UrlOEmbedData
 from zerver.lib.user_groups import UserGroupMembershipDetails
 from zerver.models import Message, NamedUserGroup, RealmEmoji, RealmFilter, UserMessage, UserProfile
 from zerver.models.clients import get_client
@@ -911,6 +912,131 @@ class MarkdownEmbedsTest(ZulipTestCase):
         )
         converted = render_message_markdown(msg, url)
         self.assertEqual(converted.rendered_content, without_preview)
+
+    @override_settings(INLINE_URL_EMBED_PREVIEW=True)
+    def test_inline_rich_oembed_preview(self) -> None:
+        url = "https://open.spotify.com/track/abc123"
+        embed_html = (
+            '<iframe src="https://open.spotify.com/embed/track/abc123" '
+            'width="100%" height="152"></iframe>'
+        )
+        embed_data = UrlOEmbedData(
+            type="rich",
+            html=embed_html,
+            image="https://i.scdn.co/image/abc123.jpg",
+            title="Some Song",
+            width=300,
+            height=152,
+        )
+        assert embed_data.image is not None
+
+        sender_user_profile = self.example_user("othello")
+        sender_user_profile.realm.inline_url_embed_preview = True
+        sender_user_profile.realm.save(update_fields=["inline_url_embed_preview"])
+        msg = Message(
+            sender=sender_user_profile,
+            sending_client=get_client("test"),
+            realm=sender_user_profile.realm,
+        )
+        converted = render_message_markdown(msg, url, url_embed_data={url: embed_data})
+
+        self.assertIn(
+            '<div class="embed-rich message_inline_image" data-height="152" data-width="300">',
+            converted.rendered_content,
+        )
+        self.assertIn(f'href="{url}" title="Some Song"', converted.rendered_content)
+        self.assertIn(f'<img src="{get_camo_url(embed_data.image)}">', converted.rendered_content)
+        self.assertIn("open.spotify.com/embed/track/abc123", converted.rendered_content)
+
+    @override_settings(INLINE_URL_EMBED_PREVIEW=True)
+    def test_inline_rich_oembed_replaces_bare_url_with_title(self) -> None:
+        # Spotify and SoundCloud links get the same "Provider - Title"
+        # link text as Vimeo, rather than showing the bare URL.
+        sender_user_profile = self.example_user("othello")
+        sender_user_profile.realm.inline_url_embed_preview = True
+        sender_user_profile.realm.save(update_fields=["inline_url_embed_preview"])
+
+        for url, provider, title, embed_html in [
+            (
+                "https://open.spotify.com/track/abc123",
+                "Spotify",
+                "Some Song",
+                '<iframe src="https://open.spotify.com/embed/track/abc123" '
+                'width="100%" height="152"></iframe>',
+            ),
+            (
+                "https://soundcloud.com/example/track",
+                "SoundCloud",
+                "Some Track",
+                '<iframe src="https://w.soundcloud.com/player/?url=x" '
+                'width="100%" height="166"></iframe>',
+            ),
+        ]:
+            embed_data = UrlOEmbedData(
+                type="rich",
+                html=embed_html,
+                image="https://example.com/image.jpg",
+                title=title,
+            )
+            msg = Message(
+                sender=sender_user_profile,
+                sending_client=get_client("test"),
+                realm=sender_user_profile.realm,
+            )
+            converted = render_message_markdown(msg, url, url_embed_data={url: embed_data})
+            self.assertIn(f">{provider} - {title}</a>", converted.rendered_content)
+            self.assertNotIn(f">{url}</a>", converted.rendered_content)
+
+    @override_settings(INLINE_URL_EMBED_PREVIEW=True)
+    def test_inline_rich_oembed_fallback_to_plain(self) -> None:
+        url = "https://open.spotify.com/track/abc123"
+        embed_html = (
+            '<iframe src="https://open.spotify.com/embed/track/abc123" '
+            'width="100%" height="152"></iframe>'
+        )
+        embed_data = UrlOEmbedData(
+            type="rich",
+            html=embed_html,
+            image="https://i.scdn.co/image/abc123.jpg",
+            title="Some Song",
+            width=300,
+            height=152,
+        )
+
+        sender_user_profile = self.example_user("othello")
+        sender_user_profile.realm.inline_url_embed_preview = True
+        sender_user_profile.realm.inline_image_preview = False
+        sender_user_profile.realm.save(
+            update_fields=["inline_url_embed_preview", "inline_image_preview"]
+        )
+        msg = Message(
+            sender=sender_user_profile,
+            sending_client=get_client("test"),
+            realm=sender_user_profile.realm,
+        )
+        converted = render_message_markdown(msg, url, url_embed_data={url: embed_data})
+
+        self.assertNotIn("embed-rich", converted.rendered_content)
+        self.assertIn('class="message_embed"', converted.rendered_content)
+        self.assertIn('class="message_embed_title"', converted.rendered_content)
+        self.assertIn(">Some Song<", converted.rendered_content)
+
+    @override_settings(INLINE_URL_EMBED_PREVIEW=True)
+    def test_inline_rich_oembed_no_image_skipped(self) -> None:
+        url = "https://example.com/rich-thing"
+        embed_data = UrlOEmbedData(type="rich", html="<iframe></iframe>", image=None)
+
+        sender_user_profile = self.example_user("othello")
+        sender_user_profile.realm.inline_url_embed_preview = True
+        sender_user_profile.realm.save(update_fields=["inline_url_embed_preview"])
+        msg = Message(
+            sender=sender_user_profile,
+            sending_client=get_client("test"),
+            realm=sender_user_profile.realm,
+        )
+        converted = render_message_markdown(msg, url, url_embed_data={url: embed_data})
+
+        self.assertNotIn("embed-rich", converted.rendered_content)
 
     @override_settings(EXTERNAL_URI_SCHEME="https://")
     def test_static_image_preview_skip_camo(self) -> None:

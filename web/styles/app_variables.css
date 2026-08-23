@@ -423,6 +423,12 @@
 
     /* Image and video thumbnail sizing; updated via JavaScript */
     --media-preview-max-height: 10em;
+    --spotify-embed-height: 80px;
+    --embed-max-width: min(
+        calc(var(--media-preview-max-height) * 16 / 9),
+        100%,
+        30em
+    );
 
     /* Information density and typography values */
     /* The legacy values here are updated via JavaScript */

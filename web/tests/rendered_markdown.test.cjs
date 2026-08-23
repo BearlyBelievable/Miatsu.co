@@ -142,6 +142,7 @@ const get_content_element = () => {
     $content.set_find_results(".message_inline_video", []);
     $content.set_find_results(".media-audio-element", []);
     $content.set_find_results("audio", []);
+    $content.set_find_results(".youtube-video, .embed-video, .embed-rich", []);
 
     set_message_for_message_content($content, undefined);
 

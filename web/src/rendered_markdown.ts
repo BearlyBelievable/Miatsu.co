@@ -19,6 +19,7 @@ import * as hash_util from "./hash_util.ts";
 import {$t} from "./i18n.ts";
 import * as message_store from "./message_store.ts";
 import type {Message} from "./message_store.ts";
+import * as miatsuco_inline_embed from "./miatsuco_inline_embed.ts";
 import * as miatsuco_inline_video from "./miatsuco_inline_video.ts";
 import * as people from "./people.ts";
 import * as realm_playground from "./realm_playground.ts";
@@ -190,6 +191,9 @@ export const update_elements = ($content: JQuery): void => {
 
     // MiAtSu.Co fork: turn inline video previews into real inline players.
     miatsuco_inline_video.enhance_inline_videos($content);
+
+    // Makes YouTube/Vimeo/oEmbed link previews playable in place.
+    miatsuco_inline_embed.enhance_inline_embeds($content);
 
     // personal and stream wildcard mentions
     $content.find(".user-mention").each(function (): void {

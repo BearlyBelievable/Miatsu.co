@@ -180,6 +180,7 @@ EXEMPT_FILES = make_set(
         "web/src/message_view_header.ts",
         "web/src/message_viewport.ts",
         "web/src/messages_overlay_ui.ts",
+        "web/src/miatsuco_inline_embed.ts",
         "web/src/modals.ts",
         "web/src/mouse_drag.ts",
         "web/src/muted_users_ui.ts",
