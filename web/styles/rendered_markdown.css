@@ -725,10 +725,7 @@
     .youtube-video .media-anchor-element {
         /* 32px at 14px/1em */
         --play-button-length: 2.2857em;
-        /* Once collections of thumbnails are set to render as
-           flex items, this can be updated to use `display: grid`
-           instead of `display: inline-grid`. */
-        display: inline-grid;
+        display: grid;
         grid-template: "media" minmax(0, auto) / minmax(0, auto);
         place-items: center center;
 
@@ -850,11 +847,66 @@
         display: none;
     }
 
-    .youtube-video .media-anchor-element {
-        /* We display the youtube-video anchor
-           as a grid, not inline grid, to avoid
-           additional space beneath the thumbnail. */
-        display: grid;
+    .miatsuco-inline-embed-loaded {
+        border: none;
+        background: none;
+
+        &::after {
+            content: none;
+        }
+
+        &:hover {
+            background: none;
+        }
+
+        & iframe {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    }
+
+    .youtube-video.miatsuco-inline-embed-loaded,
+    .embed-video.miatsuco-inline-embed-loaded {
+        width: var(--embed-max-width);
+        aspect-ratio: 16 / 9;
+    }
+
+    .embed-rich.miatsuco-inline-embed-loaded {
+        &:has(> iframe[src*="open.spotify.com"]) {
+            height: var(--spotify-embed-height);
+            width: var(--embed-max-width);
+            position: relative;
+            /* Spotify's iframe carries its own square corners; clip it
+               to ours instead of rounding the iframe itself. */
+            overflow: clip;
+            border-radius: 12px;
+
+            &.spotify-embed-narrow {
+                width: 280px;
+                transform: scale(var(--spotify-narrow-scale));
+                transform-origin: top left;
+            }
+
+            &::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                border-radius: inherit;
+                box-shadow: inset 0 0 0 1px hsl(0deg 0% 32.549%);
+                pointer-events: none;
+            }
+        }
+
+        &.spotify-embed-narrow iframe[src*="open.spotify.com"] {
+            width: 280px;
+        }
+
+        &:has(> iframe[src*="w.soundcloud.com"]) {
+            height: 166px;
+            width: var(--embed-max-width);
+        }
     }
 
     .media-audio-wrapper {
@@ -886,9 +938,6 @@
         max-width: calc(100% - 30px);
     }
 
-    /* Hide the player for browsers that cannot play the format;
-       the download link (a sibling, not a child of this element)
-       remains visible either way. */
     .media-audio-element.miatsuco-audio-format-unsupported {
         display: none;
     }

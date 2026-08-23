@@ -66,8 +66,10 @@ class OembedTestCase(ZulipTestCase):
 
         data = get_oembed_data(url)
         assert data is not None
-        self.assertIsInstance(data, UrlEmbedData)
+        assert isinstance(data, UrlOEmbedData)
         self.assertEqual(data.title, response_data["title"])
+        self.assertEqual(data.width, response_data["width"])
+        self.assertEqual(data.height, response_data["height"])
 
     @responses.activate
     def test_photo_provider(self) -> None:
@@ -124,6 +126,58 @@ class OembedTestCase(ZulipTestCase):
         assert data is not None
         self.assertIsInstance(data, UrlOEmbedData)
         self.assertEqual(data.title, response_data["title"])
+
+    @responses.activate
+    def test_video_provider_xml_response(self) -> None:
+        xml_response = """<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<oembed>
+    <type>video</type>
+    <version>1.0</version>
+    <title>NASA</title>
+    <html>&lt;p&gt;test&lt;/p&gt;</html>
+    <width>658</width>
+    <height>400</height>
+    <thumbnail_url>https://scontent.cdninstagram.com/t51.2885-15/n.jpg</thumbnail_url>
+</oembed>"""
+        url = "http://blip.tv/video/158727223"
+        reconstructed_url = reconstruct_url(url)
+        responses.add(
+            responses.GET,
+            reconstructed_url,
+            body=xml_response,
+            content_type="text/xml",
+            status=200,
+        )
+
+        data = get_oembed_data(url)
+        assert data is not None
+        self.assertIsInstance(data, UrlOEmbedData)
+        self.assertEqual(data.title, "NASA")
+        self.assertEqual(data.html, "<p>test</p>")
+
+    @responses.activate
+    def test_unrecognized_type_falls_back_to_title_and_description(self) -> None:
+        response_data = {
+            "type": "link",
+            "title": "NASA",
+            "description": "National Aeronautics and Space Administration",
+            "version": "1.0",
+        }
+        url = "http://imgur.com/photo/158727223"
+        reconstructed_url = reconstruct_url(url)
+        responses.add(
+            responses.GET,
+            reconstructed_url,
+            json=response_data,
+            status=200,
+        )
+
+        data = get_oembed_data(url)
+        assert data is not None
+        self.assertIsInstance(data, UrlEmbedData)
+        self.assertNotIsInstance(data, UrlOEmbedData)
+        self.assertEqual(data.title, response_data["title"])
+        self.assertEqual(data.description, response_data["description"])
 
     @responses.activate
     def test_connect_error_request(self) -> None:

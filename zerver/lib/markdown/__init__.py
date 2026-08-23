@@ -142,7 +142,7 @@ class DbData:
 
 # Format version of the Markdown rendering; stored along with rendered
 # messages so that we can efficiently determine what needs to be re-rendered
-version = 1
+version = 2
 
 _T = TypeVar("_T")
 ElementStringNone: TypeAlias = Element | str | None
@@ -651,6 +651,8 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         data_id: str | None = None,
         insertion_index: int | None = None,
         already_thumbnailed: bool = False,
+        width: int | None = None,
+        height: int | None = None,
     ) -> None:
         desc = desc if desc is not None else ""
 
@@ -665,6 +667,12 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
             div = SubElement(root, "div")
 
         div.set("class", class_attr)
+        # Read by miatsuco_inline_embed.ts to size embeds without a
+        # dedicated CSS sizing rule.
+        if width is not None:
+            div.set("data-width", str(width))
+        if height is not None:
+            div.set("data-height", str(height))
         a = SubElement(div, "a")
         a.set("href", link)
         if title is not None:
@@ -701,6 +709,10 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
             img.set("src", image_url)
 
     def add_oembed_data(self, root: Element, link: str, extracted_data: UrlOEmbedData) -> None:
+        if not self.zmd.image_preview_enabled:
+            self.add_plain_embed(root, link, extracted_data)
+            return
+
         if extracted_data.image is None:
             # Don't add an embed if an image is not found
             return
@@ -725,11 +737,28 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
                 already_thumbnailed=True,
             )
 
+        elif extracted_data.type == "rich":
+            self.add_a(
+                root,
+                image_url=extracted_data.image,
+                link=link,
+                title=extracted_data.title,
+                desc=extracted_data.description,
+                class_attr="embed-rich message_inline_image",
+                data_id=extracted_data.html,
+                already_thumbnailed=True,
+                width=extracted_data.width,
+                height=extracted_data.height,
+            )
+
     def add_embed(self, root: Element, link: str, extracted_data: UrlEmbedData) -> None:
         if isinstance(extracted_data, UrlOEmbedData):
             self.add_oembed_data(root, link, extracted_data)
             return
 
+        self.add_plain_embed(root, link, extracted_data)
+
+    def add_plain_embed(self, root: Element, link: str, extracted_data: UrlEmbedData) -> None:
         if extracted_data.image is None:
             # Don't add an embed if an image is not found
             return
@@ -942,6 +971,19 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
     def vimeo_title(self, extracted_data: UrlEmbedData) -> str | None:
         if extracted_data.title is not None:
             return f"Vimeo - {extracted_data.title}"
+        return None
+
+    def spotify_title(self, url: str, extracted_data: UrlEmbedData) -> str | None:
+        if re.match(r"^https?://open\.spotify\.com/", url) and extracted_data.title is not None:
+            return f"Spotify - {extracted_data.title}"
+        return None
+
+    def soundcloud_title(self, url: str, extracted_data: UrlEmbedData) -> str | None:
+        if (
+            re.match(r"^https?://(www\.)?soundcloud\.com/", url)
+            and extracted_data.title is not None
+        ):
+            return f"SoundCloud - {extracted_data.title}"
         return None
 
     def get_url_data(self, e: Element) -> tuple[str, str | None] | None:
@@ -1247,11 +1289,15 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
             self.add_embed(root, url, extracted_data)
             if self.vimeo_id(url):
                 title = self.vimeo_title(extracted_data)
-                if title:
-                    if url == text:
-                        found_url.family.child.text = title
-                    else:
-                        found_url.family.child.text = text
+            else:
+                title = self.spotify_title(url, extracted_data) or self.soundcloud_title(
+                    url, extracted_data
+                )
+            if title:
+                if url == text:
+                    found_url.family.child.text = title
+                else:
+                    found_url.family.child.text = text
 
 
 class CompiledInlineProcessor(markdown.inlinepatterns.InlineProcessor):

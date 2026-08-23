@@ -331,9 +331,17 @@ function display_video(payload: Media): void {
     $iframe.attr("src", payload.source);
     $iframe.attr("frameborder", 0);
     $iframe.attr("allowfullscreen", "true");
+    // youtube.com/embed requires a Referer header (error 153) and
+    // recommends this policy, so we cap the leak to this
+    // organization's origin instead of blocking it outright.
+    $iframe.attr("referrerpolicy", "strict-origin-when-cross-origin");
 
     $("#lightbox_overlay .player-container").empty();
     $("#lightbox_overlay .player-container").append($iframe);
+}
+
+export function display_video_for_testing(payload: Media): void {
+    display_video(payload);
 }
 
 function invoke_overlay_restore_callback(): void {
@@ -490,6 +498,26 @@ function supports_heic(): boolean {
     return !Number.isNaN(version) && version >= 17;
 }
 
+function safe_http_url(url: string): string | undefined {
+    let parsed;
+    try {
+        parsed = new URL(url, window.location.origin);
+    } catch {
+        return undefined;
+    }
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? url : undefined;
+}
+
+function safe_data_html_url(url: string): string | undefined {
+    let parsed;
+    try {
+        parsed = new URL(url);
+    } catch {
+        return undefined;
+    }
+    return parsed.protocol === "data:" ? url : undefined;
+}
+
 // retrieve the metadata from the DOM and store into the asset_map.
 export function parse_media_data(media: HTMLMediaElement | HTMLImageElement): Media {
     const $media = $(media);
@@ -563,29 +591,35 @@ export function parse_media_data(media: HTMLMediaElement | HTMLImageElement): Me
         type = "inline-video";
         // Render video from original source to reduce load on our own servers.  The `url` is the
         // non-Camo'd version; `preview` is the Camo'd URL.
-        source = url;
+        source = safe_http_url(url) ?? "";
     } else if (is_youtube_video) {
         type = "youtube-video";
-        source = "https://www.youtube.com/embed/" + $parent.attr("data-id");
+        // youtube-nocookie.com is YouTube's privacy-enhanced embed domain,
+        // avoiding tracking cookies until a viewer actually interacts with
+        // the player.
+        let youtube_src = "https://www.youtube-nocookie.com/embed/" + $parent.attr("data-id");
         // YouTube URLs support a `start` parameter that can be either
         // an integer or a string-encoded time offset like
         // "1h20m12s". The embed API only supports the integer format,
         // so we may need to convert the format.
         const start_time = util.parse_youtube_start_time(url);
         if (start_time !== undefined) {
-            source += "?start=" + start_time;
+            youtube_src += "?start=" + start_time;
         }
+        source = safe_http_url(youtube_src) ?? "";
     } else if (is_vimeo_video) {
         type = "vimeo-video";
-        source = "https://player.vimeo.com/video/" + $parent.attr("data-id");
+        source = safe_http_url("https://player.vimeo.com/video/" + $parent.attr("data-id")) ?? "";
     } else if (is_embed_video) {
         type = "embed-video";
         source =
-            "data:text/html," +
-            window.encodeURIComponent(
-                "<!DOCTYPE html><style>iframe{position:absolute;left:0;top:0;width:100%;height:100%;box-sizing:border-box}</style>" +
-                    $parent.attr("data-id"),
-            );
+            safe_data_html_url(
+                "data:text/html," +
+                    window.encodeURIComponent(
+                        "<!DOCTYPE html><style>iframe{position:absolute;left:0;top:0;width:100%;height:100%;box-sizing:border-box}</style>" +
+                            $parent.attr("data-id"),
+                    ),
+            ) ?? "";
     } else {
         type = "image";
         if ($media.attr("data-src-fullsize")) {
@@ -600,6 +634,7 @@ export function parse_media_data(media: HTMLMediaElement | HTMLImageElement): Me
         } else {
             source = url;
         }
+        source = safe_http_url(source ?? "") ?? "";
     }
 
     const payload = {
@@ -609,7 +644,7 @@ export function parse_media_data(media: HTMLMediaElement | HTMLImageElement): Me
         preview: preview_src && util.is_valid_url(preview_src) ? preview_src : "",
         original_width_px,
         original_height_px,
-        source: source && util.is_valid_url(source) ? source : "",
+        source,
         url: util.is_valid_url(url) ? url : "",
     };
 

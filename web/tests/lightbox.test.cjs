@@ -184,7 +184,7 @@ run_test("parse_media_data YouTube video", () => {
     const result = lightbox.parse_media_data(media);
 
     assert.equal(result.type, "youtube-video");
-    assert.equal(result.source, "https://www.youtube.com/embed/dQw4w9WgXcQ");
+    assert.equal(result.source, "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ");
 });
 
 run_test("parse_media_data YouTube video with start time", () => {
@@ -197,7 +197,7 @@ run_test("parse_media_data YouTube video with start time", () => {
     const result = lightbox.parse_media_data(media);
 
     assert.equal(result.type, "youtube-video");
-    assert.equal(result.source, "https://www.youtube.com/embed/dQw4w9WgXcQ?start=120");
+    assert.equal(result.source, "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?start=120");
 });
 
 run_test("parse_media_data Vimeo video", () => {
@@ -211,6 +211,24 @@ run_test("parse_media_data Vimeo video", () => {
 
     assert.equal(result.type, "vimeo-video");
     assert.equal(result.source, "https://player.vimeo.com/video/123456");
+});
+
+run_test("parse_media_data embed video", () => {
+    const {$img, $parent, media} = make_image({
+        img_src: "https://example.com/embed-thumb.jpg",
+        parent_href: "https://example.com/embed",
+    });
+    $img.set_closest_results(".embed-video", $img);
+    $parent.attr("data-id", '<iframe src="https://player.vimeo.com/video/1"></iframe>');
+    const result = lightbox.parse_media_data(media);
+
+    assert.equal(result.type, "embed-video");
+    assert.ok(result.source.startsWith("data:text/html,"));
+    assert.ok(
+        decodeURIComponent(result.source.slice("data:text/html,".length)).includes(
+            '<iframe src="https://player.vimeo.com/video/1"></iframe>',
+        ),
+    );
 });
 
 run_test("parse_media_data message row context", () => {
@@ -244,6 +262,50 @@ run_test("parse_media_data unknown message", () => {
     const result = lightbox.parse_media_data(media);
 
     assert.equal(result.user, undefined);
+});
+
+function make_video_payload(overrides) {
+    return {
+        user: undefined,
+        title: "Video title",
+        preview: "",
+        url: "https://example.com/watch",
+        original_width_px: undefined,
+        original_height_px: undefined,
+        ...overrides,
+    };
+}
+
+run_test("display_video builds a YouTube iframe", () => {
+    lightbox.display_video_for_testing(
+        make_video_payload({
+            type: "youtube-video",
+            source: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+        }),
+    );
+
+    const $iframe = $("<iframe>");
+    assert.equal($iframe.attr("src"), "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ");
+    assert.equal($iframe.attr("allowfullscreen"), "true");
+    assert.equal($iframe.attr("frameborder"), "0");
+    assert.ok($iframe.attr("sandbox").includes("allow-scripts"));
+    assert.equal($iframe.attr("referrerpolicy"), "strict-origin-when-cross-origin");
+    assert.notEqual($iframe.attr("referrerpolicy"), "no-referrer");
+});
+
+run_test("display_video builds a generic oEmbed iframe", () => {
+    lightbox.display_video_for_testing(
+        make_video_payload({
+            type: "embed-video",
+            source:
+                "data:text/html," +
+                encodeURIComponent('<iframe src="https://player.vimeo.com/video/1"></iframe>'),
+        }),
+    );
+
+    const $iframe = $("<iframe>");
+    assert.ok($iframe.attr("src").startsWith("data:text/html,"));
+    assert.equal($iframe.attr("referrerpolicy"), "strict-origin-when-cross-origin");
 });
 
 run_test("parse_media_data asset map cache", () => {

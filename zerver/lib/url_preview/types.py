@@ -21,5 +21,7 @@ class UrlEmbedData:
 
 @dataclass
 class UrlOEmbedData(UrlEmbedData):
-    type: Literal["photo", "video"]
+    type: Literal["photo", "video", "rich"]
     html: str | None = None
+    width: int | None = None
+    height: int | None = None
