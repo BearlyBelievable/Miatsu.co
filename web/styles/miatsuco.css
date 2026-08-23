@@ -1,3 +1,21 @@
+/* These rules would normally live in app_variables.css */
+:root {
+    --spotify-embed-height: 80px;
+    --embed-max-width: min(
+        calc(var(--media-preview-max-height) * 16 / 9),
+        100%,
+        30em
+    );
+    --color-background-social-post-twitter: light-dark(
+        hsl(210deg 20% 96%),
+        hsl(210deg 15% 12%)
+    );
+    --color-background-social-post-bluesky: light-dark(
+        hsl(206deg 100% 96%),
+        hsl(206deg 45% 14%)
+    );
+}
+
 .rendered_markdown {
     .social-post {
         display: block;
@@ -178,4 +196,230 @@
             );
         }
     }
+
+    /* These rules would normally live in rendered_markdown.css */
+
+    .message-media-collapsed-image {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+    }
+
+    .message-media-collapsed-image-link {
+        display: inline-flex;
+        align-items: center;
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        padding: 1px 8px;
+        border: solid 1px var(--color-border-rendered-markdown-table);
+        border-radius: 4px;
+        overflow: hidden;
+        font-size: 0.9em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .message-media-expand-button {
+        display: flex;
+        flex: 0 0 20px;
+        width: 20px;
+        height: 20px;
+        margin-left: 5px;
+    }
+
+    .message-media-expanded-image-row {
+        display: inline-flex;
+        align-items: flex-end;
+        max-width: 100%;
+    }
+
+    .message-media-recollapse-button {
+        display: flex;
+        flex: 0 0 20px;
+        width: 20px;
+        height: 20px;
+        margin-bottom: 3px;
+        margin-left: 5px;
+    }
+
+    .message_inline_video.inline-video-playable {
+        cursor: default;
+        border: none;
+        background: none;
+
+        &::after {
+            content: none;
+        }
+
+        &:hover {
+            background: none;
+        }
+
+        max-width: 100%;
+
+        & .media-video-element {
+            width: auto;
+            max-width: calc(100% - 14px);
+            height: auto;
+            margin: 0 auto;
+        }
+    }
+
+    .inline-embed-loaded {
+        border: none;
+        background: none;
+
+        &::after {
+            content: none;
+        }
+
+        &:hover {
+            background: none;
+        }
+
+        & iframe {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    }
+
+    .youtube-video.inline-embed-loaded,
+    .embed-video.inline-embed-loaded {
+        width: var(--embed-max-width);
+        aspect-ratio: 16 / 9;
+    }
+
+    .embed-rich.inline-embed-loaded {
+        &:has(> iframe[src*="open.spotify.com"]) {
+            height: var(--spotify-embed-height);
+            width: var(--embed-max-width);
+            position: relative;
+            overflow: clip;
+            border-radius: 12px;
+
+            &.spotify-embed-narrow {
+                width: 280px;
+                transform: scale(var(--spotify-narrow-scale));
+                transform-origin: top left;
+            }
+
+            &::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                border-radius: inherit;
+                box-shadow: inset 0 0 0 1px hsl(0deg 0% 32.549%);
+                pointer-events: none;
+            }
+        }
+
+        &.spotify-embed-narrow iframe[src*="open.spotify.com"] {
+            width: 280px;
+        }
+
+        &:has(> iframe[src*="w.soundcloud.com"]) {
+            height: 166px;
+            width: var(--embed-max-width);
+        }
+    }
+
+    .media-audio-filename {
+        overflow: hidden;
+        max-width: 100%;
+        margin-bottom: 2px;
+        font-size: 0.85em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .media-audio-controls-row {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+    }
+
+    .media-audio-element.audio-format-unsupported {
+        display: none;
+    }
+}
+
+/* These rules would normally live in settings.css */
+
+#org-email-visibility-policy {
+    & .email-visibility-policy-content {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    & .email-visibility-policy-slider-wrapper {
+        /* Reserve padding for the tooltip and pip labels since noUiSlider
+           positions children absolutely, outside flow height. */
+        position: relative;
+        padding: 8px 0 40px;
+        max-width: var(--modal-input-width);
+    }
+
+    & #email_visibility_policy_slider {
+        margin: 0 10px;
+
+        --click-zone-top-offset: 8px;
+        --click-zone-bottom-offset: 40px;
+    }
+}
+
+.dm-authorizers {
+    display: none;
+    /* Only a small top gap here. The checkbox wrapper already
+       spaces settings apart. */
+    margin: 6px 0 0 24px;
+
+    .dm-authorizers-hint {
+        margin-bottom: 4px;
+        color: var(--color-text-item);
+        font-size: 0.9em;
+    }
+
+    .dm-authorizers-pills {
+        /* The container is informational, not an input. */
+        cursor: default;
+
+        /* Substitute the persistent focus box-shadow for hover/open
+           highlight to avoid masking pill background after click. */
+        .pill {
+            cursor: pointer;
+
+            &:focus {
+                box-shadow: none;
+            }
+
+            &:hover,
+            &[aria-expanded="true"] {
+                background-color: var(--color-background-input-pill-hover);
+            }
+        }
+
+        .pill:not([data-user-group-id]) {
+            cursor: default;
+
+            &:hover {
+                background-color: var(--color-background-input-pill);
+            }
+        }
+    }
+
+    .dm-authorizers-empty {
+        font-style: italic;
+        color: var(--color-text-item);
+    }
+}
+
+.settings-checkbox-wrapper:has(
+        input.miatsuco_restrict_dms_to_authorizers:checked
+    )
+    .dm-authorizers {
+    display: block;
 }

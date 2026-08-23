@@ -267,7 +267,7 @@ function load_embed(container: JQuery): void {
     }
 
     container.empty().append($iframe);
-    container.addClass("miatsuco-inline-embed-loaded");
+    container.addClass("inline-embed-loaded");
 
     if (/^https?:\/\/open\.spotify\.com\//i.test(url)) {
         const container_element = container[0];
@@ -281,7 +281,7 @@ export function enhance_inline_embeds(content: JQuery): void {
     ensure_resize_listener();
     content.find(".youtube-video, .embed-video, .embed-rich").each((_index, element) => {
         const $container = $(element);
-        if ($container.hasClass("miatsuco-inline-embed-loaded")) {
+        if ($container.hasClass("inline-embed-loaded")) {
             return;
         }
         load_embed($container);

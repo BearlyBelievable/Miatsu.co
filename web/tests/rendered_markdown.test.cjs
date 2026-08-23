@@ -276,7 +276,7 @@ run_test("message_inline_video_unsupported_format_after_fork_enhance", () => {
     // The fork enhancement ran: the preview is now a marked player.
     assert.equal($video_container.attr("data-miatsuco-inline-video"), "1");
     assert.equal($video.attr("controls"), "true");
-    assert.ok($video_container.hasClass("miatsuco-inline-video-playable"));
+    assert.ok($video_container.hasClass("inline-video-playable"));
 
     // A later playback failure still triggers the fallback: the container is
     // marked unsupported and the anchor gets visible fallback text, so a
@@ -749,8 +749,8 @@ run_test("audio", ({mock_template}) => {
     assert.equal(
         audio_html,
         '<span class="media-audio-wrapper">\n' +
-            '    <span class="miatsuco-media-audio-filename">inline.mp3</span>\n' +
-            '    <span class="miatsuco-media-audio-controls-row">\n' +
+            '    <span class="media-audio-filename">inline.mp3</span>\n' +
+            '    <span class="media-audio-controls-row">\n' +
             '        <audio controls="" preload="metadata" src="http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline.mp3" title="inline.mp3" class="media-audio-element"></audio>\n' +
             '        <a class="media-audio-download icon-button icon-button-square icon-button-neutral"\n' +
             '          aria-label="translated: Download" href="http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline.mp3" download>\n' +
@@ -815,12 +815,12 @@ run_test("audio error hides the player", () => {
     rm.update_elements($content);
 
     // Without an error, the player is not hidden.
-    assert.ok(!$audio.hasClass("miatsuco-audio-format-unsupported"));
+    assert.ok(!$audio.hasClass("audio-format-unsupported"));
 
     // Simulate a decode error (e.g. Safari with an Ogg file).
     const error_handler = $audio.get_on_handler("error");
     error_handler();
-    assert.ok($audio.hasClass("miatsuco-audio-format-unsupported"));
+    assert.ok($audio.hasClass("audio-format-unsupported"));
 });
 
 run_test("audio already enhanced is not replaced again", () => {

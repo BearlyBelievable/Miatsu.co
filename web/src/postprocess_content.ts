@@ -18,14 +18,14 @@ function build_collapsed_media_wrapper(
     collapsed_link.setAttribute("href", href);
     collapsed_link.setAttribute("target", "_blank");
     collapsed_link.setAttribute("rel", "noopener noreferrer");
-    collapsed_link.classList.add("miatsuco-message-media-collapsed-image-link");
+    collapsed_link.classList.add("message-media-collapsed-image-link");
     collapsed_link.textContent = link_text;
 
     const expand_button = inertDocument.createElement("a");
     expand_button.setAttribute("role", "button");
     expand_button.setAttribute("tabindex", "0");
     expand_button.classList.add(
-        "miatsuco-message-media-expand-button",
+        "message-media-expand-button",
         "icon-button",
         "icon-button-square",
         "icon-button-neutral",
@@ -43,7 +43,7 @@ function build_collapsed_media_wrapper(
     // clickable child, so either one can trigger expansion via the
     // same lookup in lightbox.ts.
     const media_wrapper = inertDocument.createElement("span");
-    media_wrapper.classList.add("miatsuco-message-media-collapsed-image");
+    media_wrapper.classList.add("message-media-collapsed-image");
     media_wrapper.dataset["collapsedImageHtml"] = original_html;
     media_wrapper.append(collapsed_link, expand_button);
     return media_wrapper;

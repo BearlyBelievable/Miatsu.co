@@ -560,50 +560,6 @@
         }
     }
 
-    .miatsuco-message-media-collapsed-image {
-        display: inline-flex;
-        align-items: center;
-        max-width: 100%;
-    }
-
-    .miatsuco-message-media-collapsed-image-link {
-        display: inline-flex;
-        align-items: center;
-        flex: 1 1 auto;
-        min-width: 0;
-        max-width: 100%;
-        padding: 1px 8px;
-        border: solid 1px var(--color-border-rendered-markdown-table);
-        border-radius: 4px;
-        overflow: hidden;
-        font-size: 0.9em;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .miatsuco-message-media-expand-button {
-        display: flex;
-        flex: 0 0 20px;
-        width: 20px;
-        height: 20px;
-        margin-left: 5px;
-    }
-
-    .miatsuco-message-media-expanded-image-row {
-        display: inline-flex;
-        align-items: flex-end;
-        max-width: 100%;
-    }
-
-    .miatsuco-message-media-recollapse-button {
-        display: flex;
-        flex: 0 0 20px;
-        width: 20px;
-        height: 20px;
-        margin-bottom: 3px;
-        margin-left: 5px;
-    }
-
     .twitter-image,
     .message-media-gallery-image,
     .message-media-preview-image,
@@ -790,48 +746,6 @@
         width: 0;
     }
 
-    /* MiAtSu.Co fork: inline videos are real players (controls added in
-       miatsuco_inline_video.ts), so suppress the click-to-open play-button
-       overlay and the zoom cursor that imply a lightbox affordance. The
-       native player draws its own controls. */
-    .message_inline_video.miatsuco-inline-video-playable {
-        /* The embed is now a real player with its own controls, so drop
-           the play-button overlay and the zoom cursor that implied a
-           click-to-open-lightbox affordance, along with the thumbnail
-           chrome (background, transparent border, and hover color change)
-           the preview wrapper carries for that affordance. postprocess
-           renames the wrapper to .message-media-preview-video on this same
-           element, so its background and border are cleared here too. */
-        cursor: default;
-        border: none;
-        background: none;
-
-        &::after {
-            content: none;
-        }
-
-        &:hover {
-            background: none;
-        }
-
-        /* The preview thumbnail carries a fixed width (see the base
-           .media-video-element rule above), which is fine for a static
-           poster but wrong for a real player: the native control bar is
-           drawn to fill the element's box, so a fixed width makes the
-           player and its controls overflow the message column in narrow or
-           responsive viewports. Make the playable video shrink with its
-           container instead, mirroring how the fork's inline audio player
-           handles the same problem (see .media-audio-element below). */
-        max-width: 100%;
-
-        & .media-video-element {
-            width: auto;
-            max-width: calc(100% - 14px);
-            height: auto;
-            margin: 0 auto;
-        }
-    }
-
     .message_inline_video.video-format-unsupported {
         display: block;
         width: auto;
@@ -843,87 +757,10 @@
         }
     }
 
-    .miatsuco-inline-embed-loaded {
-        border: none;
-        background: none;
-
-        &::after {
-            content: none;
-        }
-
-        &:hover {
-            background: none;
-        }
-
-        & iframe {
-            display: block;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-    }
-
-    .youtube-video.miatsuco-inline-embed-loaded,
-    .embed-video.miatsuco-inline-embed-loaded {
-        width: var(--embed-max-width);
-        aspect-ratio: 16 / 9;
-    }
-
-    .embed-rich.miatsuco-inline-embed-loaded {
-        &:has(> iframe[src*="open.spotify.com"]) {
-            height: var(--spotify-embed-height);
-            width: var(--embed-max-width);
-            position: relative;
-            /* Spotify's iframe carries its own square corners; clip it
-               to ours instead of rounding the iframe itself. */
-            overflow: clip;
-            border-radius: 12px;
-
-            &.spotify-embed-narrow {
-                width: 280px;
-                transform: scale(var(--spotify-narrow-scale));
-                transform-origin: top left;
-            }
-
-            &::after {
-                content: "";
-                position: absolute;
-                inset: 0;
-                border-radius: inherit;
-                box-shadow: inset 0 0 0 1px hsl(0deg 0% 32.549%);
-                pointer-events: none;
-            }
-        }
-
-        &.spotify-embed-narrow iframe[src*="open.spotify.com"] {
-            width: 280px;
-        }
-
-        &:has(> iframe[src*="w.soundcloud.com"]) {
-            height: 166px;
-            width: var(--embed-max-width);
-        }
-    }
-
     .media-audio-wrapper {
         vertical-align: middle;
         display: inline-flex;
         flex-direction: column;
-        max-width: 100%;
-    }
-
-    .miatsuco-media-audio-filename {
-        overflow: hidden;
-        max-width: 100%;
-        margin-bottom: 2px;
-        font-size: 0.85em;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .miatsuco-media-audio-controls-row {
-        display: inline-flex;
-        align-items: center;
         max-width: 100%;
     }
 
@@ -932,10 +769,6 @@
         /* Allow browser-native media players
            to resize in narrow viewports. */
         max-width: calc(100% - 30px);
-    }
-
-    .media-audio-element.miatsuco-audio-format-unsupported {
-        display: none;
     }
 
     .media-audio-download {

@@ -21,7 +21,7 @@ run_test("skips unsupported-format videos", () => {
     miatsuco_inline_video.enhance_inline_videos(make_content($container));
 
     assert.equal($container.attr("data-miatsuco-inline-video"), undefined);
-    assert.ok(!$container.hasClass("miatsuco-inline-video-playable"));
+    assert.ok(!$container.hasClass("inline-video-playable"));
 });
 
 run_test("skips already-enhanced videos", () => {
@@ -31,7 +31,7 @@ run_test("skips already-enhanced videos", () => {
 
     miatsuco_inline_video.enhance_inline_videos(make_content($container));
 
-    assert.ok(!$container.hasClass("miatsuco-inline-video-playable"));
+    assert.ok(!$container.hasClass("inline-video-playable"));
 });
 
 run_test("skips containers with no video element", () => {
@@ -41,7 +41,7 @@ run_test("skips containers with no video element", () => {
     miatsuco_inline_video.enhance_inline_videos(make_content($container));
 
     assert.equal($container.attr("data-miatsuco-inline-video"), undefined);
-    assert.ok(!$container.hasClass("miatsuco-inline-video-playable"));
+    assert.ok(!$container.hasClass("inline-video-playable"));
 });
 
 run_test("enhances a playable inline video", () => {
@@ -57,7 +57,7 @@ run_test("enhances a playable inline video", () => {
 
     assert.equal($container.attr("data-miatsuco-inline-video"), "1");
     assert.equal($video.attr("controls"), "true");
-    assert.ok($container.hasClass("miatsuco-inline-video-playable"));
+    assert.ok($container.hasClass("inline-video-playable"));
     assert.ok(!$video.hasClass("media-image-element"));
     assert.equal($video.attr("draggable"), "false");
     assert.equal($anchor.attr("draggable"), "false");
@@ -100,7 +100,7 @@ run_test("falls back when the browser cannot play the container", () => {
 
     assert.ok($container.hasClass("video-format-unsupported"));
     assert.equal($container.attr("data-miatsuco-inline-video"), undefined);
-    assert.ok(!$container.hasClass("miatsuco-inline-video-playable"));
+    assert.ok(!$container.hasClass("inline-video-playable"));
     assert.equal($anchor.text(), "translated: Video preview unavailable");
 });
 
@@ -117,7 +117,7 @@ run_test("enhances when the browser might play the container", () => {
 
     assert.ok(!$container.hasClass("video-format-unsupported"));
     assert.equal($container.attr("data-miatsuco-inline-video"), "1");
-    assert.ok($container.hasClass("miatsuco-inline-video-playable"));
+    assert.ok($container.hasClass("inline-video-playable"));
 });
 
 run_test("enhances when the extension is unrecognized", () => {

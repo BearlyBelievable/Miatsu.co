@@ -468,7 +468,7 @@ export const update_elements = ($content: JQuery): void => {
     // visible.
     $content.find<HTMLMediaElement>(".media-audio-element").each((_index, audio) => {
         $(audio).on("error", () => {
-            $(audio).addClass("miatsuco-audio-format-unsupported");
+            $(audio).addClass("audio-format-unsupported");
         });
     });
 
