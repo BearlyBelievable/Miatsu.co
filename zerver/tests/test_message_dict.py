@@ -1,13 +1,18 @@
 from typing import Any
 from unittest import mock
 
+from django.db import InternalError
 from django.utils.timezone import now as timezone_now
 
 from zerver.lib.cache import cache_delete, to_dict_cache_key_id
 from zerver.lib.display_recipient import get_display_recipient
 from zerver.lib.markdown import version as markdown_version
 from zerver.lib.message import messages_for_ids
-from zerver.lib.message_cache import MessageDict, sew_messages_and_reactions
+from zerver.lib.message_cache import (
+    MessageDict,
+    save_message_rendered_content,
+    sew_messages_and_reactions,
+)
 from zerver.lib.per_request_cache import flush_per_request_caches
 from zerver.lib.test_classes import ZulipTestCase
 from zerver.lib.test_helpers import make_client
@@ -217,6 +222,67 @@ class MessageDictTest(ZulipTestCase):
         message = Message.objects.get(id=message.id)
         self.assertEqual(message.rendered_content, expected_content)
         self.assertEqual(message.rendered_content_version, markdown_version)
+
+    def test_save_rendered_content_skips_persist_on_read_only_transaction(self) -> None:
+        sender = self.example_user("othello")
+        receiver = self.example_user("hamlet")
+        direct_message_group = get_or_create_direct_message_group(
+            id_list=[sender.id, receiver.id],
+        )
+        sending_client = make_client(name="test suite")
+        message = Message(
+            sender=sender,
+            recipient=direct_message_group.recipient,
+            realm=receiver.realm,
+            content="hello **world**",
+            date_sent=timezone_now(),
+            sending_client=sending_client,
+            last_edit_time=timezone_now(),
+            edit_history="[]",
+        )
+        message.set_topic_name("whatever")
+        message.save()
+        message.rendered_content = None
+        message.rendered_content_version = None
+
+        with mock.patch(
+            "zerver.models.Message.save_rendered_content",
+            side_effect=InternalError("cannot execute UPDATE in a read-only transaction\n"),
+        ):
+            rendered_content = save_message_rendered_content(message, message.content)
+
+        self.assertEqual(rendered_content, "<p>hello <strong>world</strong></p>")
+        message.refresh_from_db()
+        self.assertIsNone(message.rendered_content)
+
+    def test_save_rendered_content_reraises_other_internal_errors(self) -> None:
+        sender = self.example_user("othello")
+        receiver = self.example_user("hamlet")
+        direct_message_group = get_or_create_direct_message_group(
+            id_list=[sender.id, receiver.id],
+        )
+        sending_client = make_client(name="test suite")
+        message = Message(
+            sender=sender,
+            recipient=direct_message_group.recipient,
+            realm=receiver.realm,
+            content="hello **world**",
+            date_sent=timezone_now(),
+            sending_client=sending_client,
+            last_edit_time=timezone_now(),
+            edit_history="[]",
+        )
+        message.set_topic_name("whatever")
+        message.save()
+
+        with (
+            mock.patch(
+                "zerver.models.Message.save_rendered_content",
+                side_effect=InternalError("some unrelated database error"),
+            ),
+            self.assertRaises(InternalError),
+        ):
+            save_message_rendered_content(message, message.content)
 
     @mock.patch("zerver.lib.message_cache.render_message_markdown")
     def test_applying_markdown_invalid_format(self, convert_mock: Any) -> None:

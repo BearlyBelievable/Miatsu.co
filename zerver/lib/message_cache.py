@@ -5,6 +5,7 @@ from email.headerregistry import Address
 from typing import Any, TypedDict
 
 import orjson
+from django.db import InternalError, transaction
 
 from zerver.lib.avatar import get_avatar_field, get_avatar_for_inaccessible_user
 from zerver.lib.cache import cache_set_many, cache_with_key, to_dict_cache_key, to_dict_cache_key_id
@@ -96,7 +97,15 @@ def save_message_rendered_content(message: Message, content: str) -> str:
         rendered_content = rendering_result.rendered_content
     message.rendered_content = rendered_content
     message.rendered_content_version = markdown_version
-    message.save_rendered_content()
+    try:
+        with transaction.atomic(savepoint=True):
+            message.save_rendered_content()
+    except InternalError as e:
+        # get_messages_backend fetches inside a read-only transaction, so we
+        # must skip the write here to avoid fetch failure. The cache still
+        # fills in on the next normal write.
+        if "read-only transaction" not in str(e):
+            raise
     return rendered_content
 
 

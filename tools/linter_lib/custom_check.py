@@ -498,6 +498,10 @@ python_rules = RuleList(
                     "zproject/backends.py",
                     "@transaction.atomic(savepoint=True)  # intentional use of savepoint=True",
                 ),
+                (
+                    "zerver/lib/message_cache.py",
+                    "with transaction.atomic(savepoint=True):",
+                ),
             },
         },
         *whitespace_rules,
