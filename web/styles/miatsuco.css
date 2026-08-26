@@ -6,18 +6,18 @@
         100%,
         30em
     );
-    --color-background-social-post-twitter: light-dark(
+    --color-background-message-card-embed-twitter: light-dark(
         hsl(210deg 20% 96%),
         hsl(210deg 15% 12%)
     );
-    --color-background-social-post-bluesky: light-dark(
+    --color-background-message-card-embed-bluesky: light-dark(
         hsl(206deg 100% 96%),
         hsl(206deg 45% 14%)
     );
 }
 
 .rendered_markdown {
-    .social-post {
+    .message-card-embed {
         display: block;
         max-width: var(--embed-max-width);
         margin: 0 0 var(--markdown-interelement-space-px) 0;
@@ -26,16 +26,16 @@
         border-radius: 8px;
         box-sizing: border-box;
         container-type: inline-size;
-        container-name: social-post;
+        container-name: message-card-embed;
 
-        .social-post-header {
+        .message-card-embed-header {
             display: flex;
             align-items: center;
             gap: 0.5em;
             margin-bottom: 0.4em;
         }
 
-        .social-post-avatar {
+        .message-card-embed-avatar {
             width: 2em;
             height: 2em;
             border-radius: 50%;
@@ -43,7 +43,7 @@
             flex: 0 0 auto;
         }
 
-        .social-post-author {
+        .message-card-embed-author {
             display: flex;
             align-items: baseline;
             gap: 0.4em;
@@ -56,7 +56,7 @@
                 text-decoration: underline;
             }
 
-            @container social-post (width < 14em) {
+            @container message-card-embed (width < 14em) {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 0;
@@ -65,7 +65,7 @@
             }
 
             @container message-lists (width < $cq_md_min) {
-                @container social-post (width < 20em) {
+                @container message-card-embed (width < 20em) {
                     flex-direction: column;
                     align-items: flex-start;
                     gap: 0;
@@ -75,14 +75,14 @@
             }
         }
 
-        .social-post-author-name {
+        .message-card-embed-author-name {
             font-weight: 700;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
-        .social-post-author-handle {
+        .message-card-embed-author-handle {
             color: var(--color-text-default);
             opacity: 0.7;
             overflow: hidden;
@@ -90,20 +90,20 @@
             white-space: nowrap;
         }
 
-        .social-post-badge {
+        .message-card-embed-badge {
             margin-left: auto;
             flex: 0 0 auto;
             font-size: 0.85em;
             opacity: 0.7;
         }
 
-        .social-post-text {
+        .message-card-embed-text {
             white-space: pre-wrap;
             overflow-wrap: anywhere;
             margin-bottom: 0.4em;
         }
 
-        .social-post-media {
+        .message-card-embed-media {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             justify-items: center;
@@ -131,37 +131,37 @@
             }
         }
 
-        .social-post-stats {
+        .message-card-embed-stats {
             font-size: 0.85em;
             opacity: 0.7;
         }
 
-        .social-post-quote {
+        .message-card-embed-quote {
             margin: 0.4em 0;
             padding: 0.5em 0.75em;
             border: 1px solid var(--color-border-rendered-markdown-table);
             border-radius: 8px;
 
-            .social-post-header {
+            .message-card-embed-header {
                 margin-bottom: 0.3em;
             }
 
-            .social-post-avatar {
+            .message-card-embed-avatar {
                 width: 1.5em;
                 height: 1.5em;
             }
 
-            .social-post-text,
-            .social-post-media {
+            .message-card-embed-text,
+            .message-card-embed-media {
                 margin-bottom: 0;
             }
 
-            .social-post-media {
+            .message-card-embed-media {
                 margin-top: 0.4em;
             }
         }
 
-        .social-post-quote-unavailable {
+        .message-card-embed-quote-unavailable {
             margin: 0.4em 0;
             padding: 0.5em 0.75em;
             border: 1px solid var(--color-border-rendered-markdown-table);
@@ -171,27 +171,27 @@
         }
     }
 
-    .social-post-twitter {
-        background-color: var(--color-background-social-post-twitter);
+    .message-card-embed[data-platform="twitter"] {
+        background-color: var(--color-background-message-card-embed-twitter);
 
-        .social-post-quote,
-        .social-post-quote-unavailable {
+        .message-card-embed-quote,
+        .message-card-embed-quote-unavailable {
             background-color: color-mix(
                 in srgb,
-                var(--color-background-social-post-twitter) 96%,
+                var(--color-background-message-card-embed-twitter) 96%,
                 hsl(0deg 0% 100%)
             );
         }
     }
 
-    .social-post-bluesky {
-        background-color: var(--color-background-social-post-bluesky);
+    .message-card-embed[data-platform="bluesky"] {
+        background-color: var(--color-background-message-card-embed-bluesky);
 
-        .social-post-quote,
-        .social-post-quote-unavailable {
+        .message-card-embed-quote,
+        .message-card-embed-quote-unavailable {
             background-color: color-mix(
                 in srgb,
-                var(--color-background-social-post-bluesky) 96%,
+                var(--color-background-message-card-embed-bluesky) 96%,
                 hsl(0deg 0% 100%)
             );
         }

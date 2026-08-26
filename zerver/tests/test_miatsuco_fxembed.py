@@ -473,12 +473,12 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
-        self.assertIn('class="social-post social-post-twitter"', msg.rendered_content)
-        self.assertIn('class="social-post-author-name"', msg.rendered_content)
+        self.assertIn('class="message-card-embed" data-platform="twitter"', msg.rendered_content)
+        self.assertIn('class="message-card-embed-author-name"', msg.rendered_content)
         self.assertIn("jack", msg.rendered_content)
         self.assertIn("311130 likes", msg.rendered_content)
         self.assertIn(
-            f'<img class="social-post-avatar" src="{get_camo_url(author_avatar_url)}"',
+            f'<img class="message-card-embed-avatar" src="{get_camo_url(author_avatar_url)}"',
             msg.rendered_content,
         )
 
@@ -533,7 +533,7 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
-        self.assertIn('class="social-post-media"', msg.rendered_content)
+        self.assertIn('class="message-card-embed-media"', msg.rendered_content)
         self.assertIn("message_inline_image", msg.rendered_content)
         self.assertIn(
             get_camo_url("https://cdn.bsky.app/img/feed_fullsize/photo.jpg"),
@@ -589,7 +589,7 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
-        self.assertIn('class="social-post-quote"', msg.rendered_content)
+        self.assertIn('class="message-card-embed-quote"', msg.rendered_content)
         self.assertIn("Other", msg.rendered_content)
         self.assertIn("the original post", msg.rendered_content)
         self.assertIn('href="https://x.com/other/status/10"', msg.rendered_content)
@@ -638,7 +638,7 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
-        self.assertIn('class="social-post-quote-unavailable"', msg.rendered_content)
+        self.assertIn('class="message-card-embed-quote-unavailable"', msg.rendered_content)
         self.assertIn("Quoted post unavailable (deleted)", msg.rendered_content)
 
     @responses.activate
@@ -694,7 +694,7 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
-        self.assertIn('class="social-post-quote"', msg.rendered_content)
+        self.assertIn('class="message-card-embed-quote"', msg.rendered_content)
         self.assertIn("message_inline_video", msg.rendered_content)
         self.assertIn(
             f'src="{get_camo_url("https://video.twimg.com/quoted.mp4")}"',
@@ -806,8 +806,8 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
         assert msg.rendered_content is not None
         self.assertNotIn("javascript:", msg.rendered_content)
         self.assertEqual(msg.rendered_content.count(f'href="{url}"'), 3)
-        self.assertNotIn("social-post-avatar", msg.rendered_content)
-        self.assertNotIn("social-post-media", msg.rendered_content)
+        self.assertNotIn("message-card-embed-avatar", msg.rendered_content)
+        self.assertNotIn("message-card-embed-media", msg.rendered_content)
 
     @responses.activate
     def test_image_preview_disabled_falls_back_to_plain_embed(self) -> None:
@@ -854,7 +854,7 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
-        self.assertNotIn("social-post", msg.rendered_content)
+        self.assertNotIn("message-card-embed", msg.rendered_content)
         self.assertIn('class="message_embed"', msg.rendered_content)
         self.assertIn('class="message_embed_title"', msg.rendered_content)
         self.assertIn(">jack<", msg.rendered_content)

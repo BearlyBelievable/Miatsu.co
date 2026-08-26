@@ -721,33 +721,33 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         platform_icon: tuple[str, str] | None = None,
     ) -> None:
         header = SubElement(container, "div")
-        header.set("class", "social-post-header")
+        header.set("class", "message-card-embed-header")
 
         safe_avatar_url = sanitize_url(avatar_url) if avatar_url is not None else None
         if safe_avatar_url is not None:
             avatar = SubElement(header, "img")
-            avatar.set("class", "social-post-avatar")
+            avatar.set("class", "message-card-embed-avatar")
             avatar.set("src", safe_avatar_url)
 
         author = SubElement(header, "a")
-        author.set("class", "social-post-author")
+        author.set("class", "message-card-embed-author")
         safe_permalink = sanitize_url(permalink) if permalink is not None else None
         author.set("href", safe_permalink or fallback_link)
 
         if author_name is not None:
             name_elm = SubElement(author, "span")
-            name_elm.set("class", "social-post-author-name")
+            name_elm.set("class", "message-card-embed-author-name")
             name_elm.text = author_name
 
         if author_handle is not None:
             handle_elm = SubElement(author, "span")
-            handle_elm.set("class", "social-post-author-handle")
+            handle_elm.set("class", "message-card-embed-author-handle")
             handle_elm.text = "@" + author_handle
 
         if platform_icon is not None:
             label_text, icon_name = platform_icon
             badge = SubElement(header, "span")
-            badge.set("class", "social-post-badge")
+            badge.set("class", "message-card-embed-badge")
             badge.set("aria-label", label_text)
             icon = SubElement(badge, "i")
             icon.set("class", f"zulip-icon zulip-icon-{icon_name}")
@@ -763,7 +763,7 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         if not safe_items:
             return
         media_container = SubElement(container, "div")
-        media_container.set("class", "social-post-media")
+        media_container.set("class", "message-card-embed-media")
         for item, safe_url in safe_items:
             if item.kind == "video":
                 self.add_video(media_container, safe_url, title=None)
@@ -775,12 +775,12 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
     ) -> None:
         if quote.unavailable_reason is not None:
             unavailable = SubElement(container, "div")
-            unavailable.set("class", "social-post-quote-unavailable")
+            unavailable.set("class", "message-card-embed-quote-unavailable")
             unavailable.text = f"Quoted post unavailable ({quote.unavailable_reason})"
             return
 
         quote_container = SubElement(container, "div")
-        quote_container.set("class", "social-post-quote")
+        quote_container.set("class", "message-card-embed-quote")
         self.add_social_post_header(
             quote_container,
             quote.author_avatar_url,
@@ -791,7 +791,7 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         )
         if quote.text:
             text_elm = SubElement(quote_container, "div")
-            text_elm.set("class", "social-post-text")
+            text_elm.set("class", "message-card-embed-text")
             text_elm.text = quote.text
         self.add_social_post_media(quote_container, quote.media)
 
@@ -799,7 +799,8 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         self, root: Element, link: str, social_post: UrlOEmbedData.SocialPost
     ) -> None:
         container = SubElement(root, "div")
-        container.set("class", f"social-post social-post-{social_post.platform}")
+        container.set("class", "message-card-embed")
+        container.set("data-platform", social_post.platform)
 
         self.add_social_post_header(
             container,
@@ -813,7 +814,7 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
 
         if social_post.text:
             text_elm = SubElement(container, "div")
-            text_elm.set("class", "social-post-text")
+            text_elm.set("class", "message-card-embed-text")
             text_elm.text = social_post.text
 
         self.add_social_post_media(container, social_post.media)
@@ -828,7 +829,7 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         )
         if stats_text:
             stats_elm = SubElement(container, "div")
-            stats_elm.set("class", "social-post-stats")
+            stats_elm.set("class", "message-card-embed-stats")
             stats_elm.text = stats_text
 
         if social_post.quote is not None:
