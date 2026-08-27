@@ -78,6 +78,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 "<img"
                 ' data-original-content-type="image/jpeg"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 f' src="/user_uploads/thumbnail/{path_ids[0]}/840x560.webp"></a></div>'
                 "<p>Next image<br>\n"
                 f'<a href="/user_uploads/{path_ids[1]}">{image_names[1]}</a> </p>\n'
@@ -85,6 +86,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 "<img"
                 ' data-original-content-type="image/png"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 f' src="/user_uploads/thumbnail/{path_ids[1]}/840x560.webp"></a></div>'
                 "<p>Another screenshot<br>\n"
                 f'<a href="/user_uploads/{path_ids[2]}">{image_names[2]}</a></p>\n'
@@ -92,6 +94,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 "<img"
                 ' data-original-content-type="image/gif"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 f' src="/user_uploads/thumbnail/{path_ids[2]}/840x560.webp"></a></div>'
             ),
         )
@@ -112,7 +115,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
         self.assertEqual(
             converted.rendered_content,
             (
-                f'<div class="message_inline_image"><a href="{url}"><img src="{get_camo_url(url)}"></a></div>'
+                f'<div class="message_inline_image"><a href="{url}"><img loading="lazy" src="{get_camo_url(url)}"></a></div>'
                 f'<div class="codehilite"><pre><span></span><code>/user_uploads/{path_id}\n'
                 "</code></pre></div>"
             ),
@@ -128,6 +131,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 '<img class="image-loading-placeholder"'
                 ' data-original-content-type="image/png"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 ' src="/static/images/loading/loader-black.svg"></a></div>'
             )
 
@@ -141,6 +145,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             "<img"
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/840x560.webp"></a></div>'
         )
         self.assert_message_content_is(message_id, expected)
@@ -155,6 +160,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 ' data-original-content-type="image/png"'
                 ' data-original-dimensions="128x128"'
                 f' data-original-src="/user_uploads/{path_id}"'
+                ' loading="lazy"'
                 ' src="/static/images/loading/loader-black.svg"></p>'
             )
 
@@ -167,6 +173,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
             f' data-original-src="/user_uploads/{path_id}"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/840x560.webp"></p>'
         )
         self.assert_message_content_is(message_id, expected)
@@ -189,6 +196,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             "<img"
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/840x560.webp"></a></div>'
         )
         self.assert_message_content_is(message_id, expected)
@@ -212,6 +220,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 '<img data-animated="true"'
                 ' data-original-content-type="image/gif"'
                 ' data-original-dimensions="128x56"'
+                ' loading="lazy"'
                 f' src="/user_uploads/thumbnail/{path_id}/100x75-anim.webp"></a></div>'
             )
             message_id = self.send_message_content(content, do_thumbnail=True)
@@ -245,11 +254,13 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 '<img class="image-loading-placeholder"'
                 ' data-original-content-type="image/png"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 ' src="/static/images/loading/loader-black.svg"></a></div>'
                 f'<div class="message_inline_image"><a href="/user_uploads/{second_path_id}" title="second image">'
                 '<img class="image-loading-placeholder"'
                 ' data-original-content-type="image/jpeg"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 ' src="/static/images/loading/loader-black.svg"></a></div>'
             ),
         )
@@ -265,11 +276,13 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 '<img class="image-loading-placeholder"'
                 ' data-original-content-type="image/png"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 ' src="/static/images/loading/loader-black.svg"></a></div>'
                 f'<div class="message_inline_image"><a href="/user_uploads/{second_path_id}" title="second image">'
                 "<img"
                 ' data-original-content-type="image/jpeg"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 f' src="/user_uploads/thumbnail/{second_path_id}/840x560.webp"></a></div>'
             ),
         )
@@ -285,11 +298,13 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 "<img"
                 ' data-original-content-type="image/png"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 f' src="/user_uploads/thumbnail/{first_path_id}/840x560.webp"></a></div>'
                 f'<div class="message_inline_image"><a href="/user_uploads/{second_path_id}" title="second image">'
                 "<img"
                 ' data-original-content-type="image/jpeg"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 f' src="/user_uploads/thumbnail/{second_path_id}/840x560.webp"></a></div>'
             ),
         )
@@ -318,6 +333,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             "<img"
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/840x560.webp"></a></div>'
         )
         self.assertEqual(
@@ -385,6 +401,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             '<img class="image-loading-placeholder"'
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             ' src="/static/images/loading/loader-black.svg"></a></div>'
         )
         self.assert_message_content_is(
@@ -416,6 +433,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             "<img"
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/100x75.webp"></a></div>'
         )
 
@@ -450,6 +468,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             '<img class="image-loading-placeholder"'
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             ' src="/static/images/loading/loader-black.svg"></a></div>'
         )
         self.assertEqual(send_request.message.rendered_content, expected)
@@ -468,6 +487,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             "<img"
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/840x560.webp"></a></div>'
         )
         self.assert_message_content_is(
@@ -491,6 +511,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 '<img class="image-loading-placeholder"'
                 ' data-original-content-type="image/png"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 ' src="/static/images/loading/loader-black.svg"></a></div>'
             )
 
@@ -505,6 +526,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             "<img"
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/840x560.webp"></a></div>'
         )
         self.assert_message_content_is(message_id, expected)
@@ -521,6 +543,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             ' data-original-content-type="image/tiff"'
             ' data-original-dimensions="128x128"'
             ' data-transcoded-image="4032x3024.webp"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/840x560.webp"></a></div>'
         )
         self.assert_message_content_is(message_id, expected)
@@ -538,6 +561,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 '<img class="image-loading-placeholder"'
                 ' data-original-content-type="image/png"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 ' src="/static/images/loading/loader-black.svg"></a></div>'
             )
 
@@ -578,6 +602,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             "<img"
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/840x560.webp"></a></div>'
         )
         self.assert_message_content_is(message_id, expected)
@@ -598,6 +623,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             '<img class="image-loading-placeholder"'
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             ' src="/static/images/loading/loader-black.svg"></a></div>'
         )
 
@@ -648,6 +674,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             "<img"
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/840x560.webp"></a></div>'
         )
         self.assert_message_content_is(message_id, expected)
@@ -689,6 +716,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
                 '<img class="image-loading-placeholder"'
                 ' data-original-content-type="image/png"'
                 ' data-original-dimensions="128x128"'
+                ' loading="lazy"'
                 ' src="/static/images/loading/loader-black.svg"></a></div>'
             )
             self.assertEqual(
@@ -704,6 +732,7 @@ class MarkdownThumbnailTest(ZulipTestCase):
             "<img"
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/840x560.webp"></a></div>'
         )
         self.assertEqual(

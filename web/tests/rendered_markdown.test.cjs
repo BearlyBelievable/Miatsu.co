@@ -133,7 +133,7 @@ const get_content_element = () => {
     $content.set_find_results(".user-group-mention", []);
     $content.set_find_results("a.stream", []);
     $content.set_find_results("a.stream-topic, a.message-link", []);
-    $content.set_find_results("time", []);
+    $content.set_find_results("time:not(.message-card-embed-timestamp)", []);
     $content.set_find_results("span.timestamp-error", []);
     $content.set_find_results(".emoji", []);
     $content.set_find_results("div.spoiler-header", []);
@@ -143,6 +143,7 @@ const get_content_element = () => {
     $content.set_find_results(".media-audio-element", []);
     $content.set_find_results("audio", []);
     $content.set_find_results(".youtube-video, .embed-video, .embed-rich", []);
+    $content.set_find_results(".message-card-embed-timestamp", []);
 
     set_message_for_message_content($content, undefined);
 
@@ -719,7 +720,7 @@ run_test("message-links", ({mock_template}) => {
 run_test("timestamp without time", () => {
     const $content = get_content_element();
     const $timestamp = $.create("timestamp without actual time");
-    $content.set_find_results("time", $timestamp);
+    $content.set_find_results("time:not(.message-card-embed-timestamp)", $timestamp);
 
     rm.update_elements($content);
     assert.equal($timestamp.text(), "never-been-set");
@@ -855,7 +856,10 @@ run_test("timestamp", ({mock_template}) => {
     $timestamp.attr("datetime", "1970-01-01T00:00:01Z");
     const $timestamp_invalid = $.create("timestamp(invalid)");
     $timestamp_invalid.attr("datetime", "invalid");
-    $content.set_find_results("time", [$timestamp[0], $timestamp_invalid[0]]);
+    $content.set_find_results("time:not(.message-card-embed-timestamp)", [
+        $timestamp[0],
+        $timestamp_invalid[0],
+    ]);
     blueslip.expect("error", "Could not parse datetime supplied by backend");
 
     // Initial asserts
@@ -882,7 +886,7 @@ run_test("timestamp-twenty-four-hour-time", ({mock_template, override}) => {
     const $content = get_content_element();
     const $timestamp = $.create("timestamp");
     $timestamp.attr("datetime", "2020-07-15T20:40:00Z");
-    $content.set_find_results("time", $timestamp);
+    $content.set_find_results("time:not(.message-card-embed-timestamp)", $timestamp);
 
     // We will temporarily change the 24h setting for this test.
     override(user_settings, "twenty_four_hour_time", true);

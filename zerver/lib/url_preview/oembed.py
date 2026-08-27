@@ -1,15 +1,16 @@
 import contextlib
 import json
+import logging
 from urllib.parse import urlsplit
 from xml.etree import ElementTree
 
 import requests
-from pyoembed import PyOembedException, oEmbed
+from pyoembed import ParserException, ProviderException, PyOembedException, oEmbed
 from pyoembed.parsers.xml_parser import XmlParser
 from pyoembed.providers import BaseProvider
 
 from zerver.lib.url_preview.miatsuco_fxembed import SOCIAL_EMBED_HOSTS, get_fxembed_data
-from zerver.lib.url_preview.types import UrlEmbedData, UrlOEmbedData
+from zerver.lib.url_preview.types import TransientPreviewFetchError, UrlEmbedData, UrlOEmbedData
 
 
 # pyoembed has no built-in provider for these platforms and falls
@@ -75,8 +76,18 @@ def get_oembed_data(url: str, maxwidth: int = 640, maxheight: int = 480) -> UrlE
 
     try:
         data = oEmbed(url, maxwidth=maxwidth, maxheight=maxheight)
-    except (PyOembedException, json.decoder.JSONDecodeError, requests.exceptions.ConnectionError):
+    # MiAtSu.Co fork edit:
+    # A missing provider or unparsable content-type is permanent, so
+    # only the request and data failures below get retried.
+    except (ProviderException, ParserException):
         return None
+    except (
+        PyOembedException,
+        json.decoder.JSONDecodeError,
+        requests.exceptions.ConnectionError,
+    ) as e:
+        logging.warning("oEmbed lookup failed for %s: %s", url, e)
+        raise TransientPreviewFetchError from e
 
     oembed_resource_type = data.get("type", "")
     image = data.get("url", data.get("image"))

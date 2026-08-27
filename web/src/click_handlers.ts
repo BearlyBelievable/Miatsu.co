@@ -343,6 +343,14 @@ export function initialize(): void {
         $(this).addClass("selected_msg_for_touchscreen");
     });
 
+    // MiAtSu.Co fork edit:
+    // Clears the touch-controls popover when tapping outside a message row.
+    $("body").on("click", (e) => {
+        if ($(e.target).closest(".message_row").length === 0) {
+            $(".selected_msg_for_touchscreen").removeClass("selected_msg_for_touchscreen");
+        }
+    });
+
     // MESSAGE EDITING
 
     $("body").on("click", ".edit_content_button", function (e) {

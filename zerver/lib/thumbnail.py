@@ -569,6 +569,7 @@ def process_inline_images_to_thumbnails(
             # and mark it as a pending thumbnail.
             full_res_image_tag["src"] = "/static/images/loading/loader-black.svg"
             full_res_image_tag["class"] = "image-loading-placeholder"
+            full_res_image_tag["loading"] = "lazy"
             full_res_image_tag["data-original-dimensions"] = (
                 f"{image_data.original_width_px}x{image_data.original_height_px}"
             )

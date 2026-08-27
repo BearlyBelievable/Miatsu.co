@@ -1,3 +1,8 @@
+import html
+import json
+import re
+from datetime import datetime, timezone
+from typing import Any
 from unittest import mock
 
 import responses
@@ -14,7 +19,7 @@ from zerver.lib.url_preview.miatsuco_fxembed import (
     twitter_status_id,
 )
 from zerver.lib.url_preview.oembed import get_oembed_data
-from zerver.lib.url_preview.types import UrlOEmbedData
+from zerver.lib.url_preview.types import TransientPreviewFetchError, UrlOEmbedData
 from zerver.models import Message, Realm
 from zerver.worker.embed_links import FetchLinksEmbedData
 
@@ -96,12 +101,6 @@ class MiatsucoFxEmbedUrlDetectionTestCase(ZulipTestCase):
         self.assertIsNone(bluesky_status_ref("https://example.com/profile/bsky.app/post/abc"))
 
     def test_bluesky_status_ref_rejects_unsafe_characters(self) -> None:
-        # The handle and rkey get interpolated, unescaped, into the
-        # fxbsky.app request URL. ? and # can never reach here (urlsplit
-        # already strips the query string and fragment before path
-        # parsing), but other characters that are valid in a URL path
-        # segment, like percent-encoding or sub-delimiters, are not
-        # valid in a real handle or rkey and must still be rejected.
         self.assertIsNone(bluesky_status_ref("https://bsky.app/profile/foo%2ebar/post/abc123"))
         self.assertIsNone(bluesky_status_ref("https://bsky.app/profile/bsky.app/post/abc;x=1"))
         self.assertIsNone(bluesky_status_ref("https://bsky.app/profile/foo@bar/post/abc123"))
@@ -128,6 +127,9 @@ class MiatsucoFxEmbedDataTestCase(ZulipTestCase):
         self.assertEqual(data.social_post.repost_count, 124789)
         self.assertEqual(data.social_post.reply_count, 17986)
         self.assertEqual(data.social_post.media, [])
+        self.assertEqual(
+            data.social_post.created_at, datetime(2006, 3, 21, 20, 50, 14, tzinfo=timezone.utc)
+        )
 
     @responses.activate
     def test_bluesky_happy_path_with_media(self) -> None:
@@ -148,6 +150,10 @@ class MiatsucoFxEmbedDataTestCase(ZulipTestCase):
             data.social_post.media[0].url, "https://cdn.bsky.app/img/feed_fullsize/photo.jpg"
         )
         self.assertEqual(data.social_post.media[0].alt_text, "A screenshot.")
+        self.assertEqual(
+            data.social_post.created_at,
+            datetime(2026, 8, 10, 18, 23, 59, 962000, tzinfo=timezone.utc),
+        )
 
     @responses.activate
     def test_missing_avatar(self) -> None:
@@ -314,6 +320,31 @@ class MiatsucoFxEmbedDataTestCase(ZulipTestCase):
         self.assertIsNone(data.social_post.author_name)
         self.assertIsNone(data.social_post.author_handle)
         self.assertIsNone(data.social_post.author_avatar_url)
+        self.assertIsNone(data.social_post.created_at)
+
+    @responses.activate
+    def test_malformed_created_at_is_ignored(self) -> None:
+        response_data = {
+            "code": 200,
+            "status": {
+                "type": "status",
+                "url": "https://x.com/jack/status/20",
+                "text": "look at this",
+                "author": {"name": "jack", "screen_name": "jack", "avatar_url": None},
+                "media": {},
+                "created_at": "not a real date",
+            },
+        }
+        responses.add(
+            responses.GET,
+            "https://api.fxtwitter.com/2/status/20",
+            json=response_data,
+            status=200,
+        )
+        data = get_fxembed_data("https://x.com/jack/status/20")
+        assert data is not None
+        assert data.social_post is not None
+        self.assertIsNone(data.social_post.created_at)
 
     @responses.activate
     def test_no_quote(self) -> None:
@@ -400,11 +431,22 @@ class MiatsucoFxEmbedOembedDispatchTestCase(ZulipTestCase):
             "https://vimeo.com/api/oembed.json",
             status=404,
         )
-        self.assertIsNone(get_oembed_data("https://vimeo.com/nonexistent"))
+        with (
+            self.assertLogs(level="WARNING") as warn_logs,
+            self.assertRaises(TransientPreviewFetchError),
+        ):
+            get_oembed_data("https://vimeo.com/nonexistent")
+        self.assertIn("oEmbed lookup failed for https://vimeo.com/nonexistent", warn_logs.output[0])
         self.assert_length(responses.calls, 1)
         request_url = responses.calls[0].request.url
         assert request_url is not None
         self.assertIn("vimeo.com", request_url)
+
+
+def extract_message_card_embed_payload(rendered_content: str) -> dict[str, Any]:
+    match = re.search(r'data-message-card-embed="([^"]*)"', rendered_content)
+    assert match is not None
+    return json.loads(html.unescape(match.group(1)))
 
 
 @override_settings(INLINE_URL_EMBED_PREVIEW=True)
@@ -454,6 +496,7 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
                 like_count=311130,
                 repost_count=124789,
                 reply_count=17986,
+                created_at=datetime(2006, 3, 21, 20, 50, 14, tzinfo=timezone.utc),
             ),
         )
         self.create_mock_response(url)
@@ -473,14 +516,76 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
-        self.assertIn('class="message-card-embed" data-platform="twitter"', msg.rendered_content)
-        self.assertIn('class="message-card-embed-author-name"', msg.rendered_content)
-        self.assertIn("jack", msg.rendered_content)
-        self.assertIn("311130 likes", msg.rendered_content)
+        self.assertIn('class="message_embed"', msg.rendered_content)
+        self.assertIn('data-platform="twitter"', msg.rendered_content)
         self.assertIn(
-            f'<img class="message-card-embed-avatar" src="{get_camo_url(author_avatar_url)}"',
+            f'<div class="message_embed_title"><a href="{url}" title="jack (@jack)">'
+            "jack (@jack)</a></div>",
             msg.rendered_content,
         )
+        self.assertIn(
+            '<div class="message_embed_description">just setting up my twttr\n\n'
+            "311K likes · 124K reposts · 17K replies</div>",
+            msg.rendered_content,
+        )
+        self.assertIn(
+            f'<a class="message_embed_image" href="{url}" '
+            f'style="background-image: url(&quot;{get_camo_url(author_avatar_url)}&quot;)"></a>',
+            msg.rendered_content,
+        )
+
+        payload = extract_message_card_embed_payload(msg.rendered_content)
+        self.assertEqual(payload["author_avatar_url"], get_camo_url(author_avatar_url))
+        self.assertEqual(payload["created_at"], "2006-03-21T20:50:14Z")
+        self.assertEqual(payload["like_count"], 311130)
+        self.assertEqual(payload["repost_count"], 124789)
+        self.assertEqual(payload["reply_count"], 17986)
+        self.assertEqual(payload["permalink"], url)
+        self.assertIsNone(payload["quote"])
+
+    @responses.activate
+    def test_stats_below_a_thousand_and_in_the_millions_are_formatted(self) -> None:
+        url = "https://x.com/jack/status/20"
+        with mock_queue_publish("zerver.actions.message_send.queue_event_on_commit"):
+            msg_id = self.send_personal_message(
+                self.example_user("hamlet"),
+                self.example_user("cordelia"),
+                content=url,
+            )
+        msg = Message.objects.select_related("sender").get(id=msg_id)
+        event = {
+            "message_id": msg_id,
+            "urls": [url],
+            "message_realm_id": msg.sender.realm_id,
+            "message_content": url,
+        }
+
+        mocked_data = UrlOEmbedData(
+            type="rich",
+            social_post=UrlOEmbedData.SocialPost(
+                platform="twitter",
+                author_name="jack",
+                text="counts",
+                permalink=url,
+                like_count=500,
+                repost_count=1500,
+                reply_count=2_500_000,
+            ),
+        )
+        self.create_mock_response(url)
+        with (
+            self.settings(TEST_SUITE=False),
+            mock.patch(
+                "zerver.lib.url_preview.preview.get_oembed_data",
+                lambda *args, **kwargs: mocked_data,
+            ),
+            self.assertLogs(level="INFO"),
+        ):
+            FetchLinksEmbedData().consume(event)
+
+        msg.refresh_from_db()
+        assert msg.rendered_content is not None
+        self.assertIn("500 likes · 1.5K reposts · 2.5M replies", msg.rendered_content)
 
     @responses.activate
     def test_renders_media(self) -> None:
@@ -533,11 +638,17 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
-        self.assertIn('class="message-card-embed-media"', msg.rendered_content)
-        self.assertIn("message_inline_image", msg.rendered_content)
+        camo_photo_url = get_camo_url("https://cdn.bsky.app/img/feed_fullsize/photo.jpg")
         self.assertIn(
-            get_camo_url("https://cdn.bsky.app/img/feed_fullsize/photo.jpg"),
+            f'<a class="message_embed_image" href="{url}" '
+            f'style="background-image: url(&quot;{camo_photo_url}&quot;)"></a>',
             msg.rendered_content,
+        )
+
+        payload = extract_message_card_embed_payload(msg.rendered_content)
+        self.assertEqual(
+            payload["media"],
+            [{"kind": "photo", "url": camo_photo_url, "alt_text": "A screenshot."}],
         )
 
     @responses.activate
@@ -589,10 +700,18 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
-        self.assertIn('class="message-card-embed-quote"', msg.rendered_content)
-        self.assertIn("Other", msg.rendered_content)
-        self.assertIn("the original post", msg.rendered_content)
-        self.assertIn('href="https://x.com/other/status/10"', msg.rendered_content)
+        self.assertIn(
+            '<div class="message_embed_description">look at this\n\n'
+            "Quoting Other (@other): the original post</div>",
+            msg.rendered_content,
+        )
+
+        payload = extract_message_card_embed_payload(msg.rendered_content)
+        assert payload["quote"] is not None
+        self.assertEqual(payload["quote"]["author_name"], "Other")
+        self.assertEqual(payload["quote"]["author_handle"], "other")
+        self.assertEqual(payload["quote"]["text"], "the original post")
+        self.assertEqual(payload["quote"]["permalink"], "https://x.com/other/status/10")
 
     @responses.activate
     def test_renders_quote_unavailable(self) -> None:
@@ -638,8 +757,14 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
-        self.assertIn('class="message-card-embed-quote-unavailable"', msg.rendered_content)
-        self.assertIn("Quoted post unavailable (deleted)", msg.rendered_content)
+        self.assertIn(
+            '<div class="message_embed_description">look at this\n\n'
+            "Quoted post unavailable (deleted).</div>",
+            msg.rendered_content,
+        )
+
+        payload = extract_message_card_embed_payload(msg.rendered_content)
+        self.assertEqual(payload["quote"], {"unavailable_reason": "deleted"})
 
     @responses.activate
     def test_renders_quote_video(self) -> None:
@@ -694,11 +819,23 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
-        self.assertIn('class="message-card-embed-quote"', msg.rendered_content)
-        self.assertIn("message_inline_video", msg.rendered_content)
         self.assertIn(
-            f'src="{get_camo_url("https://video.twimg.com/quoted.mp4")}"',
+            '<div class="message_embed_description">look at this\n\n'
+            "Quoting Other: watch this</div>",
             msg.rendered_content,
+        )
+
+        payload = extract_message_card_embed_payload(msg.rendered_content)
+        assert payload["quote"] is not None
+        self.assertEqual(
+            payload["quote"]["media"],
+            [
+                {
+                    "kind": "video",
+                    "url": get_camo_url("https://video.twimg.com/quoted.mp4"),
+                    "alt_text": None,
+                }
+            ],
         )
 
     @responses.activate
@@ -805,9 +942,15 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
         msg.refresh_from_db()
         assert msg.rendered_content is not None
         self.assertNotIn("javascript:", msg.rendered_content)
-        self.assertEqual(msg.rendered_content.count(f'href="{url}"'), 3)
-        self.assertNotIn("message-card-embed-avatar", msg.rendered_content)
-        self.assertNotIn("message-card-embed-media", msg.rendered_content)
+        self.assertEqual(msg.rendered_content.count(f'href="{url}"'), 2)
+
+        payload = extract_message_card_embed_payload(msg.rendered_content)
+        self.assertIsNone(payload["author_avatar_url"])
+        self.assertIsNone(payload["permalink"])
+        self.assertEqual(payload["media"], [])
+        assert payload["quote"] is not None
+        self.assertIsNone(payload["quote"]["author_avatar_url"])
+        self.assertIsNone(payload["quote"]["permalink"])
 
     @responses.activate
     def test_image_preview_disabled_falls_back_to_plain_embed(self) -> None:

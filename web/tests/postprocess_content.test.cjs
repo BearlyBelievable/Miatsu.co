@@ -594,3 +594,257 @@ run_test("inline_images", ({override}) => {
         "",
     );
 });
+
+function build_message_card_embed_html(payload) {
+    const payload_attr = JSON.stringify(payload).replaceAll('"', "&quot;");
+    return (
+        '<div class="message_embed" data-platform="' +
+        payload.platform +
+        '" data-message-card-embed="' +
+        payload_attr +
+        '">' +
+        '<a class="message_embed_image" href="' +
+        (payload.permalink ?? payload.fallback_link) +
+        '" style="background-image: url(&quot;https://example.com/photo.jpg&quot;)"></a>' +
+        '<div class="data-container">' +
+        '<div class="message_embed_title"><a href="' +
+        (payload.permalink ?? payload.fallback_link) +
+        '" title="jack (@jack)">jack (@jack)</a></div>' +
+        '<div class="message_embed_description">placeholder</div>' +
+        "</div>" +
+        "</div>"
+    );
+}
+
+run_test("message_card_embed_enhancement", () => {
+    const payload = {
+        platform: "twitter",
+        author_name: "jack",
+        author_handle: "jack",
+        author_avatar_url: "https://example.com/avatar.jpg",
+        created_at: "2006-03-21T20:50:14Z",
+        text: "just setting up my twttr",
+        media: [{kind: "photo", url: "https://example.com/photo.jpg", alt_text: "A photo."}],
+        like_count: 311130,
+        repost_count: 124789,
+        reply_count: 17986,
+        permalink: "https://x.com/jack/status/20",
+        fallback_link: "https://x.com/jack/status/20",
+        quote: null,
+    };
+
+    assert.equal(
+        postprocess_content(build_message_card_embed_html(payload)),
+        '<div class="message-thumbnail-gallery"><div class="message_embed message-card-embed" data-platform="twitter" data-message-card-embed="{&quot;platform&quot;:&quot;twitter&quot;,&quot;author_name&quot;:&quot;jack&quot;,&quot;author_handle&quot;:&quot;jack&quot;,&quot;author_avatar_url&quot;:&quot;https://example.com/avatar.jpg&quot;,&quot;created_at&quot;:&quot;2006-03-21T20:50:14Z&quot;,&quot;text&quot;:&quot;just setting up my twttr&quot;,&quot;media&quot;:[{&quot;kind&quot;:&quot;photo&quot;,&quot;url&quot;:&quot;https://example.com/photo.jpg&quot;,&quot;alt_text&quot;:&quot;A photo.&quot;}],&quot;like_count&quot;:311130,&quot;repost_count&quot;:124789,&quot;reply_count&quot;:17986,&quot;permalink&quot;:&quot;https://x.com/jack/status/20&quot;,&quot;fallback_link&quot;:&quot;https://x.com/jack/status/20&quot;,&quot;quote&quot;:null}">' +
+            '<div class="message-card-embed-header">' +
+            '<img class="message-card-embed-avatar" loading="lazy" src="https://example.com/avatar.jpg">' +
+            '<span class="message-card-embed-author">' +
+            '<span class="message-card-embed-author-name">jack</span>' +
+            '<span class="message-card-embed-author-handle">@jack · ' +
+            '<time class="message-card-embed-timestamp" datetime="2006-03-21T20:50:14Z">2006-03-21T20:50:14Z</time>' +
+            "</span>" +
+            "</span>" +
+            '<span class="message-card-embed-badge" aria-label="X">' +
+            '<i class="zulip-icon zulip-icon-x" aria-hidden="true"></i>' +
+            "</span>" +
+            "</div>" +
+            '<div class="message-card-embed-text">just setting up my twttr</div>' +
+            '<div class="message-card-embed-media">' +
+            '<div class="message-thumbnail-gallery">' +
+            '<div class="message-media-preview-image">' +
+            '<a href="https://example.com/photo.jpg" target="_blank" rel="noopener noreferrer" class="media-anchor-element" aria-label="A photo.">' +
+            '<img loading="lazy" src="https://example.com/photo.jpg" class="media-image-element">' +
+            "</a>" +
+            "</div>" +
+            "</div>" +
+            "</div>" +
+            '<div class="message-card-embed-footer">' +
+            '<span class="message-card-embed-stats">311K likes · 124K reposts · 17K replies</span>' +
+            '<a class="message-card-embed-view-original" href="https://x.com/jack/status/20" target="_blank" rel="noopener noreferrer" title="https://x.com/jack/status/20">View original</a>' +
+            "</div>" +
+            "</div>" +
+            "</div>",
+    );
+});
+
+run_test("message_card_embed_malformed_payload_is_ignored", () => {
+    const result = postprocess_content(
+        '<div class="message_embed" data-platform="twitter" data-message-card-embed="not valid json">' +
+            '<a class="message_embed_image" href="https://x.com/jack/status/20" style="background-image: url(&quot;https://example.com/photo.jpg&quot;)"></a>' +
+            '<div class="data-container">' +
+            '<div class="message_embed_title"><a href="https://x.com/jack/status/20" title="jack (@jack)">jack (@jack)</a></div>' +
+            '<div class="message_embed_description">placeholder</div>' +
+            "</div>" +
+            "</div>",
+    );
+
+    assert.ok(!result.includes("message-card-embed-header"));
+    assert.ok(result.includes('class="message_embed_title"'));
+});
+
+run_test("message_card_embed_stats_formatting", () => {
+    const payload = {
+        platform: "twitter",
+        author_name: "jack",
+        author_handle: "jack",
+        author_avatar_url: null,
+        created_at: null,
+        text: "counts",
+        media: [],
+        like_count: 500,
+        repost_count: 1500,
+        reply_count: 2_500_000,
+        permalink: "https://x.com/jack/status/20",
+        fallback_link: "https://x.com/jack/status/20",
+        quote: null,
+    };
+
+    assert.equal(
+        postprocess_content(build_message_card_embed_html(payload)),
+        '<div class="message-thumbnail-gallery"><div class="message_embed message-card-embed" data-platform="twitter" data-message-card-embed="{&quot;platform&quot;:&quot;twitter&quot;,&quot;author_name&quot;:&quot;jack&quot;,&quot;author_handle&quot;:&quot;jack&quot;,&quot;author_avatar_url&quot;:null,&quot;created_at&quot;:null,&quot;text&quot;:&quot;counts&quot;,&quot;media&quot;:[],&quot;like_count&quot;:500,&quot;repost_count&quot;:1500,&quot;reply_count&quot;:2500000,&quot;permalink&quot;:&quot;https://x.com/jack/status/20&quot;,&quot;fallback_link&quot;:&quot;https://x.com/jack/status/20&quot;,&quot;quote&quot;:null}">' +
+            '<div class="message-card-embed-header">' +
+            '<span class="message-card-embed-author">' +
+            '<span class="message-card-embed-author-name">jack</span>' +
+            '<span class="message-card-embed-author-handle">@jack</span>' +
+            "</span>" +
+            '<span class="message-card-embed-badge" aria-label="X">' +
+            '<i class="zulip-icon zulip-icon-x" aria-hidden="true"></i>' +
+            "</span>" +
+            "</div>" +
+            '<div class="message-card-embed-text">counts</div>' +
+            '<div class="message-card-embed-footer">' +
+            '<span class="message-card-embed-stats">500 likes · 1.5K reposts · 2.5M replies</span>' +
+            '<a class="message-card-embed-view-original" href="https://x.com/jack/status/20" target="_blank" rel="noopener noreferrer" title="https://x.com/jack/status/20">View original</a>' +
+            "</div>" +
+            "</div>" +
+            "</div>",
+    );
+});
+
+run_test("message_card_embed_quote", () => {
+    const payload = {
+        platform: "bluesky",
+        author_name: "Bluesky",
+        author_handle: null,
+        author_avatar_url: null,
+        created_at: null,
+        text: "look at this",
+        media: [],
+        like_count: null,
+        repost_count: null,
+        reply_count: null,
+        permalink: null,
+        fallback_link: "https://bsky.app/profile/bsky.app/post/1",
+        quote: {unavailable_reason: "deleted"},
+    };
+
+    assert.equal(
+        postprocess_content(build_message_card_embed_html(payload)),
+        '<div class="message-thumbnail-gallery"><div class="message_embed message-card-embed" data-platform="bluesky" data-message-card-embed="{&quot;platform&quot;:&quot;bluesky&quot;,&quot;author_name&quot;:&quot;Bluesky&quot;,&quot;author_handle&quot;:null,&quot;author_avatar_url&quot;:null,&quot;created_at&quot;:null,&quot;text&quot;:&quot;look at this&quot;,&quot;media&quot;:[],&quot;like_count&quot;:null,&quot;repost_count&quot;:null,&quot;reply_count&quot;:null,&quot;permalink&quot;:null,&quot;fallback_link&quot;:&quot;https://bsky.app/profile/bsky.app/post/1&quot;,&quot;quote&quot;:{&quot;unavailable_reason&quot;:&quot;deleted&quot;}}">' +
+            '<div class="message-card-embed-header">' +
+            '<span class="message-card-embed-author">' +
+            '<span class="message-card-embed-author-name">Bluesky</span>' +
+            "</span>" +
+            '<span class="message-card-embed-badge" aria-label="Bluesky">' +
+            '<i class="zulip-icon zulip-icon-bluesky" aria-hidden="true"></i>' +
+            "</span>" +
+            "</div>" +
+            '<div class="message-card-embed-text">look at this</div>' +
+            '<div class="message-card-embed-quote-unavailable">Quoted post unavailable (deleted)</div>' +
+            '<div class="message-card-embed-footer">' +
+            '<a class="message-card-embed-view-original" href="https://bsky.app/profile/bsky.app/post/1" target="_blank" rel="noopener noreferrer" title="https://bsky.app/profile/bsky.app/post/1">View original</a>' +
+            "</div>" +
+            "</div>" +
+            "</div>",
+    );
+});
+
+run_test("message_card_embed_collapsed_when_thumbnails_hidden", ({override}) => {
+    override(user_settings, "miatsuco_web_show_upload_thumbnails", false);
+
+    const payload = {
+        platform: "twitter",
+        author_name: "jack",
+        author_handle: "jack",
+        author_avatar_url: null,
+        created_at: null,
+        text: "just setting up my twttr",
+        media: [],
+        like_count: null,
+        repost_count: null,
+        reply_count: null,
+        permalink: "https://x.com/jack/status/20",
+        fallback_link: "https://x.com/jack/status/20",
+        quote: null,
+    };
+
+    assert.equal(
+        postprocess_content(build_message_card_embed_html(payload)),
+        '<span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;message_embed&quot; data-platform=&quot;twitter&quot; data-message-card-embed=&quot;{&amp;quot;platform&amp;quot;:&amp;quot;twitter&amp;quot;,&amp;quot;author_name&amp;quot;:&amp;quot;jack&amp;quot;,&amp;quot;author_handle&amp;quot;:&amp;quot;jack&amp;quot;,&amp;quot;author_avatar_url&amp;quot;:null,&amp;quot;created_at&amp;quot;:null,&amp;quot;text&amp;quot;:&amp;quot;just setting up my twttr&amp;quot;,&amp;quot;media&amp;quot;:[],&amp;quot;like_count&amp;quot;:null,&amp;quot;repost_count&amp;quot;:null,&amp;quot;reply_count&amp;quot;:null,&amp;quot;permalink&amp;quot;:&amp;quot;https://x.com/jack/status/20&amp;quot;,&amp;quot;fallback_link&amp;quot;:&amp;quot;https://x.com/jack/status/20&amp;quot;,&amp;quot;quote&amp;quot;:null}&quot;><a class=&quot;message_embed_image&quot; href=&quot;https://x.com/jack/status/20&quot; style=&quot;background-image: url(&amp;quot;https://example.com/photo.jpg&amp;quot;)&quot;></a><div class=&quot;data-container&quot;><div class=&quot;message_embed_title&quot;><a href=&quot;https://x.com/jack/status/20&quot; title=&quot;jack (@jack)&quot;>jack (@jack)</a></div><div class=&quot;message_embed_description&quot;>placeholder</div></div></div>">' +
+            '<a href="https://x.com/jack/status/20" target="_blank" rel="noopener noreferrer" class="message-media-collapsed-image-link" title="https://x.com/jack/status/20">jack (@jack)</a>' +
+            '<a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview">' +
+            '<i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i>' +
+            "</a>" +
+            "</span>",
+    );
+});
+
+run_test("message_card_embed_quote_with_video", () => {
+    const payload = {
+        platform: "twitter",
+        author_name: "jack",
+        author_handle: "jack",
+        author_avatar_url: null,
+        created_at: null,
+        text: "look at this",
+        media: [],
+        like_count: null,
+        repost_count: null,
+        reply_count: null,
+        permalink: "https://x.com/jack/status/20",
+        fallback_link: "https://x.com/jack/status/20",
+        quote: {
+            unavailable_reason: null,
+            author_name: "Other",
+            author_handle: "other",
+            text: "watch this",
+            media: [{kind: "video", url: "https://video.twimg.com/quoted.mp4", alt_text: null}],
+        },
+    };
+
+    assert.equal(
+        postprocess_content(build_message_card_embed_html(payload)),
+        '<div class="message-thumbnail-gallery"><div class="message_embed message-card-embed" data-platform="twitter" data-message-card-embed="{&quot;platform&quot;:&quot;twitter&quot;,&quot;author_name&quot;:&quot;jack&quot;,&quot;author_handle&quot;:&quot;jack&quot;,&quot;author_avatar_url&quot;:null,&quot;created_at&quot;:null,&quot;text&quot;:&quot;look at this&quot;,&quot;media&quot;:[],&quot;like_count&quot;:null,&quot;repost_count&quot;:null,&quot;reply_count&quot;:null,&quot;permalink&quot;:&quot;https://x.com/jack/status/20&quot;,&quot;fallback_link&quot;:&quot;https://x.com/jack/status/20&quot;,&quot;quote&quot;:{&quot;unavailable_reason&quot;:null,&quot;author_name&quot;:&quot;Other&quot;,&quot;author_handle&quot;:&quot;other&quot;,&quot;text&quot;:&quot;watch this&quot;,&quot;media&quot;:[{&quot;kind&quot;:&quot;video&quot;,&quot;url&quot;:&quot;https://video.twimg.com/quoted.mp4&quot;,&quot;alt_text&quot;:null}]}}">' +
+            '<div class="message-card-embed-header">' +
+            '<span class="message-card-embed-author">' +
+            '<span class="message-card-embed-author-name">jack</span>' +
+            '<span class="message-card-embed-author-handle">@jack</span>' +
+            "</span>" +
+            '<span class="message-card-embed-badge" aria-label="X">' +
+            '<i class="zulip-icon zulip-icon-x" aria-hidden="true"></i>' +
+            "</span>" +
+            "</div>" +
+            '<div class="message-card-embed-text">look at this</div>' +
+            '<div class="message-card-embed-quote">' +
+            '<div class="message-card-embed-header">' +
+            '<span class="message-card-embed-author">' +
+            '<span class="message-card-embed-author-name">Other</span>' +
+            '<span class="message-card-embed-author-handle">@other</span>' +
+            "</span>" +
+            "</div>" +
+            '<div class="message-card-embed-text">watch this</div>' +
+            '<div class="message-card-embed-media">' +
+            '<div class="message-thumbnail-gallery">' +
+            '<div class="message-media-preview-video message_inline_video">' +
+            '<video preload="metadata" src="https://video.twimg.com/quoted.mp4" class="media-video-element media-image-element"></video>' +
+            "</div>" +
+            "</div>" +
+            "</div>" +
+            "</div>" +
+            '<div class="message-card-embed-footer">' +
+            '<a class="message-card-embed-view-original" href="https://x.com/jack/status/20" target="_blank" rel="noopener noreferrer" title="https://x.com/jack/status/20">View original</a>' +
+            "</div>" +
+            "</div>" +
+            "</div>",
+    );
+});

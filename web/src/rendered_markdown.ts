@@ -21,6 +21,7 @@ import * as message_store from "./message_store.ts";
 import type {Message} from "./message_store.ts";
 import * as miatsuco_inline_embed from "./miatsuco_inline_embed.ts";
 import * as miatsuco_inline_video from "./miatsuco_inline_video.ts";
+import * as miatsuco_message_card_embed from "./miatsuco_message_card_embed.ts";
 import * as people from "./people.ts";
 import * as realm_playground from "./realm_playground.ts";
 import * as rows from "./rows.ts";
@@ -203,6 +204,10 @@ export const update_elements = ($content: JQuery): void => {
     // Makes YouTube/Vimeo/oEmbed link previews playable in place.
     miatsuco_inline_embed.enhance_inline_embeds($content);
 
+    // Gives message card embeds client-side computed timestamps so
+    // that the reference time stays accurate as time passes.
+    miatsuco_message_card_embed.enhance_message_card_embed_timestamps($content);
+
     // personal and stream wildcard mentions
     $content.find(".user-mention").each(function (): void {
         const user_id = get_user_id_for_mention_button(this);
@@ -322,7 +327,7 @@ export const update_elements = ($content: JQuery): void => {
         }
     });
 
-    $content.find("time").each(function (): void {
+    $content.find("time:not(.message-card-embed-timestamp)").each(function (): void {
         // Populate each timestamp span with mentioned time
         // in user's local time zone.
         const time_str = $(this).attr("datetime");

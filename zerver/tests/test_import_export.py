@@ -2003,6 +2003,7 @@ class RealmImportExportTest(ExportFile):
             "<img"
             ' data-original-content-type="image/png"'
             ' data-original-dimensions="128x128"'
+            ' loading="lazy"'
             f' src="/user_uploads/thumbnail/{path_id}/840x560.webp"></a></div>'
         )
         self.assertEqual(

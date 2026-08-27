@@ -277,13 +277,49 @@ function load_embed(container: JQuery): void {
     }
 }
 
+const EMBED_PRELOAD_MARGIN_PX = 500;
+let embed_intersection_observer: IntersectionObserver | undefined;
+
+function ensure_embed_intersection_observer(): IntersectionObserver | undefined {
+    if (embed_intersection_observer !== undefined) {
+        return embed_intersection_observer;
+    }
+    // The node test environment doesn't have IntersectionObserver defined,
+    // so embeds there load immediately instead of lazily.
+    if (typeof IntersectionObserver !== "function") {
+        return undefined;
+    }
+    embed_intersection_observer = new IntersectionObserver(
+        (entries, observer) => {
+            for (const entry of entries) {
+                if (!entry.isIntersecting) {
+                    continue;
+                }
+                observer.unobserve(entry.target);
+                if (entry.target instanceof HTMLElement) {
+                    load_embed($(entry.target));
+                }
+            }
+        },
+        // Starts loading slightly before the embed scrolls into view, so
+        // it's ready by the time the user reaches it.
+        {rootMargin: `${EMBED_PRELOAD_MARGIN_PX}px 0px`},
+    );
+    return embed_intersection_observer;
+}
+
 export function enhance_inline_embeds(content: JQuery): void {
     ensure_resize_listener();
+    const observer = ensure_embed_intersection_observer();
     content.find(".youtube-video, .embed-video, .embed-rich").each((_index, element) => {
         const $container = $(element);
         if ($container.hasClass("inline-embed-loaded")) {
             return;
         }
-        load_embed($container);
+        if (observer === undefined) {
+            load_embed($container);
+            return;
+        }
+        observer.observe(element);
     });
 }

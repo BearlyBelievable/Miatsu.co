@@ -20,7 +20,7 @@ from zerver.lib.test_helpers import mock_queue_publish
 from zerver.lib.url_preview.oembed import get_oembed_data, strip_cdata
 from zerver.lib.url_preview.parsers import GenericParser, OpenGraphParser
 from zerver.lib.url_preview.preview import get_link_embed_data
-from zerver.lib.url_preview.types import UrlEmbedData, UrlOEmbedData
+from zerver.lib.url_preview.types import TransientPreviewFetchError, UrlEmbedData, UrlOEmbedData
 from zerver.models import Message, Realm, UserMessage, UserProfile
 from zerver.worker.embed_links import FetchLinksEmbedData
 
@@ -184,24 +184,36 @@ class OembedTestCase(ZulipTestCase):
         url = "http://instagram.com/p/BLtI2WdAymy"
         reconstructed_url = reconstruct_url(url)
         responses.add(responses.GET, reconstructed_url, body=ConnectionError())
-        data = get_oembed_data(url)
-        self.assertIsNone(data)
+        with (
+            self.assertLogs(level="WARNING") as warn_logs,
+            self.assertRaises(TransientPreviewFetchError),
+        ):
+            get_oembed_data(url)
+        self.assertIn(f"oEmbed lookup failed for {url}", warn_logs.output[0])
 
     @responses.activate
     def test_400_error_request(self) -> None:
         url = "http://instagram.com/p/BLtI2WdAymy"
         reconstructed_url = reconstruct_url(url)
         responses.add(responses.GET, reconstructed_url, status=400)
-        data = get_oembed_data(url)
-        self.assertIsNone(data)
+        with (
+            self.assertLogs(level="WARNING") as warn_logs,
+            self.assertRaises(TransientPreviewFetchError),
+        ):
+            get_oembed_data(url)
+        self.assertIn(f"oEmbed lookup failed for {url}", warn_logs.output[0])
 
     @responses.activate
     def test_500_error_request(self) -> None:
         url = "http://instagram.com/p/BLtI2WdAymy"
         reconstructed_url = reconstruct_url(url)
         responses.add(responses.GET, reconstructed_url, status=500)
-        data = get_oembed_data(url)
-        self.assertIsNone(data)
+        with (
+            self.assertLogs(level="WARNING") as warn_logs,
+            self.assertRaises(TransientPreviewFetchError),
+        ):
+            get_oembed_data(url)
+        self.assertIn(f"oEmbed lookup failed for {url}", warn_logs.output[0])
 
     @responses.activate
     def test_invalid_json_in_response(self) -> None:
@@ -213,8 +225,12 @@ class OembedTestCase(ZulipTestCase):
             json="{invalid json}",
             status=200,
         )
-        data = get_oembed_data(url)
-        self.assertIsNone(data)
+        with (
+            self.assertLogs(level="WARNING") as warn_logs,
+            self.assertRaises(TransientPreviewFetchError),
+        ):
+            get_oembed_data(url)
+        self.assertIn(f"oEmbed lookup failed for {url}", warn_logs.output[0])
 
     def test_oembed_html(self) -> None:
         html = '<iframe src="//www.instagram.com/embed.js"></iframe>'
@@ -1071,6 +1087,55 @@ class PreviewTestCase(ZulipTestCase):
             '<p><a href="http://test.org/">http://test.org/</a></p>', msg.rendered_content
         )
 
+    @mock.patch("zerver.lib.url_preview.preview.time.sleep")
+    @mock.patch(
+        "zerver.lib.url_preview.preview.get_oembed_data", side_effect=lambda *args, **kwargs: None
+    )
+    @mock.patch("zerver.lib.url_preview.preview.valid_content_type", return_value=True)
+    @responses.activate
+    def test_get_link_embed_data_retries_transient_failure(
+        self,
+        mock_valid_content_type: mock.Mock,
+        mock_get_oembed_data: mock.Mock,
+        mock_sleep: mock.Mock,
+    ) -> None:
+        url = "http://test-retry-transient.org/"
+        responses.add(responses.GET, url, status=503)
+        responses.add(
+            responses.GET,
+            url,
+            status=200,
+            content_type="text/html",
+            body="<html><head><title>Real Title</title></head></html>",
+        )
+        data = get_link_embed_data(url)
+        assert data is not None
+        self.assertEqual(data.title, "Real Title")
+        mock_sleep.assert_called_once()
+
+    @mock.patch("zerver.lib.url_preview.preview.time.sleep")
+    @mock.patch(
+        "zerver.lib.url_preview.preview.get_oembed_data", side_effect=lambda *args, **kwargs: None
+    )
+    @mock.patch("zerver.lib.url_preview.preview.valid_content_type", return_value=True)
+    @responses.activate
+    def test_get_link_embed_data_gives_up_after_max_attempts(
+        self,
+        mock_valid_content_type: mock.Mock,
+        mock_get_oembed_data: mock.Mock,
+        mock_sleep: mock.Mock,
+    ) -> None:
+        url = "http://test-retry-exhausted.org/"
+        responses.add(responses.GET, url, status=503)
+        responses.add(responses.GET, url, status=503)
+        responses.add(responses.GET, url, status=503)
+        data = get_link_embed_data(url)
+        self.assertIsNone(data)
+        self.assertEqual(mock_sleep.call_count, 2)
+        # This did not get cached -- hence the lack of [0] on the cache_get
+        cached_data = cache_get(preview_url_cache_key(url))
+        self.assertIsNone(cached_data)
+
     def test_social_embed_hosts_skip_content_type_check(self) -> None:
         url = "https://x.com/jack/status/20"
         social_data = UrlOEmbedData(type="rich")
@@ -1223,7 +1288,7 @@ class PreviewTestCase(ZulipTestCase):
             )
 
         msg.refresh_from_db()
-        expected_content = f"""<p><a href="https://www.youtube.com/watch?v=eSJTXC7Ixgg">YouTube - Clearer Code at Scale - Static Types at Zulip and Dropbox</a></p>\n<div class="youtube-video message_inline_image"><a data-id="eSJTXC7Ixgg" href="https://www.youtube.com/watch?v=eSJTXC7Ixgg"><img src="{get_camo_url("https://i.ytimg.com/vi/eSJTXC7Ixgg/mqdefault.jpg")}"></a></div>"""
+        expected_content = f"""<p><a href="https://www.youtube.com/watch?v=eSJTXC7Ixgg">YouTube - Clearer Code at Scale - Static Types at Zulip and Dropbox</a></p>\n<div class="youtube-video message_inline_image"><a data-id="eSJTXC7Ixgg" href="https://www.youtube.com/watch?v=eSJTXC7Ixgg"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/eSJTXC7Ixgg/mqdefault.jpg")}"></a></div>"""
         self.assertEqual(expected_content, msg.rendered_content)
 
     @responses.activate
@@ -1263,5 +1328,5 @@ class PreviewTestCase(ZulipTestCase):
             )
 
         msg.refresh_from_db()
-        expected_content = f"""<p><a href="https://www.youtube.com/watch?v=eSJTXC7Ixgg">YouTube link</a></p>\n<div class="youtube-video message_inline_image"><a data-id="eSJTXC7Ixgg" href="https://www.youtube.com/watch?v=eSJTXC7Ixgg"><img src="{get_camo_url("https://i.ytimg.com/vi/eSJTXC7Ixgg/mqdefault.jpg")}"></a></div>"""
+        expected_content = f"""<p><a href="https://www.youtube.com/watch?v=eSJTXC7Ixgg">YouTube link</a></p>\n<div class="youtube-video message_inline_image"><a data-id="eSJTXC7Ixgg" href="https://www.youtube.com/watch?v=eSJTXC7Ixgg"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/eSJTXC7Ixgg/mqdefault.jpg")}"></a></div>"""
         self.assertEqual(expected_content, msg.rendered_content)

@@ -1,6 +1,7 @@
 # Zulip's main Markdown implementation.  See docs/subsystems/markdown.md for
 # detailed documentation on our Markdown syntax.
 import logging
+import math
 import re
 import time
 from collections import deque
@@ -23,6 +24,7 @@ import markdown.postprocessors
 import markdown.preprocessors
 import markdown.treeprocessors
 import markdown.util
+import orjson
 import re2
 import regex
 import requests
@@ -381,9 +383,6 @@ def miatsuco_upload_preview_enabled(
         realm = message.get_realm()
 
     if realm is None:
-        # realm can be None for odd use cases
-        # like generating documentation or running
-        # test code
         return True
 
     return realm.miatsuco_inline_upload_preview
@@ -667,8 +666,9 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
             div = SubElement(root, "div")
 
         div.set("class", class_attr)
-        # Read by miatsuco_inline_embed.ts to size embeds without a
-        # dedicated CSS sizing rule.
+        # MiAtSu.Co fork edit:
+        # Exposed as data attributes so the embed's aspect ratio can be
+        # set before its content loads, without a per-provider CSS rule.
         if width is not None:
             div.set("data-width", str(width))
         if height is not None:
@@ -680,6 +680,7 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         if data_id is not None:
             a.set("data-id", data_id)
         img = SubElement(a, "img")
+        img.set("loading", "lazy")
         if image_url.startswith("/user_uploads/") and self.zmd.zulip_db_data:
             path_id = image_url.removeprefix("/user_uploads/")
 
@@ -708,116 +709,54 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         else:
             img.set("src", image_url)
 
-    SOCIAL_POST_PLATFORM_ICONS = {"twitter": ("X", "x"), "bluesky": ("Bluesky", "bluesky")}
+    def message_card_embed_display_name(self, name: str | None, handle: str | None) -> str | None:
+        if name and handle:
+            return f"{name} (@{handle})"
+        if name:
+            return name
+        if handle:
+            return f"@{handle}"
+        return None
 
-    def add_social_post_header(
-        self,
-        container: Element,
-        avatar_url: str | None,
-        author_name: str | None,
-        author_handle: str | None,
-        permalink: str | None,
-        fallback_link: str,
-        platform_icon: tuple[str, str] | None = None,
-    ) -> None:
-        header = SubElement(container, "div")
-        header.set("class", "message-card-embed-header")
-
-        safe_avatar_url = sanitize_url(avatar_url) if avatar_url is not None else None
-        if safe_avatar_url is not None:
-            avatar = SubElement(header, "img")
-            avatar.set("class", "message-card-embed-avatar")
-            avatar.set("src", safe_avatar_url)
-
-        author = SubElement(header, "a")
-        author.set("class", "message-card-embed-author")
-        safe_permalink = sanitize_url(permalink) if permalink is not None else None
-        author.set("href", safe_permalink or fallback_link)
-
-        if author_name is not None:
-            name_elm = SubElement(author, "span")
-            name_elm.set("class", "message-card-embed-author-name")
-            name_elm.text = author_name
-
-        if author_handle is not None:
-            handle_elm = SubElement(author, "span")
-            handle_elm.set("class", "message-card-embed-author-handle")
-            handle_elm.text = "@" + author_handle
-
-        if platform_icon is not None:
-            label_text, icon_name = platform_icon
-            badge = SubElement(header, "span")
-            badge.set("class", "message-card-embed-badge")
-            badge.set("aria-label", label_text)
-            icon = SubElement(badge, "i")
-            icon.set("class", f"zulip-icon zulip-icon-{icon_name}")
-            icon.set("aria-hidden", "true")
-
-    def add_social_post_media(
-        self, container: Element, media: list[UrlOEmbedData.SocialPost.MediaItem]
-    ) -> None:
-        candidates = [(item, sanitize_url(item.url)) for item in media]
-        safe_items: list[tuple[UrlOEmbedData.SocialPost.MediaItem, str]] = [
-            (item, url) for item, url in candidates if url is not None
-        ]
-        if not safe_items:
-            return
-        media_container = SubElement(container, "div")
-        media_container.set("class", "message-card-embed-media")
-        for item, safe_url in safe_items:
+    def message_card_embed_preview_image_url(
+        self, social_post: UrlOEmbedData.SocialPost
+    ) -> str | None:
+        for item in social_post.media:
             if item.kind == "video":
-                self.add_video(media_container, safe_url, title=None)
-            else:
-                self.add_a(media_container, image_url=safe_url, link=safe_url, title=item.alt_text)
+                continue
+            safe_url = sanitize_url(item.url)
+            if safe_url is not None:
+                return safe_url
+        if social_post.author_avatar_url is not None:
+            return sanitize_url(social_post.author_avatar_url)
+        return None
 
-    def add_social_post_quote(
-        self, container: Element, quote: UrlOEmbedData.SocialPost.Quote, fallback_link: str
-    ) -> None:
-        if quote.unavailable_reason is not None:
-            unavailable = SubElement(container, "div")
-            unavailable.set("class", "message-card-embed-quote-unavailable")
-            unavailable.text = f"Quoted post unavailable ({quote.unavailable_reason})"
-            return
+    def message_card_embed_format_count(self, count: int) -> str:
+        if count < 1000:
+            return str(count)
+        divisor, suffix = (1000, "K") if count < 1_000_000 else (1_000_000, "M")
+        value = count / divisor
+        if value < 10:
+            return f"{math.floor(value * 10) / 10:.1f}{suffix}"
+        return f"{math.floor(value)}{suffix}"
 
-        quote_container = SubElement(container, "div")
-        quote_container.set("class", "message-card-embed-quote")
-        self.add_social_post_header(
-            quote_container,
-            quote.author_avatar_url,
-            quote.author_name,
-            quote.author_handle,
-            quote.permalink,
-            fallback_link,
-        )
-        if quote.text:
-            text_elm = SubElement(quote_container, "div")
-            text_elm.set("class", "message-card-embed-text")
-            text_elm.text = quote.text
-        self.add_social_post_media(quote_container, quote.media)
-
-    def add_social_post_embed(
-        self, root: Element, link: str, social_post: UrlOEmbedData.SocialPost
-    ) -> None:
-        container = SubElement(root, "div")
-        container.set("class", "message-card-embed")
-        container.set("data-platform", social_post.platform)
-
-        self.add_social_post_header(
-            container,
-            social_post.author_avatar_url,
-            social_post.author_name,
-            social_post.author_handle,
-            social_post.permalink,
-            link,
-            self.SOCIAL_POST_PLATFORM_ICONS.get(social_post.platform),
-        )
-
+    def message_card_embed_description(self, social_post: UrlOEmbedData.SocialPost) -> str | None:
+        parts = []
         if social_post.text:
-            text_elm = SubElement(container, "div")
-            text_elm.set("class", "message-card-embed-text")
-            text_elm.text = social_post.text
+            parts.append(social_post.text)
 
-        self.add_social_post_media(container, social_post.media)
+        quote = social_post.quote
+        if quote is not None:
+            if quote.unavailable_reason is not None:
+                parts.append(f"Quoted post unavailable ({quote.unavailable_reason}).")
+            else:
+                quote_name = self.message_card_embed_display_name(
+                    quote.author_name, quote.author_handle
+                )
+                if quote_name and quote.text:
+                    parts.append(f"Quoting {quote_name}: {quote.text}")
+                elif quote.text:
+                    parts.append(f"Quoting: {quote.text}")
 
         stat_labels = [
             (social_post.like_count, "likes"),
@@ -825,15 +764,149 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
             (social_post.reply_count, "replies"),
         ]
         stats_text = " · ".join(
-            f"{count} {label}" for count, label in stat_labels if count is not None
+            f"{self.message_card_embed_format_count(count)} {label}"
+            for count, label in stat_labels
+            if count is not None
         )
         if stats_text:
-            stats_elm = SubElement(container, "div")
-            stats_elm.set("class", "message-card-embed-stats")
-            stats_elm.text = stats_text
+            parts.append(stats_text)
 
-        if social_post.quote is not None:
-            self.add_social_post_quote(container, social_post.quote, link)
+        return "\n\n".join(parts) if parts else None
+
+    def message_card_embed_media_payload(
+        self, media: list[UrlOEmbedData.SocialPost.MediaItem]
+    ) -> list[dict[str, str | None]]:
+        result = []
+        for item in media:
+            safe_url = sanitize_url(item.url)
+            if safe_url is None:
+                continue
+            # The InlineImageProcessor treeprocessor rewrites real <img src>
+            # elements through camo automatically, but not URLs sitting inside a
+            # data attribute, so these need get_camo_url called explicitly.
+            result.append(
+                {
+                    "kind": item.kind,
+                    "url": get_camo_url(safe_url),
+                    "alt_text": item.alt_text,
+                }
+            )
+        return result
+
+    def message_card_embed_payload(
+        self, social_post: UrlOEmbedData.SocialPost, fallback_link: str
+    ) -> dict[str, object]:
+        safe_avatar = (
+            sanitize_url(social_post.author_avatar_url)
+            if social_post.author_avatar_url is not None
+            else None
+        )
+        safe_permalink = (
+            sanitize_url(social_post.permalink) if social_post.permalink is not None else None
+        )
+        created_at = social_post.created_at
+        if created_at is not None:
+            if created_at.tzinfo:
+                created_at = created_at.astimezone(timezone.utc)
+            else:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+
+        payload: dict[str, object] = {
+            "platform": social_post.platform,
+            "author_name": social_post.author_name,
+            "author_handle": social_post.author_handle,
+            "author_avatar_url": get_camo_url(safe_avatar) if safe_avatar is not None else None,
+            "created_at": created_at.isoformat().replace("+00:00", "Z") if created_at else None,
+            "text": social_post.text,
+            "media": self.message_card_embed_media_payload(social_post.media),
+            "like_count": social_post.like_count,
+            "repost_count": social_post.repost_count,
+            "reply_count": social_post.reply_count,
+            "permalink": safe_permalink,
+            "fallback_link": fallback_link,
+            "quote": None,
+        }
+
+        quote = social_post.quote
+        if quote is not None:
+            if quote.unavailable_reason is not None:
+                payload["quote"] = {"unavailable_reason": quote.unavailable_reason}
+            else:
+                safe_quote_avatar = (
+                    sanitize_url(quote.author_avatar_url)
+                    if quote.author_avatar_url is not None
+                    else None
+                )
+                safe_quote_permalink = (
+                    sanitize_url(quote.permalink) if quote.permalink is not None else None
+                )
+                payload["quote"] = {
+                    "author_name": quote.author_name,
+                    "author_handle": quote.author_handle,
+                    "author_avatar_url": (
+                        get_camo_url(safe_quote_avatar) if safe_quote_avatar is not None else None
+                    ),
+                    "text": quote.text,
+                    "media": self.message_card_embed_media_payload(quote.media),
+                    "permalink": safe_quote_permalink,
+                    "unavailable_reason": None,
+                }
+
+        return payload
+
+    def add_message_card_embed(
+        self, root: Element, link: str, social_post: UrlOEmbedData.SocialPost
+    ) -> None:
+        permalink = (
+            sanitize_url(social_post.permalink) if social_post.permalink is not None else None
+        )
+        href = permalink or link
+
+        container = SubElement(root, "div")
+        # The Zulip mobile app's block-content parser only recognizes a
+        # fixed set of HTML shapes and falls back to raw HTML for anything
+        # else, so this has to match message_embed's shape to render as a
+        # native link-preview card there.
+        container.set("class", "message_embed")
+        container.set("data-platform", social_post.platform)
+
+        image_url = self.message_card_embed_preview_image_url(social_post)
+        if image_url is not None:
+            img_link = get_camo_url(image_url)
+            img = SubElement(container, "a")
+            img.set(
+                "style",
+                'background-image: url("'
+                + img_link.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\a ")
+                + '")',
+            )
+            img.set("href", href)
+            img.set("class", "message_embed_image")
+
+        data_container = SubElement(container, "div")
+        data_container.set("class", "data-container")
+
+        title = self.message_card_embed_display_name(
+            social_post.author_name, social_post.author_handle
+        )
+        if title:
+            title_elm = SubElement(data_container, "div")
+            title_elm.set("class", "message_embed_title")
+            a = SubElement(title_elm, "a")
+            a.set("href", href)
+            a.set("title", title)
+            a.text = title
+
+        description = self.message_card_embed_description(social_post)
+        if description:
+            description_elm = SubElement(data_container, "div")
+            description_elm.set("class", "message_embed_description")
+            description_elm.text = description
+
+        container.set(
+            "data-message-card-embed",
+            orjson.dumps(self.message_card_embed_payload(social_post, link)).decode(),
+        )
 
     def add_oembed_data(self, root: Element, link: str, extracted_data: UrlOEmbedData) -> None:
         if not self.zmd.image_preview_enabled:
@@ -841,7 +914,7 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
             return
 
         if extracted_data.social_post is not None:
-            self.add_social_post_embed(root, link, extracted_data.social_post)
+            self.add_message_card_embed(root, link, extracted_data.social_post)
             return
 
         if extracted_data.image is None:
@@ -948,13 +1021,8 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         # a row for the ImageAttachment, then its header didn't parse
         # as a valid image type which libvips handles.
         #
-        # Uploaded-file previews are controlled solely by
-        # miatsuco_upload_preview_enabled, independent of image_preview_enabled
-        # below: this is what stops a plain link to an uploaded file
-        # (either typed directly, or produced as the fallback when
-        # ImageInlineProcessor declines to render a preview) from
-        # having its preview regenerated here when upload previews
-        # are turned off, regardless of the link-preview setting.
+        # MiAtSu.Co fork edit:
+        # Upload previews are gated independently of image_preview_enabled.
         if url.startswith("/user_uploads/") and self.zmd.zulip_db_data:
             if not self.zmd.miatsuco_upload_preview_enabled:
                 return False
@@ -2378,15 +2446,9 @@ class ImageInlineProcessor(markdown.inlinepatterns.ImageInlineProcessor):
             assert path_id in db_data.user_upload_previews.image_metadata
             metadata = db_data.user_upload_previews.image_metadata[path_id]
 
-        # Note that we intentionally do NOT skip the metadata lookup
-        # above before this check: thumbnailing (maybe_thumbnail /
-        # ImageAttachment) happens independently in the upload
-        # pipeline regardless of this setting. This flag only
-        # controls whether we render an inline preview element;
-        # when disabled, we still want the ![text](url) syntax to
-        # render as a normal link to the file, so we build an <a>
-        # element rather than returning None (which would leave the
-        # raw markdown syntax completely unprocessed).
+        # MiAtSu.Co fork edit:
+        # Only gates the inline preview, not thumbnailing, so this returns
+        # a plain link instead of leaving the syntax unprocessed.
         if not self.zmd.miatsuco_upload_preview_enabled:
             link = Element("a")
             link.set("href", src)
@@ -2401,6 +2463,7 @@ class ImageInlineProcessor(markdown.inlinepatterns.ImageInlineProcessor):
         img.set("data-original-src", src)
         img.set("class", "inline-image image-loading-placeholder")
         img.set("src", "/static/images/loading/loader-black.svg")
+        img.set("loading", "lazy")
         img.set(
             "data-original-dimensions",
             f"{metadata.original_width_px}x{metadata.original_height_px}",

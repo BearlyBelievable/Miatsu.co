@@ -17,6 +17,12 @@
 }
 
 .rendered_markdown {
+    .message-thumbnail-gallery > .message-card-embed {
+        flex: none;
+        width: var(--embed-max-width);
+        margin-bottom: 0;
+    }
+
     .message-card-embed {
         display: block;
         max-width: var(--embed-max-width);
@@ -49,12 +55,6 @@
             gap: 0.4em;
             overflow: hidden;
             min-width: 0;
-            text-decoration: none;
-            color: inherit;
-
-            &:hover {
-                text-decoration: underline;
-            }
 
             @container message-card-embed (width < 14em) {
                 flex-direction: column;
@@ -87,6 +87,12 @@
             opacity: 0.7;
             overflow: hidden;
             text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .message-card-embed-timestamp {
+            color: var(--color-text-default);
+            opacity: 0.7;
             white-space: nowrap;
         }
 
@@ -131,9 +137,36 @@
             }
         }
 
+        .message-card-embed-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.5em;
+            margin-top: 0.4em;
+        }
+
         .message-card-embed-stats {
             font-size: 0.85em;
             opacity: 0.7;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+        }
+
+        .message-card-embed-view-original {
+            flex: none;
+            margin-left: auto;
+            font-size: 0.85em;
+            color: var(--color-text-link);
+            text-decoration: none;
+            text-decoration-color: var(--color-text-link-decoration);
+
+            &:hover {
+                color: var(--color-text-link-hover);
+                text-decoration: underline;
+                text-decoration-color: var(--color-text-link-decoration-hover);
+            }
         }
 
         .message-card-embed-quote {

@@ -1,4 +1,5 @@
 import re
+import time
 from collections.abc import Callable
 from re import Match
 from typing import Any
@@ -16,7 +17,7 @@ from zerver.lib.pysa import mark_sanitized
 from zerver.lib.url_preview.miatsuco_fxembed import SOCIAL_EMBED_HOSTS
 from zerver.lib.url_preview.oembed import get_oembed_data
 from zerver.lib.url_preview.parsers import GenericParser, OpenGraphParser
-from zerver.lib.url_preview.types import UrlEmbedData, UrlOEmbedData
+from zerver.lib.url_preview.types import TransientPreviewFetchError, UrlEmbedData, UrlOEmbedData
 
 # Based on django.core.validators.URLValidator, with ftp support removed.
 link_regex = re.compile(
@@ -77,15 +78,18 @@ def catch_network_errors(func: Callable[..., Any]) -> Callable[..., Any]:
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return func(*args, **kwargs)
-        except requests.exceptions.RequestException:
+        except (requests.exceptions.RequestException, TransientPreviewFetchError):
             pass
 
     return wrapper
 
 
-@catch_network_errors
-@cache_with_key(preview_url_cache_key)
-def get_link_embed_data(url: str, maxwidth: int = 640, maxheight: int = 480) -> UrlEmbedData | None:
+RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+MAX_EMBED_FETCH_ATTEMPTS = 3
+EMBED_FETCH_RETRY_DELAY_SECONDS = 1
+
+
+def _fetch_link_embed_data_once(url: str, maxwidth: int, maxheight: int) -> UrlEmbedData | None:
     if not is_link(url):
         return None
 
@@ -104,8 +108,14 @@ def get_link_embed_data(url: str, maxwidth: int = 640, maxheight: int = 480) -> 
     if data is not None and isinstance(data, UrlOEmbedData):
         return data
 
-    response = PreviewSession().get(mark_sanitized(url), stream=True)
+    try:
+        response = PreviewSession().get(mark_sanitized(url), stream=True)
+    except requests.exceptions.RequestException as e:
+        raise TransientPreviewFetchError from e
+
     if not response.ok:
+        if response.status_code in RETRYABLE_STATUS_CODES:
+            raise TransientPreviewFetchError(f"status {response.status_code} fetching {url}")
         return None
 
     if data is None:
@@ -118,3 +128,18 @@ def get_link_embed_data(url: str, maxwidth: int = 640, maxheight: int = 480) -> 
     if data.image:
         data.image = urljoin(response.url, data.image)
     return data
+
+
+@catch_network_errors
+@cache_with_key(preview_url_cache_key)
+def get_link_embed_data(url: str, maxwidth: int = 640, maxheight: int = 480) -> UrlEmbedData | None:
+    for _ in range(MAX_EMBED_FETCH_ATTEMPTS - 1):
+        try:
+            return _fetch_link_embed_data_once(url, maxwidth, maxheight)
+        except TransientPreviewFetchError:
+            time.sleep(EMBED_FETCH_RETRY_DELAY_SECONDS)
+    # MiAtSu.Co fork edit:
+    # Left uncaught so a final failure here isn't cached, matching
+    # catch_network_errors's existing behavior for a first attempt
+    # that fails outright.
+    return _fetch_link_embed_data_once(url, maxwidth, maxheight)

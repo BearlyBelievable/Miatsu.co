@@ -225,3 +225,29 @@ run_test("a second enhance call does not reload an already-loaded embed", () => 
         "load_embed should not have re-run",
     );
 });
+
+// This test sets a global IntersectionObserver stub, which the module
+// caches into a singleton on first use. It must run last, since every
+// other test above relies on IntersectionObserver being undefined to
+// exercise the immediate-load fallback.
+run_test("defers loading until the embed is observed as intersecting", () => {
+    const observed_elements = [];
+    class FakeIntersectionObserver {
+        observe(element) {
+            observed_elements.push(element);
+        }
+
+        unobserve() {}
+    }
+    global.IntersectionObserver = FakeIntersectionObserver;
+
+    const {$container, $anchor} = make_container("lazy-container", "youtube-video");
+    $anchor.attr("data-id", "dQw4w9WgXcQ");
+    $anchor.attr("href", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+
+    miatsuco_inline_embed.enhance_inline_embeds(make_content($container));
+
+    assert.ok(!$container.hasClass("inline-embed-loaded"));
+    assert.equal(observed_elements.length, 1);
+    assert.equal(observed_elements[0], $container[0]);
+});

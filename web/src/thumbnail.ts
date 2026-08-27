@@ -11,23 +11,31 @@ export const thumbnail_formats: ThumbnailFormat[] = [];
 export let preferred_format: ThumbnailFormat;
 export let animated_format: ThumbnailFormat;
 
-const DEFAULT_PREVIEW_SIZE_EM = 10;
 const SPOTIFY_EMBED_COMPACT_HEIGHT_PX = 80;
 const SPOTIFY_EMBED_EXPANDED_HEIGHT_PX = 152;
 
+// Upstream's 100/150/200 -> 10/15/20em scaling left the default
+// height below what inline video embeds need to clear a minimum
+// size (see miatsuco_inline_embed.ts).
+const PREVIEW_SIZE_EM: Record<number, number> = {
+    100: 12.5,
+    150: 16,
+    200: 20,
+};
+const DEFAULT_PREVIEW_SIZE_EM = 12.5;
+
+export function get_media_preview_size(): number {
+    return PREVIEW_SIZE_EM[realm.realm_media_preview_size] ?? DEFAULT_PREVIEW_SIZE_EM;
+}
+
 export function set_media_preview_size_css_variable(): void {
-    const size_em = (realm.realm_media_preview_size / 100) * DEFAULT_PREVIEW_SIZE_EM;
-    $(":root").css("--media-preview-max-height", `${size_em}em`);
+    $(":root").css("--media-preview-max-height", `${get_media_preview_size()}em`);
 
     const spotify_embed_height_px =
         realm.realm_media_preview_size > 150
             ? SPOTIFY_EMBED_EXPANDED_HEIGHT_PX
             : SPOTIFY_EMBED_COMPACT_HEIGHT_PX;
     $(":root").css("--spotify-embed-height", `${spotify_embed_height_px}px`);
-}
-
-export function get_media_preview_size(): number {
-    return (realm.realm_media_preview_size / 100) * DEFAULT_PREVIEW_SIZE_EM;
 }
 
 export function initialize(): void {

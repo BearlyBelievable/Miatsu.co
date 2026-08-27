@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -51,6 +52,17 @@ def _str_or_none(value: object) -> str | None:
 
 def _int_or_none(value: object) -> int | None:
     return value if isinstance(value, int) else None
+
+
+def _parse_created_at(raw: str | None, platform: Literal["twitter", "bluesky"]) -> datetime | None:
+    if raw is None:
+        return None
+    try:
+        if platform == "twitter":
+            return datetime.strptime(raw, "%a %b %d %H:%M:%S %z %Y")
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return None
 
 
 def _parse_media(media: object) -> list[UrlOEmbedData.SocialPost.MediaItem]:
@@ -148,7 +160,7 @@ def _parse_status(
             author_avatar_url=author_avatar_url,
             text=text,
             permalink=_str_or_none(status.get("url")) or url,
-            created_at_display=_str_or_none(status.get("created_at")),
+            created_at=_parse_created_at(_str_or_none(status.get("created_at")), platform),
             like_count=_int_or_none(status.get("likes")),
             repost_count=_int_or_none(status.get("reposts")),
             reply_count=_int_or_none(status.get("replies")),

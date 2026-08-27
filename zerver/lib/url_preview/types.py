@@ -1,5 +1,12 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Literal
+
+
+class TransientPreviewFetchError(Exception):
+    """A URL preview fetch failed in a way that might succeed if
+    retried, as opposed to the URL genuinely having no preview data.
+    """
 
 
 @dataclass
@@ -35,7 +42,7 @@ class UrlOEmbedData(UrlEmbedData):
         author_avatar_url: str | None = None
         text: str | None = None
         permalink: str | None = None
-        created_at_display: str | None = None
+        created_at: datetime | None = None
         like_count: int | None = None
         repost_count: int | None = None
         reply_count: int | None = None

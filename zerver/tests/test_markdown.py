@@ -840,7 +840,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
 
         self.assertEqual(
             converted,
-            f"""<p>Check out the debate: <a href="http://www.youtube.com/watch?v=hx1mjT73xYE">http://www.youtube.com/watch?v=hx1mjT73xYE</a></p>\n<div class="youtube-video message_inline_image"><a data-id="hx1mjT73xYE" href="http://www.youtube.com/watch?v=hx1mjT73xYE"><img src="{get_camo_url("https://i.ytimg.com/vi/hx1mjT73xYE/mqdefault.jpg")}"></a></div>""",
+            f"""<p>Check out the debate: <a href="http://www.youtube.com/watch?v=hx1mjT73xYE">http://www.youtube.com/watch?v=hx1mjT73xYE</a></p>\n<div class="youtube-video message_inline_image"><a data-id="hx1mjT73xYE" href="http://www.youtube.com/watch?v=hx1mjT73xYE"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/hx1mjT73xYE/mqdefault.jpg")}"></a></div>""",
         )
 
         msg = "http://www.youtube.com/watch?v=hx1mjT73xYE"
@@ -848,7 +848,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
 
         self.assertEqual(
             converted,
-            f"""<p><a href="http://www.youtube.com/watch?v=hx1mjT73xYE">http://www.youtube.com/watch?v=hx1mjT73xYE</a></p>\n<div class="youtube-video message_inline_image"><a data-id="hx1mjT73xYE" href="http://www.youtube.com/watch?v=hx1mjT73xYE"><img src="{get_camo_url("https://i.ytimg.com/vi/hx1mjT73xYE/mqdefault.jpg")}"></a></div>""",
+            f"""<p><a href="http://www.youtube.com/watch?v=hx1mjT73xYE">http://www.youtube.com/watch?v=hx1mjT73xYE</a></p>\n<div class="youtube-video message_inline_image"><a data-id="hx1mjT73xYE" href="http://www.youtube.com/watch?v=hx1mjT73xYE"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/hx1mjT73xYE/mqdefault.jpg")}"></a></div>""",
         )
 
         msg = "https://youtu.be/hx1mjT73xYE"
@@ -856,7 +856,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
 
         self.assertEqual(
             converted,
-            f"""<p><a href="https://youtu.be/hx1mjT73xYE">https://youtu.be/hx1mjT73xYE</a></p>\n<div class="youtube-video message_inline_image"><a data-id="hx1mjT73xYE" href="https://youtu.be/hx1mjT73xYE"><img src="{get_camo_url("https://i.ytimg.com/vi/hx1mjT73xYE/mqdefault.jpg")}"></a></div>""",
+            f"""<p><a href="https://youtu.be/hx1mjT73xYE">https://youtu.be/hx1mjT73xYE</a></p>\n<div class="youtube-video message_inline_image"><a data-id="hx1mjT73xYE" href="https://youtu.be/hx1mjT73xYE"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/hx1mjT73xYE/mqdefault.jpg")}"></a></div>""",
         )
 
         msg = "https://www.youtube.com/playlist?list=PL8dPuuaLjXtNlUrzyH5r6jN9ulIgZBpdo"
@@ -872,7 +872,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
 
         self.assertEqual(
             converted,
-            f"""<p><a href="https://www.youtube.com/watch?v=O5nskjZ_GoI&amp;list=PL8dPuuaLjXtNlUrzyH5r6jN9ulIgZBpdo">https://www.youtube.com/watch?v=O5nskjZ_GoI&amp;list=PL8dPuuaLjXtNlUrzyH5r6jN9ulIgZBpdo</a></p>\n<div class="youtube-video message_inline_image"><a data-id="O5nskjZ_GoI" href="https://www.youtube.com/watch?v=O5nskjZ_GoI&amp;list=PL8dPuuaLjXtNlUrzyH5r6jN9ulIgZBpdo"><img src="{get_camo_url("https://i.ytimg.com/vi/O5nskjZ_GoI/mqdefault.jpg")}"></a></div>""",
+            f"""<p><a href="https://www.youtube.com/watch?v=O5nskjZ_GoI&amp;list=PL8dPuuaLjXtNlUrzyH5r6jN9ulIgZBpdo">https://www.youtube.com/watch?v=O5nskjZ_GoI&amp;list=PL8dPuuaLjXtNlUrzyH5r6jN9ulIgZBpdo</a></p>\n<div class="youtube-video message_inline_image"><a data-id="O5nskjZ_GoI" href="https://www.youtube.com/watch?v=O5nskjZ_GoI&amp;list=PL8dPuuaLjXtNlUrzyH5r6jN9ulIgZBpdo"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/O5nskjZ_GoI/mqdefault.jpg")}"></a></div>""",
         )
 
         msg = "http://www.youtube.com/watch_videos?video_ids=nOJgD4fcZhI,i96UO8-GFvw"
@@ -880,15 +880,13 @@ class MarkdownEmbedsTest(ZulipTestCase):
 
         self.assertEqual(
             converted,
-            f"""<p><a href="http://www.youtube.com/watch_videos?video_ids=nOJgD4fcZhI,i96UO8-GFvw">http://www.youtube.com/watch_videos?video_ids=nOJgD4fcZhI,i96UO8-GFvw</a></p>\n<div class="youtube-video message_inline_image"><a data-id="nOJgD4fcZhI" href="http://www.youtube.com/watch_videos?video_ids=nOJgD4fcZhI,i96UO8-GFvw"><img src="{get_camo_url("https://i.ytimg.com/vi/nOJgD4fcZhI/mqdefault.jpg")}"></a></div>""",
+            f"""<p><a href="http://www.youtube.com/watch_videos?video_ids=nOJgD4fcZhI,i96UO8-GFvw">http://www.youtube.com/watch_videos?video_ids=nOJgD4fcZhI,i96UO8-GFvw</a></p>\n<div class="youtube-video message_inline_image"><a data-id="nOJgD4fcZhI" href="http://www.youtube.com/watch_videos?video_ids=nOJgD4fcZhI,i96UO8-GFvw"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/nOJgD4fcZhI/mqdefault.jpg")}"></a></div>""",
         )
 
     def test_inline_image_preview(self) -> None:
         url = "http://cdn.wallpapersafari.com/13/6/16eVjx.jpeg"
         camo_url = get_camo_url(url)
-        with_preview = (
-            f'<div class="message_inline_image"><a href="{url}"><img src="{camo_url}"></a></div>'
-        )
+        with_preview = f'<div class="message_inline_image"><a href="{url}"><img loading="lazy" src="{camo_url}"></a></div>'
         without_preview = f'<p><a href="{url}">{url}</a></p>'
 
         sender_user_profile = self.example_user("othello")
@@ -945,7 +943,10 @@ class MarkdownEmbedsTest(ZulipTestCase):
             converted.rendered_content,
         )
         self.assertIn(f'href="{url}" title="Some Song"', converted.rendered_content)
-        self.assertIn(f'<img src="{get_camo_url(embed_data.image)}">', converted.rendered_content)
+        self.assertIn(
+            f'<img loading="lazy" src="{get_camo_url(embed_data.image)}">',
+            converted.rendered_content,
+        )
         self.assertIn("open.spotify.com/embed/track/abc123", converted.rendered_content)
 
     @override_settings(INLINE_URL_EMBED_PREVIEW=True)
@@ -1042,7 +1043,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
     def test_static_image_preview_skip_camo(self) -> None:
         content = f"{settings.STATIC_URL}/thing.jpeg"
 
-        thumbnail_img = f"""<div class="message_inline_image"><a href="{content}"><img src="{content}"></a></div>"""
+        thumbnail_img = f"""<div class="message_inline_image"><a href="{content}"><img loading="lazy" src="{content}"></a></div>"""
         converted = markdown_convert_wrapper(content)
         self.assertIn(converted, thumbnail_img)
 
@@ -1056,7 +1057,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
     def test_cross_realm_image_preview_use_camo(self) -> None:
         content = f"https://otherrealm.{settings.EXTERNAL_HOST}/thing.jpeg"
 
-        thumbnail_img = f"""<div class="message_inline_image"><a href="{content}"><img src="{get_camo_url(content)}"></a></div>"""
+        thumbnail_img = f"""<div class="message_inline_image"><a href="{content}"><img loading="lazy" src="{get_camo_url(content)}"></a></div>"""
         converted = markdown_convert_wrapper(content)
         self.assertIn(converted, thumbnail_img)
 
@@ -1096,9 +1097,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
         url = "http://cdn.wallpapersafari.com/13/6/16eVjx.jpeg"
         camo_url = get_camo_url(url)
         content = f"{url}"
-        expected = (
-            f'<div class="message_inline_image"><a href="{url}"><img src="{camo_url}"></a></div>'
-        )
+        expected = f'<div class="message_inline_image"><a href="{url}"><img loading="lazy" src="{camo_url}"></a></div>'
         sender_user_profile = self.example_user("othello")
         msg = Message(
             sender=sender_user_profile,
@@ -1143,9 +1142,9 @@ class MarkdownEmbedsTest(ZulipTestCase):
             f'<a href="{urls[1]}">{urls[1]}</a><br>\n'
             f'<a href="{urls[2]}">{urls[2]}</a>'
             "</p>\n"
-            f'<div class="message_inline_image"><a href="{urls[0]}"><img src="{get_camo_url(urls[0])}"></a></div>'
-            f'<div class="message_inline_image"><a href="{urls[1]}"><img src="{get_camo_url(urls[1])}"></a></div>'
-            f'<div class="message_inline_image"><a href="{urls[2]}"><img src="{get_camo_url(urls[2])}"></a></div>'
+            f'<div class="message_inline_image"><a href="{urls[0]}"><img loading="lazy" src="{get_camo_url(urls[0])}"></a></div>'
+            f'<div class="message_inline_image"><a href="{urls[1]}"><img loading="lazy" src="{get_camo_url(urls[1])}"></a></div>'
+            f'<div class="message_inline_image"><a href="{urls[2]}"><img loading="lazy" src="{get_camo_url(urls[2])}"></a></div>'
         )
         sender_user_profile = self.example_user("othello")
         msg = Message(
@@ -1159,11 +1158,11 @@ class MarkdownEmbedsTest(ZulipTestCase):
         urls.append("https://www.google.com/images/srpr/logo4w.png")
         content = f"{urls[0]}\n\n>{urls[1]}\n\n* {urls[2]}\n* {urls[3]}"
         expected = (
-            f'<div class="message_inline_image"><a href="{urls[0]}"><img src="{get_camo_url(urls[0])}"></a></div>'
+            f'<div class="message_inline_image"><a href="{urls[0]}"><img loading="lazy" src="{get_camo_url(urls[0])}"></a></div>'
             f'<blockquote>\n<p><a href="{urls[1]}">{urls[1]}</a></p>\n</blockquote>\n'
             "<ul>\n"
-            f'<li><div class="message_inline_image"><a href="{urls[2]}"><img src="{get_camo_url(urls[2])}"></a></div></li>\n'
-            f'<li><div class="message_inline_image"><a href="{urls[3]}"><img src="{get_camo_url(urls[3])}"></a></div></li>\n'
+            f'<li><div class="message_inline_image"><a href="{urls[2]}"><img loading="lazy" src="{get_camo_url(urls[2])}"></a></div></li>\n'
+            f'<li><div class="message_inline_image"><a href="{urls[3]}"><img loading="lazy" src="{get_camo_url(urls[3])}"></a></div></li>\n'
             "</ul>"
         )
         msg = Message(
@@ -1181,7 +1180,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
             "https://en.wikipedia.org/wiki/Special:FilePath/File:Wright_of_Derby,_The_Orrery.jpg"
         )
         camo_url = get_camo_url(expected_url)
-        expected = f'<div class="message_inline_image"><a href="{expected_url}"><img src="{camo_url}"></a></div>'
+        expected = f'<div class="message_inline_image"><a href="{expected_url}"><img loading="lazy" src="{camo_url}"></a></div>'
 
         sender_user_profile = self.example_user("othello")
         msg = Message(
@@ -1194,7 +1193,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
 
         content = "https://en.wikipedia.org/static/images/icons/wikipedia.png"
         camo_url = get_camo_url(content)
-        expected = f'<div class="message_inline_image"><a href="https://en.wikipedia.org/static/images/icons/wikipedia.png"><img src="{camo_url}"></a></div>'
+        expected = f'<div class="message_inline_image"><a href="https://en.wikipedia.org/static/images/icons/wikipedia.png"><img loading="lazy" src="{camo_url}"></a></div>'
         converted = render_message_markdown(msg, content)
         self.assertEqual(converted.rendered_content, expected)
 
@@ -1304,7 +1303,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
 
         self.assertEqual(
             converted,
-            f"""<p>Look at how hilarious our old office was: <a href="https://www.dropbox.com/scl/fi/cbabl5ryv1veky9ehs603/IMG_0923.JPG?rlkey=24sfgf0k0dneebzf5tfccldg0">https://www.dropbox.com/scl/fi/cbabl5ryv1veky9ehs603/IMG_0923.JPG?rlkey=24sfgf0k0dneebzf5tfccldg0</a></p>\n<div class="message_inline_image"><a href="https://www.dropbox.com/scl/fi/cbabl5ryv1veky9ehs603/IMG_0923.JPG?rlkey=24sfgf0k0dneebzf5tfccldg0&amp;raw=1"><img src="{get_camo_url("https://www.dropbox.com/scl/fi/cbabl5ryv1veky9ehs603/IMG_0923.JPG?rlkey=24sfgf0k0dneebzf5tfccldg0&raw=1")}"></a></div>""",
+            f"""<p>Look at how hilarious our old office was: <a href="https://www.dropbox.com/scl/fi/cbabl5ryv1veky9ehs603/IMG_0923.JPG?rlkey=24sfgf0k0dneebzf5tfccldg0">https://www.dropbox.com/scl/fi/cbabl5ryv1veky9ehs603/IMG_0923.JPG?rlkey=24sfgf0k0dneebzf5tfccldg0</a></p>\n<div class="message_inline_image"><a href="https://www.dropbox.com/scl/fi/cbabl5ryv1veky9ehs603/IMG_0923.JPG?rlkey=24sfgf0k0dneebzf5tfccldg0&amp;raw=1"><img loading="lazy" src="{get_camo_url("https://www.dropbox.com/scl/fi/cbabl5ryv1veky9ehs603/IMG_0923.JPG?rlkey=24sfgf0k0dneebzf5tfccldg0&raw=1")}"></a></div>""",
         )
 
         msg = "Look at my hilarious drawing folder: https://www.dropbox.com/scl/fo/ty22bx4thyhl9r89p839g/AAzfPX5IbiOb8wmxHvns2pM?rlkey=5pinfuoghias9cueq0zyhj2rp&st=dz5p1ytw"  # codespell:ignore fo
@@ -1374,7 +1373,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
             (
                 f'<p>Look at the new dropbox logo: <a href="{url}">{url}</a></p>'
                 "\n"
-                f'<div class="message_inline_image"><a href="{url}"><img src="{camo_url}"></a></div>'
+                f'<div class="message_inline_image"><a href="{url}"><img loading="lazy" src="{camo_url}"></a></div>'
             ),
         )
 
@@ -1421,7 +1420,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
             (
                 f'<p>Test: <a href="{url}">{url}</a></p>'
                 "\n"
-                f'<div class="message_inline_image"><a href="{url}"><img src="{camo_url}"></a></div>'
+                f'<div class="message_inline_image"><a href="{url}"><img loading="lazy" src="{camo_url}"></a></div>'
             ),
         )
 
@@ -1435,7 +1434,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
             (
                 f'<p>Test: <a href="{url}">{url}</a></p>'
                 "\n"
-                f'<div class="message_inline_image"><a href="{url}"><img src="{camo_url}"></a></div>'
+                f'<div class="message_inline_image"><a href="{url}"><img loading="lazy" src="{camo_url}"></a></div>'
             ),
         )
 
@@ -1446,7 +1445,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
 
         self.assertEqual(
             converted,
-            f"""<div class="spoiler-block"><div class="spoiler-header">\n<p>Check out this PyCon video</p>\n</div><div class="spoiler-content" aria-hidden="true">\n<p><a href="https://www.youtube.com/watch?v=0c46YHS3RY8">https://www.youtube.com/watch?v=0c46YHS3RY8</a></p>\n<div class="youtube-video message_inline_image"><a data-id="0c46YHS3RY8" href="https://www.youtube.com/watch?v=0c46YHS3RY8"><img src="{get_camo_url("https://i.ytimg.com/vi/0c46YHS3RY8/mqdefault.jpg")}"></a></div></div></div>""",
+            f"""<div class="spoiler-block"><div class="spoiler-header">\n<p>Check out this PyCon video</p>\n</div><div class="spoiler-content" aria-hidden="true">\n<p><a href="https://www.youtube.com/watch?v=0c46YHS3RY8">https://www.youtube.com/watch?v=0c46YHS3RY8</a></p>\n<div class="youtube-video message_inline_image"><a data-id="0c46YHS3RY8" href="https://www.youtube.com/watch?v=0c46YHS3RY8"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/0c46YHS3RY8/mqdefault.jpg")}"></a></div></div></div>""",
         )
 
         # Test YouTube URLs in normal messages.
@@ -1455,7 +1454,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
 
         self.assertEqual(
             converted,
-            f"""<p><a href="https://www.youtube.com/watch?v=0c46YHS3RY8">YouTube link</a></p>\n<div class="youtube-video message_inline_image"><a data-id="0c46YHS3RY8" href="https://www.youtube.com/watch?v=0c46YHS3RY8"><img src="{get_camo_url("https://i.ytimg.com/vi/0c46YHS3RY8/mqdefault.jpg")}"></a></div>""",
+            f"""<p><a href="https://www.youtube.com/watch?v=0c46YHS3RY8">YouTube link</a></p>\n<div class="youtube-video message_inline_image"><a data-id="0c46YHS3RY8" href="https://www.youtube.com/watch?v=0c46YHS3RY8"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/0c46YHS3RY8/mqdefault.jpg")}"></a></div>""",
         )
 
         msg = "https://www.youtube.com/watch?v=0c46YHS3RY8\n\nSample text\n\nhttps://www.youtube.com/watch?v=lXFO2ULktEI"
@@ -1463,7 +1462,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
 
         self.assertEqual(
             converted,
-            f"""<p><a href="https://www.youtube.com/watch?v=0c46YHS3RY8">https://www.youtube.com/watch?v=0c46YHS3RY8</a></p>\n<div class="youtube-video message_inline_image"><a data-id="0c46YHS3RY8" href="https://www.youtube.com/watch?v=0c46YHS3RY8"><img src="{get_camo_url("https://i.ytimg.com/vi/0c46YHS3RY8/mqdefault.jpg")}"></a></div><p>Sample text</p>\n<p><a href="https://www.youtube.com/watch?v=lXFO2ULktEI">https://www.youtube.com/watch?v=lXFO2ULktEI</a></p>\n<div class="youtube-video message_inline_image"><a data-id="lXFO2ULktEI" href="https://www.youtube.com/watch?v=lXFO2ULktEI"><img src="{get_camo_url("https://i.ytimg.com/vi/lXFO2ULktEI/mqdefault.jpg")}"></a></div>""",
+            f"""<p><a href="https://www.youtube.com/watch?v=0c46YHS3RY8">https://www.youtube.com/watch?v=0c46YHS3RY8</a></p>\n<div class="youtube-video message_inline_image"><a data-id="0c46YHS3RY8" href="https://www.youtube.com/watch?v=0c46YHS3RY8"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/0c46YHS3RY8/mqdefault.jpg")}"></a></div><p>Sample text</p>\n<p><a href="https://www.youtube.com/watch?v=lXFO2ULktEI">https://www.youtube.com/watch?v=lXFO2ULktEI</a></p>\n<div class="youtube-video message_inline_image"><a data-id="lXFO2ULktEI" href="https://www.youtube.com/watch?v=lXFO2ULktEI"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/lXFO2ULktEI/mqdefault.jpg")}"></a></div>""",
         )
 
         # Test order of YouTube inline previews in same paragraph.
@@ -1471,7 +1470,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
         converted = markdown_convert_wrapper(msg)
         self.assertEqual(
             converted,
-            f"""<p><a href="https://www.youtube.com/watch?v=0c46YHS3RY8">https://www.youtube.com/watch?v=0c46YHS3RY8</a><br>\n<a href="https://www.youtube.com/watch?v=lXFO2ULktEI">https://www.youtube.com/watch?v=lXFO2ULktEI</a></p>\n<div class="youtube-video message_inline_image"><a data-id="0c46YHS3RY8" href="https://www.youtube.com/watch?v=0c46YHS3RY8"><img src="{get_camo_url("https://i.ytimg.com/vi/0c46YHS3RY8/mqdefault.jpg")}"></a></div><div class="youtube-video message_inline_image"><a data-id="lXFO2ULktEI" href="https://www.youtube.com/watch?v=lXFO2ULktEI"><img src="{get_camo_url("https://i.ytimg.com/vi/lXFO2ULktEI/mqdefault.jpg")}"></a></div>""",
+            f"""<p><a href="https://www.youtube.com/watch?v=0c46YHS3RY8">https://www.youtube.com/watch?v=0c46YHS3RY8</a><br>\n<a href="https://www.youtube.com/watch?v=lXFO2ULktEI">https://www.youtube.com/watch?v=lXFO2ULktEI</a></p>\n<div class="youtube-video message_inline_image"><a data-id="0c46YHS3RY8" href="https://www.youtube.com/watch?v=0c46YHS3RY8"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/0c46YHS3RY8/mqdefault.jpg")}"></a></div><div class="youtube-video message_inline_image"><a data-id="lXFO2ULktEI" href="https://www.youtube.com/watch?v=lXFO2ULktEI"><img loading="lazy" src="{get_camo_url("https://i.ytimg.com/vi/lXFO2ULktEI/mqdefault.jpg")}"></a></div>""",
         )
 
 
@@ -3849,7 +3848,7 @@ class MarkdownStreamTopicMentionTests(ZulipTestCase):
             "</p>\n"
             '<div class="message_inline_image">'
             '<a href="https://example.com/testimage.png" title="My favorite image">'
-            '<img src="https://external-content.zulipcdn.net/external_content/5cd6ddfa28639e2e95bb85a7c7910b31f5474e03/68747470733a2f2f6578616d706c652e636f6d2f74657374696d6167652e706e67">'
+            '<img loading="lazy" src="https://external-content.zulipcdn.net/external_content/5cd6ddfa28639e2e95bb85a7c7910b31f5474e03/68747470733a2f2f6578616d706c652e636f6d2f74657374696d6167652e706e67">'
             "</a>"
             "</div>",
         )
