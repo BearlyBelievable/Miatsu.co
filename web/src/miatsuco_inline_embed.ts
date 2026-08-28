@@ -7,33 +7,48 @@ import * as util from "./util.ts";
 const IFRAME_SANDBOX =
     "allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts";
 
-const RESIZE_REPORTER_SCRIPT =
-    "<script>new ResizeObserver(()=>{parent.postMessage({miatsucoEmbedHeight:document.body.scrollHeight},'*')}).observe(document.body)</script>";
-
-const RESIZE_HEIGHT_BUFFER_PX = 24;
-const RESIZE_PADDING_PX = 24;
-
 // Spotify embed controls get cut off internally rather than resizing
 // under this min width, so we hold it at this min and scale it instead.
 const SPOTIFY_EMBED_WIDTH_PX = 280;
-let resize_listener_registered = false;
 
 function update_spotify_narrow_scale(container: HTMLElement, parent: HTMLElement): void {
     const available_width = parent.clientWidth;
     const is_narrow = available_width > 0 && available_width < SPOTIFY_EMBED_WIDTH_PX;
-    container.classList.toggle("spotify-embed-narrow", is_narrow);
-    if (is_narrow) {
-        container.style.setProperty(
-            "--spotify-narrow-scale",
-            String(available_width / SPOTIFY_EMBED_WIDTH_PX),
-        );
-    }
+    requestAnimationFrame(() => {
+        container.classList.toggle("spotify-embed-narrow", is_narrow);
+        if (is_narrow) {
+            container.style.setProperty(
+                "--spotify-narrow-scale",
+                String(available_width / SPOTIFY_EMBED_WIDTH_PX),
+            );
+        }
+    });
 }
 
-// The node test environment doesn't have ResizeObserver defined, so
-// parentElement would otherwise throw without this.
-function ensure_spotify_narrow_scale(container: HTMLElement): void {
+let spotify_narrow_scale_observer: ResizeObserver | undefined;
+
+function ensure_spotify_narrow_scale_observer(): ResizeObserver | undefined {
+    if (spotify_narrow_scale_observer !== undefined) {
+        return spotify_narrow_scale_observer;
+    }
+    // The node test environment doesn't have ResizeObserver defined.
     if (typeof ResizeObserver !== "function") {
+        return undefined;
+    }
+    spotify_narrow_scale_observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+            const container = entry.target.querySelector<HTMLElement>(":scope > .embed-rich");
+            if (container !== null && entry.target instanceof HTMLElement) {
+                update_spotify_narrow_scale(container, entry.target);
+            }
+        }
+    });
+    return spotify_narrow_scale_observer;
+}
+
+function ensure_spotify_narrow_scale(container: HTMLElement): void {
+    const observer = ensure_spotify_narrow_scale_observer();
+    if (observer === undefined) {
         return;
     }
     const parent = container.parentElement;
@@ -41,40 +56,7 @@ function ensure_spotify_narrow_scale(container: HTMLElement): void {
         return;
     }
     update_spotify_narrow_scale(container, parent);
-    new ResizeObserver(() => {
-        update_spotify_narrow_scale(container, parent);
-    }).observe(parent);
-}
-
-function ensure_resize_listener(): void {
-    if (resize_listener_registered || typeof window.addEventListener !== "function") {
-        return;
-    }
-    resize_listener_registered = true;
-
-    window.addEventListener("message", (event: MessageEvent<unknown>) => {
-        const {data} = event;
-        if (typeof data !== "object" || data === null || !("miatsucoEmbedHeight" in data)) {
-            return;
-        }
-        const {miatsucoEmbedHeight: height} = data;
-        if (typeof height !== "number") {
-            return;
-        }
-        for (const iframe of document.querySelectorAll("iframe")) {
-            if (iframe.contentWindow !== event.source) {
-                continue;
-            }
-            const $container = $(iframe).closest(".embed-rich");
-            if ($container.length > 0) {
-                $container.css({
-                    height: height + RESIZE_HEIGHT_BUFFER_PX + 2 * RESIZE_PADDING_PX + "px",
-                    padding: RESIZE_PADDING_PX + "px",
-                });
-            }
-            break;
-        }
-    });
+    observer.observe(parent);
 }
 
 type EmbedSource = {
@@ -221,13 +203,11 @@ function build_embed_source(container: JQuery, anchor: JQuery, url: string): Emb
         src:
             "data:text/html," +
             window.encodeURIComponent(
-                "<!DOCTYPE html><style>body{margin:0;background:transparent}</style>" +
-                    embed_html +
-                    RESIZE_REPORTER_SCRIPT,
+                "<!DOCTYPE html><style>body{margin:0;background:transparent}</style>" + embed_html,
             ),
         allow: undefined,
         style: undefined,
-        height: undefined,
+        height: "css",
     };
 }
 
@@ -309,7 +289,6 @@ function ensure_embed_intersection_observer(): IntersectionObserver | undefined 
 }
 
 export function enhance_inline_embeds(content: JQuery): void {
-    ensure_resize_listener();
     const observer = ensure_embed_intersection_observer();
     content.find(".youtube-video, .embed-video, .embed-rich").each((_index, element) => {
         const $container = $(element);

@@ -942,7 +942,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
             '<div class="embed-rich message_inline_image" data-height="152" data-width="300">',
             converted.rendered_content,
         )
-        self.assertIn(f'href="{url}" title="Some Song"', converted.rendered_content)
+        self.assertIn(f'href="{url}" title="Spotify - Some Song"', converted.rendered_content)
         self.assertIn(
             f'<img loading="lazy" src="{get_camo_url(embed_data.image)}">',
             converted.rendered_content,

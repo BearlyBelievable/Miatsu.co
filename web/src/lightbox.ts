@@ -8,7 +8,9 @@ import render_lightbox_overlay from "../templates/lightbox_overlay.hbs";
 import * as blueslip from "./blueslip.ts";
 import {$t} from "./i18n.ts";
 import * as message_store from "./message_store.ts";
+import * as miatsuco_inline_embed from "./miatsuco_inline_embed.ts";
 import * as miatsuco_inline_video from "./miatsuco_inline_video.ts";
+import * as miatsuco_message_card_embed from "./miatsuco_message_card_embed.ts";
 import * as overlays from "./overlays.ts";
 import * as people from "./people.ts";
 import * as popovers from "./popovers.ts";
@@ -816,13 +818,11 @@ export function initialize(): void {
             $row.addClass("message-media-expanded-image-row");
             $row.append($expanded, $collapse_button);
 
-            // This expanded markup is inserted directly, bypassing
-            // rendered_markdown.update_elements, so apply the fork's inline
-            // video enhancement here too. Otherwise an expanded video would
-            // revert to the original poster-plus-lightbox behavior instead
-            // of playing in place like a normally-rendered one. We run this
-            // on the row, after appending, so the video is a descendant.
+            // Expanding bypasses rendered_markdown.update_elements, so the
+            // fork's usual enhancements need to run here too.
             miatsuco_inline_video.enhance_inline_videos($row);
+            miatsuco_inline_embed.enhance_inline_embeds($row);
+            miatsuco_message_card_embed.enhance_message_card_embed_timestamps($row);
 
             $wrapper.replaceWith($row);
 

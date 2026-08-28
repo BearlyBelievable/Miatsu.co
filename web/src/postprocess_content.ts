@@ -260,15 +260,12 @@ function enhance_message_card_embed(message_embed: Element, payload_json: string
 
 function build_collapsed_media_wrapper(
     link_text: string,
-    href: string,
     original_html: string,
+    platform?: string | null,
 ): HTMLSpanElement {
     assert(inertDocument !== undefined);
 
-    const collapsed_link = inertDocument.createElement("a");
-    collapsed_link.setAttribute("href", href);
-    collapsed_link.setAttribute("target", "_blank");
-    collapsed_link.setAttribute("rel", "noopener noreferrer");
+    const collapsed_link = inertDocument.createElement("span");
     collapsed_link.classList.add("message-media-collapsed-image-link");
     collapsed_link.textContent = link_text;
 
@@ -296,6 +293,9 @@ function build_collapsed_media_wrapper(
     const media_wrapper = inertDocument.createElement("span");
     media_wrapper.classList.add("message-media-collapsed-image");
     media_wrapper.dataset["collapsedImageHtml"] = original_html;
+    if (platform) {
+        media_wrapper.setAttribute("data-platform", platform);
+    }
     media_wrapper.append(collapsed_link, expand_button);
     return media_wrapper;
 }
@@ -352,8 +352,8 @@ export function postprocess_content(
                 const link_text = title_link?.textContent;
                 const media_wrapper = build_collapsed_media_wrapper(
                     link_text && link_text.length > 0 ? link_text : href,
-                    href,
                     message_embed.outerHTML,
+                    message_embed.getAttribute("data-platform"),
                 );
                 message_embed.parentNode?.replaceChild(media_wrapper, message_embed);
                 continue;
@@ -472,7 +472,6 @@ export function postprocess_content(
             const link_text = alt && alt.length > 0 ? alt : filename_from_url;
             const media_wrapper = build_collapsed_media_wrapper(
                 link_text,
-                original_src,
                 inline_img_elt.outerHTML,
             );
             inline_img_elt.parentNode?.replaceChild(media_wrapper, inline_img_elt);
@@ -560,10 +559,20 @@ export function postprocess_content(
                 const link_text =
                     message_media_link.getAttribute("title") ??
                     message_media_link.getAttribute("aria-label");
+                let platform;
+                if (message_media_wrapper.classList.contains("youtube-video")) {
+                    platform = "youtube";
+                } else if (message_media_wrapper.classList.contains("embed-video")) {
+                    platform = "vimeo";
+                } else if (/^https?:\/\/open\.spotify\.com\//i.test(href)) {
+                    platform = "spotify";
+                } else if (/^https?:\/\/(www\.)?soundcloud\.com\//i.test(href)) {
+                    platform = "soundcloud";
+                }
                 const media_wrapper = build_collapsed_media_wrapper(
                     link_text && link_text.length > 0 ? link_text : href,
-                    href,
                     message_media_wrapper.outerHTML,
+                    platform,
                 );
                 message_media_wrapper.parentNode?.replaceChild(
                     media_wrapper,

@@ -634,6 +634,7 @@ class DropboxMediaInfo(TypedDict):
 
 class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
     INLINE_PREVIEW_LIMIT_PER_MESSAGE = 24
+    MESSAGE_CARD_EMBED_PLATFORM_NAMES: dict[str, str] = {"twitter": "X", "bluesky": "Bluesky"}
 
     def __init__(self, zmd: "ZulipMarkdown") -> None:
         super().__init__(zmd)
@@ -652,7 +653,7 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         already_thumbnailed: bool = False,
         width: int | None = None,
         height: int | None = None,
-    ) -> None:
+    ) -> Element:
         desc = desc if desc is not None else ""
 
         # Update message.has_image attribute.
@@ -709,6 +710,8 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         else:
             img.set("src", image_url)
 
+        return a
+
     def message_card_embed_display_name(self, name: str | None, handle: str | None) -> str | None:
         if name and handle:
             return f"{name} (@{handle})"
@@ -717,6 +720,17 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         if handle:
             return f"@{handle}"
         return None
+
+    def message_card_embed_title(self, social_post: UrlOEmbedData.SocialPost) -> str:
+        platform_name = self.MESSAGE_CARD_EMBED_PLATFORM_NAMES.get(
+            social_post.platform, social_post.platform
+        )
+        author_display_name = self.message_card_embed_display_name(
+            social_post.author_name, social_post.author_handle
+        )
+        if author_display_name:
+            return f"{platform_name} - Post by {author_display_name}"
+        return f"{platform_name} - Post"
 
     def message_card_embed_preview_image_url(
         self, social_post: UrlOEmbedData.SocialPost
@@ -886,16 +900,13 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         data_container = SubElement(container, "div")
         data_container.set("class", "data-container")
 
-        title = self.message_card_embed_display_name(
-            social_post.author_name, social_post.author_handle
-        )
-        if title:
-            title_elm = SubElement(data_container, "div")
-            title_elm.set("class", "message_embed_title")
-            a = SubElement(title_elm, "a")
-            a.set("href", href)
-            a.set("title", title)
-            a.text = title
+        title = self.message_card_embed_title(social_post)
+        title_elm = SubElement(data_container, "div")
+        title_elm.set("class", "message_embed_title")
+        a = SubElement(title_elm, "a")
+        a.set("href", href)
+        a.set("title", title)
+        a.text = title
 
         description = self.message_card_embed_description(social_post)
         if description:
@@ -934,7 +945,7 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
                 root,
                 image_url=extracted_data.image,
                 link=link,
-                title=extracted_data.title,
+                title=self.vimeo_title(extracted_data) or extracted_data.title,
                 desc=extracted_data.description,
                 class_attr="embed-video message_inline_image",
                 data_id=extracted_data.html,
@@ -942,11 +953,14 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
             )
 
         elif extracted_data.type == "rich":
+            rich_title = self.spotify_title(link, extracted_data) or self.soundcloud_title(
+                link, extracted_data
+            )
             self.add_a(
                 root,
                 image_url=extracted_data.image,
                 link=link,
-                title=extracted_data.title,
+                title=rich_title or extracted_data.title,
                 desc=extracted_data.description,
                 class_attr="embed-rich message_inline_image",
                 data_id=extracted_data.html,
@@ -1264,11 +1278,11 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         root: Element,
         found_url: ResultWithFamily[tuple[str, str | None]],
         yt_image: str,
-    ) -> None:
+    ) -> Element:
         info = self.get_inlining_information(root, found_url)
         (url, _text) = found_url.result
         yt_id = self.youtube_id(url)
-        self.add_a(
+        return self.add_a(
             info["parent"],
             image_url=yt_image,
             link=url,
@@ -1452,8 +1466,9 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
                 continue
 
             youtube = self.youtube_image(url)
+            youtube_anchor = None
             if youtube is not None:
-                self.handle_youtube_url_inlining(root, found_url, youtube)
+                youtube_anchor = self.handle_youtube_url_inlining(root, found_url, youtube)
                 # NOTE: We don't `continue` here, to allow replacing the URL with
                 # the title, if INLINE_URL_EMBED_PREVIEW feature is enabled.
                 # The entire preview would ideally be shown only if the feature
@@ -1484,9 +1499,13 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
                         found_url.family.child.text = title
                     else:
                         found_url.family.child.text = text
+                    assert youtube_anchor is not None
+                    youtube_anchor.set("title", title)
                 continue
             self.add_embed(root, url, extracted_data)
-            if self.vimeo_id(url):
+            if isinstance(extracted_data, UrlOEmbedData) and extracted_data.social_post is not None:
+                title = self.message_card_embed_title(extracted_data.social_post)
+            elif self.vimeo_id(url):
                 title = self.vimeo_title(extracted_data)
             else:
                 title = self.spotify_title(url, extracted_data) or self.soundcloud_title(

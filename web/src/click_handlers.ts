@@ -374,6 +374,12 @@ export function initialize(): void {
         );
         e.stopPropagation();
     });
+    $("body").on("click", ".quote_message_button", function (e) {
+        assert(message_lists.current !== undefined);
+        const $row = message_lists.current.get_row(rows.id($(this).closest(".message_row")));
+        compose_reply.quote_messages({trigger: "message controls", message_id: rows.id($row)});
+        e.stopPropagation();
+    });
     $("body").on("click", ".on_hover_topic_edit", function (e) {
         const $recipient_row = $(this).closest(".recipient_row");
         message_edit.start_inline_topic_edit($recipient_row);

@@ -519,8 +519,8 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
         self.assertIn('class="message_embed"', msg.rendered_content)
         self.assertIn('data-platform="twitter"', msg.rendered_content)
         self.assertIn(
-            f'<div class="message_embed_title"><a href="{url}" title="jack (@jack)">'
-            "jack (@jack)</a></div>",
+            f'<div class="message_embed_title"><a href="{url}" title="X - Post by jack (@jack)">'
+            "X - Post by jack (@jack)</a></div>",
             msg.rendered_content,
         )
         self.assertIn(

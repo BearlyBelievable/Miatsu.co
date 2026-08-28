@@ -193,7 +193,7 @@ run_test("falls back to a sandboxed wrapper for non-iframe rich content", () => 
     assert.ok(src.startsWith("data:text/html,"));
     const decoded = decodeURIComponent(src.slice("data:text/html,".length));
     assert.ok(decoded.includes(blockquote_html));
-    assert.ok(decoded.includes("ResizeObserver"));
+    assert.ok(!decoded.includes("ResizeObserver"));
 });
 
 run_test("does nothing if the anchor has no href", () => {

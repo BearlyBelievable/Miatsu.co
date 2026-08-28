@@ -14,6 +14,22 @@
         hsl(206deg 100% 96%),
         hsl(206deg 45% 14%)
     );
+    --color-background-message-card-embed-youtube: light-dark(
+        hsl(0deg 65% 96%),
+        hsl(0deg 30% 13%)
+    );
+    --color-background-message-card-embed-vimeo: light-dark(
+        hsl(193deg 60% 95%),
+        hsl(193deg 30% 13%)
+    );
+    --color-background-message-card-embed-spotify: light-dark(
+        hsl(141deg 45% 95%),
+        hsl(141deg 25% 12%)
+    );
+    --color-background-message-card-embed-soundcloud: light-dark(
+        hsl(21deg 90% 95%),
+        hsl(21deg 35% 13%)
+    );
 }
 
 .rendered_markdown {
@@ -25,6 +41,7 @@
 
     .message-card-embed {
         display: block;
+        height: auto;
         max-width: var(--embed-max-width);
         margin: 0 0 var(--markdown-interelement-space-px) 0;
         padding: 0.5em 0.75em;
@@ -235,22 +252,52 @@
     .message-media-collapsed-image {
         display: inline-flex;
         align-items: center;
+        height: 32px;
+        width: var(--embed-max-width);
         max-width: 100%;
+        margin-bottom: var(--markdown-interelement-space-px);
     }
 
     .message-media-collapsed-image-link {
-        display: inline-flex;
-        align-items: center;
+        display: inline-block;
+        box-sizing: border-box;
         flex: 1 1 auto;
         min-width: 0;
         max-width: 100%;
-        padding: 1px 8px;
+        height: 100%;
+        padding: 0 8px;
         border: solid 1px var(--color-border-rendered-markdown-table);
         border-radius: 4px;
         overflow: hidden;
         font-size: 0.9em;
+        line-height: 30px;
         text-overflow: ellipsis;
         white-space: nowrap;
+        background-color: var(--color-background-search-collapsed);
+    }
+
+    [data-platform="twitter"] > .message-media-collapsed-image-link {
+        background-color: var(--color-background-message-card-embed-twitter);
+    }
+
+    [data-platform="bluesky"] > .message-media-collapsed-image-link {
+        background-color: var(--color-background-message-card-embed-bluesky);
+    }
+
+    [data-platform="youtube"] > .message-media-collapsed-image-link {
+        background-color: var(--color-background-message-card-embed-youtube);
+    }
+
+    [data-platform="vimeo"] > .message-media-collapsed-image-link {
+        background-color: var(--color-background-message-card-embed-vimeo);
+    }
+
+    [data-platform="spotify"] > .message-media-collapsed-image-link {
+        background-color: var(--color-background-message-card-embed-spotify);
+    }
+
+    [data-platform="soundcloud"] > .message-media-collapsed-image-link {
+        background-color: var(--color-background-message-card-embed-soundcloud);
     }
 
     .message-media-expand-button {
@@ -265,6 +312,30 @@
         display: inline-flex;
         align-items: flex-end;
         max-width: 100%;
+
+        @media (width < $sm_min) {
+            flex-wrap: wrap;
+
+            .message-media-recollapse-button {
+                margin-left: auto;
+            }
+        }
+
+        &:has(.message-card-embed, .youtube-video, .embed-video, .embed-rich) {
+            display: flex;
+            container-type: inline-size;
+
+            .message-card-embed,
+            .youtube-video.inline-embed-loaded,
+            .embed-video.inline-embed-loaded,
+            .embed-rich.inline-embed-loaded {
+                width: min(
+                    calc(var(--media-preview-max-height) * 16 / 9),
+                    30em,
+                    100cqw
+                );
+            }
+        }
     }
 
     .message-media-recollapse-button {
@@ -326,9 +397,11 @@
     }
 
     .embed-rich.inline-embed-loaded {
+        width: var(--embed-max-width);
+        height: var(--length-message-preview-embeds);
+
         &:has(> iframe[src*="open.spotify.com"]) {
             height: var(--spotify-embed-height);
-            width: var(--embed-max-width);
             position: relative;
             overflow: clip;
             border-radius: 12px;
@@ -355,7 +428,6 @@
 
         &:has(> iframe[src*="w.soundcloud.com"]) {
             height: 166px;
-            width: var(--embed-max-width);
         }
     }
 
