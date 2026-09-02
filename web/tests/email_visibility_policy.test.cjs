@@ -79,6 +79,24 @@ run_test("max and min filter to the allowed subset", () => {
     assert.deepEqual(new Set(allowed_codes), new Set([2, 5, 3]));
 });
 
+run_test("max alone filters out values above it", () => {
+    set_up_realm({
+        realm_email_address_visibility_max: 5,
+    });
+    const allowed = email_visibility_policy.get_allowed_email_address_visibility_values();
+    const allowed_codes = Object.values(allowed).map((value) => value.code);
+    assert.deepEqual(new Set(allowed_codes), new Set([5, 3, 4]));
+});
+
+run_test("min alone filters out values below it", () => {
+    set_up_realm({
+        realm_email_address_visibility_min: 3,
+    });
+    const allowed = email_visibility_policy.get_allowed_email_address_visibility_values();
+    const allowed_codes = Object.values(allowed).map((value) => value.code);
+    assert.deepEqual(new Set(allowed_codes), new Set([1, 2, 5, 3]));
+});
+
 function override_channel_get(url_responses) {
     channel.get = (args) => {
         const respond = url_responses[args.url];

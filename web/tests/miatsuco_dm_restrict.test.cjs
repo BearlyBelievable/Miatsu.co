@@ -69,3 +69,16 @@ run_test("without the restriction, being a permission-group member allows anyone
 
     assert.ok(people.user_can_direct_message(non_authorizer.user_id.toString()));
 });
+
+run_test("restriction blocks a group DM with a mix of authorizers and non-authorizers", () => {
+    set_groups();
+    user_settings.miatsuco_restrict_dms_to_authorizers = true;
+
+    assert.ok(
+        !people.user_can_direct_message(
+            `${authorizer.user_id},${non_authorizer.user_id},${bot.user_id}`,
+        ),
+    );
+
+    user_settings.miatsuco_restrict_dms_to_authorizers = false;
+});

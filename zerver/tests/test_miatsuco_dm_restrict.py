@@ -167,3 +167,18 @@ class MiatsucoRestrictDMsToAuthorizersTest(ZulipTestCase):
         # g1_a is not in the named authorizer group, so a DM to g1_b is blocked.
         with self.assertRaises(DirectMessagePermissionError):
             self.send_personal_message(g1_a, g1_b)
+
+        # blocked_by_own_restriction takes precedence over restricting_full_names,
+        # so with both participants opted in and non-authorizing, the message
+        # stays generic and never names the other blocking party.
+        with self.captureOnCommitCallbacks(execute=True):
+            do_change_user_setting(
+                g1_a, "miatsuco_restrict_dms_to_authorizers", True, acting_user=None
+            )
+        g1_a.refresh_from_db()
+        with self.assertRaises(DirectMessagePermissionError) as blocked_both_opted_in:
+            self.send_personal_message(g1_a, g1_b)
+        self.assertEqual(
+            str(blocked_both_opted_in.exception),
+            "Your settings only allow direct messages with someone that can authorize them.",
+        )

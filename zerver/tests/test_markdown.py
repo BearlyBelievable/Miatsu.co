@@ -998,6 +998,29 @@ class MarkdownEmbedsTest(ZulipTestCase):
             self.assertIn(f'data-platform="{platform}"', converted.rendered_content)
 
     @override_settings(INLINE_URL_EMBED_PREVIEW=True)
+    def test_inline_rich_oembed_unrecognized_provider_uses_plain_title(self) -> None:
+        url = "https://example.com/embed/thing"
+        embed_data = UrlOEmbedData(
+            type="rich",
+            html="<iframe></iframe>",
+            image="https://example.com/image.jpg",
+            title="Some Title",
+        )
+
+        sender_user_profile = self.example_user("othello")
+        sender_user_profile.realm.inline_url_embed_preview = True
+        sender_user_profile.realm.save(update_fields=["inline_url_embed_preview"])
+        msg = Message(
+            sender=sender_user_profile,
+            sending_client=get_client("test"),
+            realm=sender_user_profile.realm,
+        )
+        converted = render_message_markdown(msg, url, url_embed_data={url: embed_data})
+
+        self.assertIn(f'href="{url}" title="Some Title"', converted.rendered_content)
+        self.assertNotIn("data-platform", converted.rendered_content)
+
+    @override_settings(INLINE_URL_EMBED_PREVIEW=True)
     def test_inline_rich_oembed_fallback_to_plain(self) -> None:
         url = "https://open.spotify.com/track/abc123"
         embed_html = (

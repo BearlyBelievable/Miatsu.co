@@ -63,3 +63,72 @@ run_test("without the restriction, being an initiator and authorizer allows anyo
     const check = message_util.make_check_message_permission_for_dm_candidate([]);
     assert.equal(check, null);
 });
+
+function set_self_authorize_groups() {
+    // The permission group is empty, so only the self-authorize path
+    // can unlock a DM here.
+    realm.realm_direct_message_initiator_group = {
+        direct_members: [me.user_id],
+        direct_subgroups: [],
+    };
+    realm.realm_direct_message_permission_group = {direct_members: [], direct_subgroups: []};
+    realm.realm_direct_message_self_authorize_group = {
+        direct_members: [me.user_id, authorizer.user_id],
+        direct_subgroups: [],
+    };
+}
+
+function set_initiator_without_self_authorize_groups() {
+    realm.realm_direct_message_initiator_group = {
+        direct_members: [me.user_id],
+        direct_subgroups: [],
+    };
+    realm.realm_direct_message_permission_group = {
+        direct_members: [authorizer.user_id],
+        direct_subgroups: [],
+    };
+    realm.realm_direct_message_self_authorize_group = {
+        direct_members: [authorizer.user_id],
+        direct_subgroups: [],
+    };
+}
+
+run_test("self-authorize path allows a DM when every recipient can self-authorize", () => {
+    set_self_authorize_groups();
+
+    const check = message_util.make_check_message_permission_for_dm_candidate([authorizer.user_id]);
+    assert.ok(check !== null);
+    assert.ok(check(authorizer.user_id));
+});
+
+run_test("self-authorize path still requires the candidate to be a member", () => {
+    set_self_authorize_groups();
+
+    const check = message_util.make_check_message_permission_for_dm_candidate([authorizer.user_id]);
+    assert.ok(check !== null);
+    assert.ok(!check(non_authorizer.user_id));
+});
+
+run_test(
+    "self-authorize path is unavailable when an existing recipient cannot self-authorize",
+    () => {
+        set_self_authorize_groups();
+
+        const check = message_util.make_check_message_permission_for_dm_candidate([
+            authorizer.user_id,
+            non_authorizer.user_id,
+        ]);
+        assert.ok(check !== null);
+        assert.ok(!check(authorizer.user_id));
+        assert.ok(!check(non_authorizer.user_id));
+    },
+);
+
+run_test("self-authorize feature does not change behavior for a non-member initiator", () => {
+    set_initiator_without_self_authorize_groups();
+
+    const check = message_util.make_check_message_permission_for_dm_candidate([]);
+    assert.ok(check !== null);
+    assert.ok(check(authorizer.user_id));
+    assert.ok(!check(non_authorizer.user_id));
+});
