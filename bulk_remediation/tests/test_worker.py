@@ -108,10 +108,32 @@ class BulkFieldRemediationWorkerTest(ZulipTestCase):
         self.assertIsNotNone(job.finished_at)
 
         mock_send_event.assert_called_once()
-        (realm_arg, event_arg, _user_ids), _kwargs = mock_send_event.call_args
+        (realm_arg, event_arg, user_ids_arg), _kwargs = mock_send_event.call_args
         self.assertEqual(realm_arg, realm)
         self.assertEqual(event_arg["type"], "bulk_field_remediation")
         self.assertEqual(event_arg["op"], "completed")
+        self.assertEqual(
+            set(user_ids_arg), set(realm.get_human_admin_users().values_list("id", flat=True))
+        )
+
+    def test_consume_completes_immediately_with_no_remaining_violators(self) -> None:
+        realm = self.example_user("hamlet").realm
+        job = self.create_job(
+            realm=realm,
+            from_values=[
+                UserProfile.EMAIL_ADDRESS_VISIBILITY_NOBODY,
+                UserProfile.EMAIL_ADDRESS_VISIBILITY_MODERATORS,
+            ],
+        )
+        worker = BulkFieldRemediationWorker()
+
+        with mock.patch("zerver.worker.bulk_remediation.send_event_on_commit"):
+            worker.consume({"job_id": job.id})
+
+        job.refresh_from_db()
+        self.assertEqual(job.status, BulkFieldRemediationJob.STATUS_COMPLETED)
+        self.assertEqual(job.processed_count, 0)
+        self.assertIsNotNone(job.finished_at)
 
     def test_consume_reenqueues_when_batch_is_full(self) -> None:
         realm = self.example_user("hamlet").realm
@@ -163,7 +185,10 @@ class BulkFieldRemediationWorkerTest(ZulipTestCase):
         self.assertIsNotNone(job.finished_at)
 
         mock_send_event.assert_called_once()
-        (realm_arg, event_arg, _user_ids), _kwargs = mock_send_event.call_args
+        (realm_arg, event_arg, user_ids_arg), _kwargs = mock_send_event.call_args
         self.assertEqual(realm_arg, realm)
         self.assertEqual(event_arg["type"], "bulk_field_remediation")
         self.assertEqual(event_arg["op"], "failed")
+        self.assertEqual(
+            set(user_ids_arg), set(realm.get_human_admin_users().values_list("id", flat=True))
+        )
