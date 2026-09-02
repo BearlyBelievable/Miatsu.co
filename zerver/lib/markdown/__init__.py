@@ -143,7 +143,7 @@ class DbData:
 
 # Format version of the Markdown rendering; stored along with rendered
 # messages so that we can efficiently determine what needs to be re-rendered
-version = 2
+version = 1
 
 _T = TypeVar("_T")
 ElementStringNone: TypeAlias = Element | str | None
