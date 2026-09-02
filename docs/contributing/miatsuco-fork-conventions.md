@@ -1,367 +1,276 @@
 # MiAtSu.Co fork conventions
 
-This is MiAtSu.Co's fork of Zulip. We track upstream release tags and rebase
-our own features on top of each new release, rather than merging. If you're
-contributing to this fork, please read this page first, as it covers the
-handful of conventions that make that rebase workflow sustainable, on top of
-everything in the rest of [Contributing to Zulip](contributing.md).
-
-If you're looking for Zulip's own contribution standards, such as commit
-message format, PR structure, code style, review process, those are covered
-thoroughly by the rest of the `docs/contributing/` section, and we follow
-them as-is. This page only covers what's different about working in this fork
-specifically.
+This is MiAtSu.Co's fork of Zulip. We track upstream release tags and
+rebase our own features on top of each new release, rather than merging.
+Read this page before contributing, on top of [Contributing to
+Zulip](contributing.md). It only covers what differs about working in this
+fork. Zulip's own contribution standards (commit format, PR structure, code
+style, review process) apply as-is.
 
 ## Why this page exists
 
 Every `git rebase` onto a new Zulip release replays our commits on top of
 upstream's latest code. That only stays low-friction if our additions are
-structurally invisible to upstream. If we use the same field name, same
-migration number, same CSS class, etc. as upstream, then a rebase that should
-have been mechanical will turn into a debugging session. Everything below
-exists to try and make that kind of collision impossible.
+structurally invisible to upstream. Reusing a field name, migration
+number, or CSS class upstream also uses turns a mechanical rebase into a
+debugging session, so everything below exists to make that kind of
+collision impossible.
 
 ## Contributing a feature
 
-The short version of the workflow:
-
-1. Get the latest `main` and branch off it: `git fetch origin && git checkout
-main && git checkout -b my-feature`.
-2. Build the feature on that branch, following the naming, migration, and
-   upstream-file conventions below. Keep it to one feature per branch so it
+1. Get the latest `main` and branch off it by running `git fetch origin &&
+git checkout main && git checkout -b my-feature`.
+2. Build the feature on that branch, following the upstream-file, naming,
+   and migration conventions below. Keep it to one feature per branch so it
    can be reviewed and rebased on its own.
 3. Add tests for it, in a feature-named module (see Passing CI), and run the
    backend and frontend suites plus `./tools/lint -m` locally.
-4. Push the branch and open a PR against `main`. CI must be green; see the
-   Pull Requests and Passing CI sections for what reviewers look for.
+4. Push the branch and open a PR against `main`. CI must be green. See
+   Pull Requests and Passing CI for what reviewers look for.
 
-That's it. The sections below explain the conventions those steps refer to;
-read them before your first contribution, but you won't need to re-read them
-every time.
-
-## Naming Schemes
-
-We prefix every identifier that this fork introduces with `miatsuco`. Examples:
-
-- Django model fields, e.g., `miatsuco_inline_upload_preview`
-- CSS classes we invent, e.g., `.miatsuco-message-media-collapsed-image`
-- Settings and API parameter names (should match the underlying field name)
-- `property_types` dict keys
-- Internal function and attribute names, even ones with low collision risk
-
-This keeps `grep -r miatsuco` a complete, reliable inventory of every
-fork-only identifier in the code-base, which is worth more than the small
-extra verbosity.
-
-**Don't** prefix classes, fields, or functions we merely read from or extend
-the behavior of, as those aren't ours to rename. Prefixing something we don't
-own doesn't protect anything and just makes the diff harder to review.
-
-## Applying Migrations
-
-Every fork migration lives in `zerver/migrations/`. Django doesn't have a
-clean way for a separate app's migration to add fields to another app's
-models, so a genuinely separate migrations directory isn't practical for a
-change to an _existing_ upstream model (e.g., a new field on `Realm`).
-
-A fork feature that instead adds an entirely new table of its own has no such
-constraint and can use a fully separate Django app with its own migration
-sequence, which never intersects `zerver`'s graph at all. We prefer that when
-it's an option.
-
-For the common case (a new field on an existing model), the convention is:
-
-- **Filename**: `zerver/migrations/miatsuco_NNNN_description.py`, numbered
-  within our own sequence, and **never renamed** once written (see the note
-  about reconciliation described below).
-- **Dependency**: whatever `zerver` migration is the actual current tip at
-  the time of the last rebase.
-
-**Important:** naming migrations with our own prefix does _not_, by itself,
-mean the dependency can be set once and forgotten. Django's migration graph is
-built purely from whichever files exist on disk and what they declare, and it
-has no concept of git history. If a `miatsuco_*` migration depends on some
-fixed point in `zerver`'s history, and upstream ships new `zerver` migrations
-that don't depend on it (which they can't because they don't know it exists),
-Django ends up with two leaf nodes in the same app's graph. This creates a
-"multiple heads" state that makes it refuse to run, which is true whether the
-new upstream migrations arrived via a rebase or a merge; rebasing changes
-how the commits got there, not what files end up on disk.
-
-So, **on every rebase onto a new upstream tag, re-point each `miatsuco_*`
-migration's `zerver` dependency at the new actual tip.** Run
-`./manage.py check_miatsuco_migrations` as part of the rebase checklist so that
-it verifies this automatically and fails with the specific fix if a migration
-is out of date.
-
-This has to be a management command rather than a standalone script, as
-`zerver/migrations/` contains both individually numbered pre-squash migrations
-and the squashed migration that replaces them, side by side. Which one Django
-treats as canonical depends on which are already applied in a _specific_
-database, which is a state that a static, file-only analysis cannot correctly
-resolve. However, Django's own `MigrationLoader` handles correctly via a real
-connection, the same way `showmigrations` and `migrate` do.
-
-You should **never need to fake-apply anything.** Django's applied-migration
-bookkeeping (`django_migrations`) keys off filename, not content, so
-re-pointing an already-applied migration's `dependencies` value is a no-op for
-that bookkeeping. Renaming the file would break that (the old name stays
-"applied" while Django tries to re-run the new name's operations, and fails
-because the column already exists), so don't do it, even when it'd make the
-numbering look tidier.
+The sections below cover those conventions in detail.
 
 ## Maintaining Upstream Files
 
-We try to keep our fork content out of files that upstream might also edit.
-Where practical, fork-specific docs and tests should get their own dedicated
-files, rather than being added into a file that upstream maintains. For example:
+We try to keep fork content out of files upstream might also edit. Where
+practical, fork-specific docs and tests get their own dedicated files
+instead of being added to a file upstream maintains.
 
-- **User-facing docs**: Rather than adding sections into upstream help-center
-  pages, the file `starlight_help/src/content/docs/miatsuco-custom-features.mdx`
-  holds documentation for fork-specific settings. We link to the relevant
-  upstream page where useful, rather than just editing it in place.
-- **Contributor-facing docs**: This page and anything like it goes in
-  `docs/contributing/`, alongside (not merged into) Zulip's own pages, and
-  gets linked from `docs/contributing/index.md`'s toctree.
-- **API documentation**: For a genuinely new endpoint, tag it
-  `intentionally_undocumented` in `zproject/urls.py` and draft its
-  OpenAPI content in
-  [`docs/contributing/miatsuco-upstream-api-drafts.md`](miatsuco-upstream-api-drafts.md)
-  instead of `zerver/openapi/zulip.yaml`, dropping it back in essentially
-  as-is once the change has been discussed and approved in the
-  [#api design](https://chat.zulip.org/#narrow/channel/378-api-design)
-  channel and its PR has merged, per upstream's own [API change
-  process](../processes/api-design.md). At that point,
-  `tools/merge-api-changelogs` assigns the real `API_FEATURE_LEVEL`.
-  For a new field on an endpoint that's already documented (e.g.,
-  `/register`), document it normally instead, with `**Changes**: New
-in Miatsuco X.Y-dev.` in place of a real feature level, following
-  `miatsuco_version`'s own precedent.
-- **Tests**: each fork feature gets its own test module named for the
-  feature, `zerver/tests/test_miatsuco_<feature>.py` (e.g.,
-  `test_miatsuco_upload_preview.py`, `test_miatsuco_ogg_audio.py`). Do
-  _not_ put multiple features' tests in a single shared file: because each
-  feature is developed on its own branch and PR'd independently, two
-  features appending to one shared test file would conflict every time
-  their branches are combined. One file per feature means each branch's
-  tests apply cleanly and independently, in any order.
-  Shared test helpers live in `zerver/lib/test_miatsuco.py` (the
-  `MiatsucoMarkdownTestMixin` class), following upstream's own convention
-  of keeping reusable test base classes in `zerver/lib/` rather than in
-  the test modules (the backend test runner only discovers modules under
-  `zerver/tests/`, so a helper module in `zerver/lib/` is never mistaken
-  for a test module). Each feature's test module imports that mixin. If
-  you need a helper that already exists on an upstream test class, add it
-  to the shared mixin (or duplicate the small, stable helper) rather than
-  sub-classing the upstream class directly -- sub-classing would silently
-  inherit and re-run all of _its_ test methods under your new class, which
-  is easy to miss in code review.
+- **User-facing docs.** Fork-specific settings are documented in
+  `starlight_help/src/content/docs/miatsuco-custom-features.mdx`, linking
+  to the relevant upstream page rather than editing it in place.
+- **Contributor-facing docs.** Pages like this one live in
+  `docs/contributing/`, alongside (not merged into) Zulip's own pages,
+  linked from `docs/contributing/index.md`'s toctree.
+- **API documentation.** A genuinely new endpoint is tagged
+  `intentionally_undocumented` in `zproject/urls.py`, with its OpenAPI
+  content drafted in
+  [`miatsuco-upstream-api-drafts.md`](miatsuco-upstream-api-drafts.md)
+  instead of `zerver/openapi/zulip.yaml`, until it's been through
+  upstream's own [API change process](../processes/api-design.md) and
+  `tools/merge-api-changelogs` assigns a real `API_FEATURE_LEVEL`. A new
+  field on an already-documented endpoint is documented normally, using
+  `**Changes**: New in Miatsuco X.Y-dev.` in place of a real feature
+  level.
+- **Tests.** Each fork feature gets its own module,
+  `zerver/tests/test_miatsuco_<feature>.py`, since features are developed
+  and PR'd independently and a shared test file would conflict across
+  branches. Shared helpers live in `zerver/lib/test_miatsuco.py`'s
+  `MiatsucoMarkdownTestMixin`, following upstream's own convention of
+  keeping test base classes out of the test modules the backend runner
+  discovers.
 
-This isn't a hard rule with no exceptions. A bug fix that changes existing
-upstream function behavior inherently requires editing the file that
-function lives in, and that's fine and expected. The goal is eliminating
-_unnecessary_ shared-file surface area, not editing zero upstream files at
-any cost.
+This isn't a hard rule with no exceptions. A bug fix to existing upstream
+behavior inherently requires editing the file that behavior lives in, and
+that's fine. The goal is eliminating unnecessary shared-file surface
+area, not editing zero upstream files at any cost.
+
+When fork code does land inline in an upstream file, mark it so a
+reviewer or a future rebase doesn't mistake it for upstream code.
+
+- Start with a marker line reading exactly `# MiAtSu.Co edit:` (or
+  `// MiAtSu.Co edit:` in TypeScript), with the explanation on the same
+  line or after it. It makes fork-added code obvious without needing to
+  diff against the upstream merge-base.
+- Either name the hook point the edit reaches into a fork-specific file or
+  setting (`gated by miatsuco_web_show_upload_thumbnails`, `hooks out to
+miatsuco_message_card_embed.ts`), or, when nothing fork-specific exists
+  to point at, give one short clause on what the line does or how it
+  behaves (`lazy-loads previews for bandwidth savings`). This isn't a
+  justification for why the change was made at all.
+- This doesn't apply to a second implementation being prepared for an
+  actual upstream PR (see Upstreaming a Fork Feature below), which reads
+  as an upstream comment would, with no fork reference at all.
+
+## Documenting Fork Features
+
+A fork feature's rationale and full behavior belong in one of the
+fork-maintained doc files described above (user-facing behavior in
+`miatsuco-custom-features.mdx`, contributor-facing design notes in
+`docs/contributing/`), not in comments scattered across every call site
+that touches it. Write it up there once. Code should point at the
+feature, not re-explain it.
+
+## Naming Schemes
+
+New files unique to this fork are prefixed `miatsuco_` (e.g.,
+`miatsuco_collapsed_media.ts`, `zerver/tests/test_miatsuco_dm_restrict.py`),
+which makes `grep -r miatsuco` a reliable inventory of every fork-specific
+file.
+
+Identifiers inside those files don't need their own prefix, since the
+filename already marks them as fork-owned. The same goes for fork CSS,
+which lives entirely in `web/styles/miatsuco.css`, so individual class
+names skip the `miatsuco-` prefix too.
+
+Prefix the identifier itself, instead, when it's added onto a model,
+setting, or framework dict upstream also owns and extends over time
+(e.g., the `Realm` field `miatsuco_inline_upload_preview`, or a
+`property_types` key). There, the identifier is the shared surface
+upstream might collide with, not a file the fork controls outright.
+
+**Don't** prefix classes, fields, or functions we merely read from or
+extend, since those aren't ours to rename.
+
+## Applying Migrations
+
+Fork migrations live in `zerver/migrations/`, named
+`zerver/migrations/miatsuco_NNNN_description.py` and never renamed once
+written. A fork feature that needs a wholly new table can use its own
+separate Django app instead, which never touches `zerver`'s migration
+graph at all. We prefer that when it's an option.
+
+For a field added to an existing upstream model, the migration's `zerver`
+dependency has to be re-pointed at the actual current tip on every rebase
+onto a new upstream tag. Django's migration graph is built purely from
+what's on disk, with no concept of git history, so a `miatsuco_*`
+migration left depending on a stale `zerver` migration produces a
+"multiple heads" state once upstream ships migrations of its own that
+don't know about it. Run `./manage.py check_miatsuco_migrations` as part
+of the rebase checklist. It verifies this automatically and fails with
+the specific fix needed.
+
+Re-pointing a dependency is safe, and a no-op for Django's
+applied-migration bookkeeping, since that keys off filename, not content.
+Renaming the file is not safe. Django's bookkeeping still expects the old
+filename as applied, so it would try to re-run the new name's operations
+against a column that already exists.
 
 ## Signaling Fork Features
 
-The main Zulip repo has a companion mobile client, developed and released
-separately from this repository. It needs a reliable way to detect whether a
-given server has a particular fork-specific feature, and it can't use Zulip's
-own `zulip_feature_level` for that. That integer is owned and incremented
-by upstream, so any value we picked for our own purposes would eventually
-collide with a future upstream feature level and silently change meaning
-out from under us.
+Zulip's own `zulip_feature_level` is owned and incremented by upstream, so
+the fork can't reuse it to signal fork-specific features to a client
+without risking a future collision. Instead, `zerver/lib/miatsuco.py`
+defines `MIATSUCO_VERSION` (a fork-owned release number) and
+`MIATSUCO_CAPABILITIES` (a list of named flags for features a client might
+need to detect), both advertised in `POST /register` and
+`GET /server_settings` as `miatsuco_version` and `miatsuco_capabilities`.
 
-Instead, `zerver/lib/miatsuco.py` defines:
+No fork client currently consumes capabilities, so `MIATSUCO_CAPABILITIES`
+stays empty and features ship without a flag for now. Once a consuming
+client exists, these rules apply.
 
-- `MIATSUCO_VERSION`: A fork-owned release independent of `ZULIP_VERSION`
-- `MIATSUCO_CAPABILITIES`: A list of named string flags (one per
-  fork feature) a client might need to detect.
-
-Both are advertised alongside upstream's own version fields, in the
-`POST /register` and `GET /server_settings` responses, as `miatsuco_version`
-and `miatsuco_capabilities`.
-
-A capability flag only does something once a client reads
-`miatsuco_capabilities` to gate its own behavior. The server itself does not
-change behavior based on the list, it only advertises it. This fork does not
-yet ship a client that consumes capabilities (upstream's mobile client has no
-knowledge of fork features, and a fork-specific client is not currently
-planned), so `MIATSUCO_CAPABILITIES` is intentionally empty for now, and
-features ship without a flag. The rules below apply once a consuming client
-exists: at that point, each fork feature a client needs to detect should
-register a flag, added retroactively for existing features and in the
-feature's own commit for new ones.
-
-Rules:
-
-- Add a capability flag in the **same commit** that makes the corresponding
-  feature usable end to end, not in an earlier scaffolding commit. The
-  flag should never advertise a feature that doesn't actually work yet.
-- Capability names are stable, lower-case, `snake_case` strings. Once
-  shipped, treat one as public API: a client may already be checking for
-  it, so don't rename or remove it without a deprecation path.
-- A client should check for the specific capability it needs, not infer
-  feature availability from `miatsuco_version` alone. That would require
-  the client to maintain its own version-to-feature mapping, which is
-  exactly the coupling this mechanism exists to avoid.
-
-## Releases
-
-`MIATSUCO_VERSION` (in `zerver/lib/miatsuco.py`) is this fork's own release
-number, independent of `ZULIP_VERSION`. A release is a known-good snapshot:
-a tag where `main` was at a specific upstream base plus a specific set of
-features, CI was green, and the result actually ran on the server. Because
-it is advertised to clients as `miatsuco_version`, only tag a release for a
-state that has actually been deployed and verified, not merely merged.
-
-Cut a release when a meaningful change has landed on the server and been
-confirmed working, not on every merge to `main`. Bundling several features
-into one release is fine and usually better than a release per feature.
-Doc-only changes, tooling tweaks, and the small commits between deployments
-do not need a version bump.
-
-The number is `MAJOR.MINOR.PATCH`, with fork-specific meanings:
-
-- **Major**: a stable-substrate milestone or a break to something promised
-  as public API (removing or renaming a `MIATSUCO_CAPABILITIES` flag). The
-  rebase onto the upstream 13.0 stable tag, which moves the fork off its
-  volatile bridge base, is the planned 1.0.0.
-- **Minor**: a new fork feature shipped and deployed, or a new capability
-  flag added. This is the common bump.
-- **Patch**: bug fixes to existing fork features, with no new feature and no
-  new capability.
-
-Between releases, `main` carries a `-dev` suffix (e.g., `0.2-dev`) so the
-running version always shows whether it is a tagged release or somewhere
-after one. Right after cutting a release, bump `main` to the next `-dev`.
-
-The current plan: the features on the bridge base ship as `0.1`, further
-features increment the minor (`0.2`, and so on), and the 13.0 rebase is
-`1.0.0`.
-
-The version is for humans (what is running, what to roll back to) and is
-deliberately not load-bearing for feature detection. Clients detect
-features through `MIATSUCO_CAPABILITIES`, not by comparing
-`miatsuco_version` (see Signaling Fork Features above), so the release
-cadence can follow whatever is meaningful to maintainers without risk of
-breaking a client.
-
-## Pull Requests
-
-In addition to Zulip's own [review guide](review-process.md):
-
-1. Confirm your branch applies cleanly against the current base release tag
-   on its own.
-2. If your change is meant to be independent of other in-flight fork
-   features, verify it applies correctly in either order relative to them,
-   and that the resulting tree is identical either way
-   (`git apply patch-a; git apply patch-b` vs. the reverse order, then
-   `diff -rq`). If your change has a genuine, intentional dependency on
-   another fork feature, confirm it fails _clearly and immediately_ without
-   that dependency present, a change that silently partially applies is
-   worse than one that visibly refuses to.
-3. Run `./manage.py check_miatsuco_migrations` if you've touched a migration.
-4. Run the actual test suite. A clean `git apply` or `git rebase` only
-   means the text merged, it isn't evidence the feature still behaves
-   correctly, especially for anything client-side that unit tests don't
-   reach.
+- Add a capability flag in the same commit that makes the feature usable
+  end to end, never before it actually works.
+- Capability names are stable, lower-case `snake_case` strings, treated as
+  public API once shipped. Don't rename or remove one without a
+  deprecation path.
+- A client checks for the specific capability it needs, not
+  `miatsuco_version` alone, which would force it to maintain its own
+  version-to-feature mapping.
 
 ## Passing CI
 
-Most of what CI enforces is upstream Zulip's own tooling, and upstream
-already documents it well. This fork does not restate that; read those pages
-and run the same commands. In particular:
+Most of what CI enforces is upstream Zulip's own tooling, already
+documented well elsewhere. Read those pages and run the same commands,
+particularly [Linters](../testing/linters.md) (`./tools/lint -m`,
+`--fix`, `--verbose`), [Testing with Django](../testing/testing-with-django.md)
+(the 100% line-coverage requirement, `test-backend --coverage`,
+`# nocoverage`), and
+[Continuous integration](../testing/continuous-integration.md).
 
-- [Linters](../testing/linters.md) covers Ruff, Prettier, and the custom
-  source checks (trailing whitespace, the `e.g.,` comma rule, and so on).
-  Before you push, run `./tools/lint -m` to lint just your modified files,
-  and `./tools/lint --fix` to autofix what can be autofixed. `--verbose`
-  explains how to fix errors that can't.
-  One surprise worth knowing: a bare `./tools/lint` also runs `gitlint`,
-  which checks your commit _messages_ (not just code) against `.gitlint`,
-  most notably that the title is capitalized and ends with a period. CI
-  skips this check (it is run with `--skip=gitlint` because it is flaky),
-  so it never fails your PR, but it can fail a local full lint run in a way
-  that looks unrelated to your changes. Follow Zulip's
-  [commit discipline](commit-discipline.md) for message style regardless;
-  it is good practice even though CI does not enforce it.
-- [Testing with Django](../testing/testing-with-django.md) covers the
-  backend suite and the 100% line-coverage requirement, including
-  `test-backend --coverage` and the `# nocoverage` pragma.
-- [Continuous integration](../testing/continuous-integration.md) covers
-  how the CI jobs themselves are structured.
+One surprise is that a bare `./tools/lint` also runs `gitlint` against
+your commit messages. CI skips it (`--skip=gitlint`, since it's flaky),
+so it never fails your PR, but it can fail a local full lint run for what
+looks like an unrelated reason. Follow [commit
+discipline](commit-discipline.md) regardless, since it's good practice
+either way.
 
-Fork test files are discovered automatically, with no registration step.
-The backend runner collects every `zerver/tests/test_*.py`, so a feature's
-`zerver/tests/test_miatsuco_<feature>.py` runs as part of the normal backend
-suite. The frontend runner collects every `web/tests/*.test.cjs`, so a
-`web/tests/miatsuco_<feature>.test.cjs` runs the same way. You do not add
-these to any list.
+Fork test files are discovered automatically. The backend runner collects
+every `zerver/tests/test_*.py` and the frontend runner every
+`web/tests/*.test.cjs`, so a feature's test module runs as part of the
+normal suite with no registration step.
 
-On top of that upstream tooling, a couple of failure modes are specific to
-maintaining this fork, and are easy to trip because upstream's own files
-happen not to hit them:
+Two failure modes are specific to this fork and easy to trip, since
+upstream's own files don't hit them.
 
-- **A shared helper module that ships before the tests that use it needs
-  `# nocoverage`.** `zerver/lib/test_miatsuco.py` is a helper mixin with no
-  tests of its own, and coverage is enforced across `zerver/` including
-  `zerver/lib/`. Until a feature's test module actually calls its helpers,
-  those lines are uncovered and fail the coverage gate, so the file is
-  marked `# nocoverage`. For the whole-file exclusion to apply, the very
-  first line must be _exactly_ `# nocoverage` with nothing after it (see
-  `tools/coveragerc`), a marker with a trailing explanation on the same
-  line only excludes that one line. Once feature tests exercise every
-  helper, the marker can be dropped so the helpers are held to real
-  coverage through their callers.
-- **`check_miatsuco_migrations` is fork-only, but it is wired into CI.**
-  It runs from `tools/test-migrations` (alongside upstream's own migration
-  consistency checks), so a `miatsuco_*` migration left pointing at a stale
-  zerver tip fails CI rather than slipping through. Run
-  `./manage.py check_miatsuco_migrations` locally if you have touched a
-  migration, as covered under Applying Migrations above.
+- **A shared helper module with no tests of its own needs
+  `# nocoverage`.** `zerver/lib/test_miatsuco.py` is a helper mixin,
+  uncovered until a feature's tests actually exercise it. The exclusion
+  requires `# nocoverage` as the exact first line of the file, dropped
+  again once every helper is covered through a real caller.
+- **`check_miatsuco_migrations` is fork-only, but wired into CI** via
+  `tools/test-migrations`, so a `miatsuco_*` migration pointing at a
+  stale `zerver` tip fails CI rather than slipping through.
 
-A green `git apply` or `git rebase` only means the text merged. It is not
-evidence that lint, coverage, the docs build, or the tests still pass, so
-run the checks above locally rather than relying on a clean apply.
+A green `git apply` or `git rebase` only means the text merged, not that
+lint, coverage, the docs build, or the tests still pass, so run the
+checks above locally.
 
-To make that automatic, run `./tools/setup-git-repo` once in your
-checkout. Alongside upstream's advisory `pre-commit` linter, it installs a
-fork `pre-push` hook that runs the frontend lint, backend lint, and node
-tests with coverage (the same gate CI enforces) and blocks the push if any
-fail. The backend suite is opt-in with `RUN_BACKEND=1 git push` since it
-needs a provisioned database, and `git push --no-verify` overrides the
-hook when you really mean to. The hook cannot verify rendering, media
-playback, or browser quirks, so it prints a reminder to browser-test when
-a push touches those paths rather than pretending it checked them.
+`./tools/setup-git-repo` installs a fork `pre-push` hook (frontend lint,
+backend lint, node tests with coverage) that blocks the push if any fail.
+The backend suite is opt-in with `RUN_BACKEND=1 git push`, since it needs
+a provisioned database, and `git push --no-verify` overrides the hook
+when you mean to. It can't verify rendering, media, or browser quirks, so
+it reminds you to browser-test when a push touches those paths.
+
+## Pull Requests
+
+In addition to Zulip's own [review guide](review-process.md), follow this
+checklist.
+
+1. Confirm your branch applies cleanly against the current base release
+   tag on its own.
+2. If your change should be independent of other in-flight fork features,
+   verify it applies correctly in either order relative to them, with an
+   identical resulting tree. If it has a genuine, intentional dependency,
+   confirm it fails clearly and immediately without that dependency
+   present.
+3. Run `./manage.py check_miatsuco_migrations` if you've touched a
+   migration.
+4. Run the actual test suite. A clean `git apply` or `git rebase` only
+   means the text merged, not that the feature still behaves correctly.
+
+## Releases
+
+`MIATSUCO_VERSION` (in `zerver/lib/miatsuco.py`) is this fork's own
+release number, independent of `ZULIP_VERSION`. A release is a known-good
+snapshot, a tag where `main` sat at a specific upstream base plus a
+specific feature set, with CI green and the result actually deployed and
+verified, not merely merged.
+
+Cut a release when a meaningful change has landed and been confirmed
+working, not on every merge to `main`. Bundling several features into one
+release is fine. Doc-only changes and small commits between deployments
+don't need a version bump.
+
+`MAJOR.MINOR.PATCH` carries fork-specific meaning.
+
+- **Major.** A stable-substrate milestone or a break to a promised
+  `MIATSUCO_CAPABILITIES` flag.
+- **Minor.** A new fork feature shipped and deployed, or a new capability
+  flag. The common bump.
+- **Patch.** Bug fixes to existing features, with no new feature or
+  capability.
+
+Between releases, `main` carries a `-dev` suffix (e.g., `0.2-dev`), bumped
+right after cutting a release.
+
+The version is for humans, not load-bearing for feature detection.
+Clients detect features through `MIATSUCO_CAPABILITIES` instead (see
+Signaling Fork Features above), so the release cadence can follow
+whatever's meaningful to maintainers.
 
 ## Upstreaming a Fork Feature
 
-Some fork features are improvements Zulip itself should have, not just
-fork-specific functionality. These follow a separate process from the
-rest when ready to send upstream.
+Some fork features are improvements Zulip itself should have. These
+follow a separate process when ready to send upstream.
 
-1. **Once a fork feature is proven stable, and if it's worth sending upstream,
-   build a second, independent implementation targeting current upstream `main`
-   directly.** This second implementation:
-   - Branches from a real upstream commit, since our `main` always carries
-     fork-only commits that must not appear in an upstream PR's history.
-   - Uses no `miatsuco_` prefix anywhere and follows upstream conventions
-     throughout for naming, tests, and commit style. None of the fork-specific
-     rules in this document apply to this branch.
-   - Stays rebased against upstream's current tip while the PR is open. Our fork
-     keeps running its own custom version, regardless of the upstream PR's
-     status.
-2. **Once accepted, reconciliation happens only during the periodic rebase onto
-   a new upstream stable release.** Acceptance upstream does not force any
-   immediate change to the fork. However, once the feature has been accepted and
-   is available in a new stable release, we will drop the custom implementation
-   and adopt the version that arrives with the rebase.
+1. Once a feature is proven stable and worth sending upstream, build a
+   second, independent implementation targeting current upstream `main`
+   directly. It branches from a real upstream commit (since our `main`
+   always carries fork-only commits), uses no `miatsuco_` prefix, follows
+   upstream conventions throughout, and stays rebased against upstream's
+   tip while the PR is open. Our fork keeps running its own version
+   regardless of that PR's status.
+2. Once accepted, reconciliation happens only during the periodic rebase
+   onto a new upstream stable release, when we drop the custom
+   implementation and adopt the version that arrives with it.
 
 ## Questions
 
-If something here is unclear, or you've hit a case this page doesn't cover, then
-that's a documentation bug. Please raise it rather than guessing, as this page
-is expected to evolve. If a convention here turns out to be wrong, we want to
-fix the convention and this page together, in the same commit.
+If something here is unclear, or you've hit a case this page doesn't
+cover, then that's a documentation bug. Please raise it rather than
+guessing, as this page is expected to evolve. If a convention here turns
+out to be wrong, we want to fix the convention and this page together, in
+the same commit.
