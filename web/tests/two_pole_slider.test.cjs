@@ -255,6 +255,37 @@ run_test("tied state toggles the end class at the last breakpoint", () => {
     assert.ok(!container.classList.contains("two-pole-slider-tied"));
 });
 
+run_test("on_update is called on a slider update", () => {
+    let update_count = 0;
+    const {slider} = make_slider({
+        on_update() {
+            update_count += 1;
+        },
+    });
+    const before_count = update_count;
+    get_raw_slider(slider).set([1, 3]);
+    assert.ok(update_count > before_count);
+});
+
+run_test("merged tooltip text switches between tied_label and upper_pole_label", () => {
+    const {slider, container} = make_slider();
+    const upper_tooltip = container.querySelectorAll(".noUi-tooltip")[1];
+    get_raw_slider(slider).set([2, 2]);
+    assert.equal(upper_tooltip.textContent, "Clamp to");
+
+    get_raw_slider(slider).set([1, 2]);
+    assert.equal(upper_tooltip.textContent, "Min");
+});
+
+run_test("clicking exactly between the poles moves the lower pole", () => {
+    const {slider, container} = make_slider();
+    const zones = container.querySelectorAll(".two-pole-slider-click-zone");
+    zones[2].dispatchEvent(new Event("click"));
+    const [lower_index, upper_index] = get_raw_slider(slider).get(true);
+    assert.equal(Math.round(lower_index), 2);
+    assert.equal(Math.round(upper_index), 4);
+});
+
 run_test("disable and enable set/clear the native disabled attribute", () => {
     const {slider, container} = make_slider();
     slider.disable();

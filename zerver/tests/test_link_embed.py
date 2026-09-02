@@ -1163,6 +1163,52 @@ class PreviewTestCase(ZulipTestCase):
         cached_data = cache_get(preview_url_cache_key(url))
         self.assertIsNone(cached_data)
 
+    @mock.patch("zerver.lib.url_preview.preview.time.sleep")
+    @mock.patch(
+        "zerver.lib.url_preview.preview.get_oembed_data", side_effect=lambda *args, **kwargs: None
+    )
+    @mock.patch("zerver.lib.url_preview.preview.valid_content_type", return_value=True)
+    @responses.activate
+    def test_get_link_embed_data_retries_on_429(
+        self,
+        mock_valid_content_type: mock.Mock,
+        mock_get_oembed_data: mock.Mock,
+        mock_sleep: mock.Mock,
+    ) -> None:
+        url = "http://test-retry-429.org/"
+        responses.add(responses.GET, url, status=429)
+        responses.add(
+            responses.GET,
+            url,
+            status=200,
+            content_type="text/html",
+            body="<html><head><title>Real Title</title></head></html>",
+        )
+        data = get_link_embed_data(url)
+        assert data is not None
+        self.assertEqual(data.title, "Real Title")
+        mock_sleep.assert_called_once()
+
+    @mock.patch("zerver.lib.url_preview.preview.time.sleep")
+    @mock.patch(
+        "zerver.lib.url_preview.preview.get_oembed_data", side_effect=lambda *args, **kwargs: None
+    )
+    @mock.patch("zerver.lib.url_preview.preview.valid_content_type", return_value=True)
+    @responses.activate
+    def test_get_link_embed_data_does_not_retry_non_retryable_status(
+        self,
+        mock_valid_content_type: mock.Mock,
+        mock_get_oembed_data: mock.Mock,
+        mock_sleep: mock.Mock,
+    ) -> None:
+        url = "http://test-no-retry-400.org/"
+        # Only one response is registered, so a retry would raise from
+        # responses on the second request, which itself would signal a bug.
+        responses.add(responses.GET, url, status=400)
+        data = get_link_embed_data(url)
+        self.assertIsNone(data)
+        mock_sleep.assert_not_called()
+
     def test_social_embed_hosts_skip_content_type_check(self) -> None:
         url = "https://x.com/jack/status/20"
         social_data = UrlOEmbedData(type="rich")

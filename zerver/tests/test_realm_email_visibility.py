@@ -1,9 +1,11 @@
 from datetime import timedelta
+from unittest import mock
 
 import orjson
 
 from bulk_remediation.models import BulkFieldRemediationJob
 from zerver.lib.test_classes import ZulipTestCase
+from zerver.lib.users import email_address_visibility_violations
 from zerver.models import RealmUserDefault, UserProfile
 
 
@@ -54,12 +56,12 @@ class UpdateEmailVisibilityPolicyTest(ZulipTestCase):
             result, "The maximum visibility cannot be more restrictive than the minimum."
         )
 
-    def test_successfully_sets_max_and_min(self) -> None:
+    def test_allows_max_equal_to_min(self) -> None:
         self.login("desdemona")
         realm = self.example_user("desdemona").realm
         req = dict(
             email_address_visibility_max=orjson.dumps(
-                UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS
+                UserProfile.EMAIL_ADDRESS_VISIBILITY_ADMINS
             ).decode(),
             email_address_visibility_min=orjson.dumps(
                 UserProfile.EMAIL_ADDRESS_VISIBILITY_ADMINS
@@ -70,11 +72,51 @@ class UpdateEmailVisibilityPolicyTest(ZulipTestCase):
 
         realm.refresh_from_db()
         self.assertEqual(
-            realm.email_address_visibility_max, UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS
+            realm.email_address_visibility_max, UserProfile.EMAIL_ADDRESS_VISIBILITY_ADMINS
         )
         self.assertEqual(
             realm.email_address_visibility_min, UserProfile.EMAIL_ADDRESS_VISIBILITY_ADMINS
         )
+
+    def test_successfully_sets_max_and_min(self) -> None:
+        self.login("desdemona")
+        realm = self.example_user("desdemona").realm
+        visibility_max = UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS
+        visibility_min = UserProfile.EMAIL_ADDRESS_VISIBILITY_ADMINS
+        above_max_values, below_min_values = email_address_visibility_violations(
+            visibility_max, visibility_min
+        )
+        expected_count = (
+            UserProfile.objects.filter(
+                realm=realm, email_address_visibility__in=above_max_values, is_bot=False
+            ).count()
+            + UserProfile.objects.filter(
+                realm=realm, email_address_visibility__in=below_min_values, is_bot=False
+            ).count()
+        )
+
+        req = dict(
+            email_address_visibility_max=orjson.dumps(visibility_max).decode(),
+            email_address_visibility_min=orjson.dumps(visibility_min).decode(),
+        )
+        with mock.patch(
+            "zerver.views.realm_email_visibility.send_event_on_commit"
+        ) as mock_send_event:
+            result = self.client_patch("/json/realm/email_visibility_policy", req)
+        self.assert_json_success(result)
+
+        realm.refresh_from_db()
+        self.assertEqual(realm.email_address_visibility_max, visibility_max)
+        self.assertEqual(realm.email_address_visibility_min, visibility_min)
+
+        mock_send_event.assert_called_once()
+        (realm_arg, event_arg, _user_ids), _kwargs = mock_send_event.call_args
+        self.assertEqual(realm_arg, realm)
+        self.assertEqual(event_arg["type"], "realm")
+        self.assertEqual(event_arg["op"], "update_dict")
+        self.assertEqual(event_arg["property"], "email_visibility_policy")
+        self.assertEqual(event_arg["data"]["running"], expected_count > 0)
+        self.assertEqual(event_arg["data"]["total_violating_count"], expected_count)
 
     def test_starts_remediation_job_for_violating_users(self) -> None:
         self.login("desdemona")
@@ -83,19 +125,37 @@ class UpdateEmailVisibilityPolicyTest(ZulipTestCase):
         hamlet.email_address_visibility = UserProfile.EMAIL_ADDRESS_VISIBILITY_EVERYONE
         hamlet.save(update_fields=["email_address_visibility"])
 
-        req = dict(
-            email_address_visibility_max=orjson.dumps(
-                UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS
-            ).decode(),
+        visibility_max = UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS
+        above_max_values, _below_min_values = email_address_visibility_violations(
+            visibility_max, None
         )
-        result = self.client_patch("/json/realm/email_visibility_policy", req)
+        expected_count = UserProfile.objects.filter(
+            realm=realm, email_address_visibility__in=above_max_values, is_bot=False
+        ).count()
+
+        req = dict(
+            email_address_visibility_max=orjson.dumps(visibility_max).decode(),
+        )
+        with mock.patch(
+            "zerver.views.realm_email_visibility.send_event_on_commit"
+        ) as mock_send_event:
+            result = self.client_patch("/json/realm/email_visibility_policy", req)
         self.assert_json_success(result)
 
         job = BulkFieldRemediationJob.objects.get(
             realm=realm, field_name="email_address_visibility"
         )
-        self.assertEqual(job.to_value, UserProfile.EMAIL_ADDRESS_VISIBILITY_MEMBERS)
+        self.assertEqual(job.to_value, visibility_max)
         self.assertGreaterEqual(job.total_violating_count, 1)
+
+        mock_send_event.assert_called_once()
+        (realm_arg, event_arg, _user_ids), _kwargs = mock_send_event.call_args
+        self.assertEqual(realm_arg, realm)
+        self.assertEqual(event_arg["type"], "realm")
+        self.assertEqual(event_arg["op"], "update_dict")
+        self.assertEqual(event_arg["property"], "email_visibility_policy")
+        self.assertTrue(event_arg["data"]["running"])
+        self.assertEqual(event_arg["data"]["total_violating_count"], expected_count)
 
     def test_starts_remediation_job_for_too_closed_violating_users(self) -> None:
         self.login("desdemona")
@@ -162,6 +222,7 @@ class UpdateEmailVisibilityPolicyTest(ZulipTestCase):
 
     def test_setting_only_min_reports_no_above_max_violations(self) -> None:
         self.login("desdemona")
+        realm = self.example_user("desdemona").realm
         req = dict(
             email_address_visibility_min=orjson.dumps(
                 UserProfile.EMAIL_ADDRESS_VISIBILITY_ADMINS
@@ -169,6 +230,8 @@ class UpdateEmailVisibilityPolicyTest(ZulipTestCase):
         )
         result = self.client_patch("/json/realm/email_visibility_policy", req)
         self.assert_json_success(result)
+
+        self.assertEqual(BulkFieldRemediationJob.objects.filter(realm=realm).count(), 0)
 
     def test_blocks_update_while_job_running(self) -> None:
         self.login("desdemona")

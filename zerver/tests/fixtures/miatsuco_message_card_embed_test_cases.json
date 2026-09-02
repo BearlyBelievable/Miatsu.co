@@ -1,0 +1,70 @@
+[
+    {
+        "name": "full_post_with_media_and_quote",
+        "expected_payload": {
+            "platform": "twitter",
+            "author_name": "Jack",
+            "author_handle": "jack",
+            "author_avatar_url": "https://example.com/avatar.jpg",
+            "created_at": "2020-01-01T00:00:00Z",
+            "text": "hello world",
+            "media": [
+                {"kind": "photo", "url": "https://example.com/photo.jpg", "alt_text": "A photo."}
+            ],
+            "like_count": 5,
+            "repost_count": 2,
+            "reply_count": 1,
+            "permalink": "https://x.com/jack/status/20",
+            "fallback_link": "https://x.com/jack/status/20",
+            "quote": {
+                "author_name": "Cordelia",
+                "author_handle": "cordelia",
+                "author_avatar_url": "https://example.com/cordelia.jpg",
+                "text": "great point",
+                "media": [
+                    {"kind": "video", "url": "https://example.com/video.mp4", "alt_text": null}
+                ],
+                "permalink": "https://x.com/cordelia/status/10",
+                "unavailable_reason": null
+            }
+        }
+    },
+    {
+        "name": "minimal_post",
+        "expected_payload": {
+            "platform": "bluesky",
+            "author_name": null,
+            "author_handle": null,
+            "author_avatar_url": null,
+            "created_at": null,
+            "text": null,
+            "media": [],
+            "like_count": null,
+            "repost_count": null,
+            "reply_count": null,
+            "permalink": null,
+            "fallback_link": "https://bsky.app/profile/example/post/1",
+            "quote": null
+        }
+    },
+    {
+        "name": "quote_unavailable",
+        "expected_payload": {
+            "platform": "twitter",
+            "author_name": "Jack",
+            "author_handle": "jack",
+            "author_avatar_url": null,
+            "created_at": null,
+            "text": "look at this",
+            "media": [],
+            "like_count": null,
+            "repost_count": null,
+            "reply_count": null,
+            "permalink": "https://x.com/jack/status/20",
+            "fallback_link": "https://x.com/jack/status/20",
+            "quote": {
+                "unavailable_reason": "deleted"
+            }
+        }
+    }
+]
