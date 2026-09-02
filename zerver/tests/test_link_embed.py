@@ -12,7 +12,7 @@ from requests.exceptions import ConnectionError
 from typing_extensions import override
 
 from zerver.actions.message_delete import do_delete_messages
-from zerver.lib.cache import cache_delete, cache_get, preview_url_cache_key
+from zerver.lib.cache import cache_delete, cache_get, cache_set, preview_url_cache_key
 from zerver.lib.camo import get_camo_url
 from zerver.lib.queue import queue_json_publish_rollback_unsafe
 from zerver.lib.test_classes import ZulipTestCase
@@ -38,6 +38,15 @@ def reconstruct_url(url: str, maxwidth: int = 640, maxheight: int = 480) -> str:
     query_params["maxheight"] = str(maxheight)
     final_url = urlunsplit((scheme, netloc, path, urlencode(query_params, True), fragment))
     return final_url
+
+
+class PreviewUrlCacheKeyTest(ZulipTestCase):
+    def test_bumping_the_version_invalidates_old_cache_entries(self) -> None:
+        url = "http://test.org/"
+        with mock.patch("zerver.lib.cache.PREVIEW_CACHE_VERSION", 1):
+            cache_set(preview_url_cache_key(url), "old data")
+        with mock.patch("zerver.lib.cache.PREVIEW_CACHE_VERSION", 2):
+            self.assertIsNone(cache_get(preview_url_cache_key(url)))
 
 
 @override_settings(INLINE_URL_EMBED_PREVIEW=True)

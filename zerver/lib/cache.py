@@ -472,8 +472,13 @@ def bulk_cached_fetch(
     )
 
 
+# MiAtSu.Co edit: bump to invalidate all cached URL previews at once,
+# the same way zerver.lib.markdown.version invalidates rendered_content.
+PREVIEW_CACHE_VERSION = 1
+
+
 def preview_url_cache_key(url: str) -> str:
-    return f"preview_url:{hashlib.sha1(url.encode()).hexdigest()}"
+    return f"preview_url:{PREVIEW_CACHE_VERSION}:{hashlib.sha1(url.encode()).hexdigest()}"
 
 
 def display_recipient_cache_key(recipient_id: int) -> str:
