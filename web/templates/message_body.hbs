@@ -17,11 +17,20 @@
             {{#if sender_is_bot}}
                 <i class="zulip-icon zulip-icon-bot" aria-label="{{t 'Bot' }}"></i>
             {{/if}}
+        {{/unless}}
+        {{! MiAtSu.Co edit: the timestamp flows inline after the
+        username and bot icon. A pending send shows the spinner
+        instead. }}
+        {{#unless status_message}}
+            {{#if (and (not msg/failed_request) msg/locally_echoed)}}
+                <span data-tooltip-template-id="slow-send-spinner-tooltip-template" class="fa fa-circle-o-notch slow-send-spinner"></span>
+            {{else}}
+                <a {{#unless msg/locally_echoed}}href="{{ msg/url }}"{{/unless}} class="message-time">{{timestr}}</a>
+            {{/if}}
+        {{/unless}}
+        {{#unless is_hidden}}
             {{#if status_message}}
                 <span class="message_content rendered_markdown status-message">{{rendered_markdown status_message}}</span>
-                {{#if message_edit_notices_for_status_message}}
-                    {{> edited_notice .}}
-                {{/if}}
             {{/if}}
             {{#if message_edit_notices_alongside_sender}}
                 {{> edited_notice .}}
@@ -30,15 +39,34 @@
     {{/if}}
 </span>
 
-<a {{#unless msg/locally_echoed}}href="{{ msg/url }}"{{/unless}} class="message-time">
-    {{#unless include_sender}}
-    <span class="copy-paste-text">&nbsp;</span>
-    {{/unless}}
-    {{timestr}}
-</a>
+{{! MiAtSu.Co edit: this copy is for continuation rows only, since a
+sender row renders the timestamp above instead. A pending send shows
+the spinner instead. }}
+{{#unless include_sender}}
+    {{#if (and (not msg/failed_request) msg/locally_echoed)}}
+        <span data-tooltip-template-id="slow-send-spinner-tooltip-template" class="fa fa-circle-o-notch slow-send-spinner"></span>
+    {{else}}
+        <a {{#unless msg/locally_echoed}}href="{{ msg/url }}"{{/unless}} class="message-time">
+            <span class="copy-paste-text">&nbsp;</span>
+            {{timestr}}
+        </a>
+    {{/if}}
+{{/unless}}
 
-{{#if (and (not msg/failed_request) msg/locally_echoed)}}
-    <span data-tooltip-template-id="slow-send-spinner-tooltip-template" class="fa fa-circle-o-notch slow-send-spinner{{#unless msg/show_slow_send_spinner }} hidden{{/unless}}"></span>
+{{! MiAtSu.Co edit: me-message header, showing the timestamp and the
+edited or moved notice together. A pending send shows the spinner
+instead. }}
+{{#if status_message}}
+<span class="me_message_header">
+    {{#if (and (not msg/failed_request) msg/locally_echoed)}}
+        <span data-tooltip-template-id="slow-send-spinner-tooltip-template" class="fa fa-circle-o-notch slow-send-spinner"></span>
+    {{else}}
+        <a {{#unless msg/locally_echoed}}href="{{ msg/url }}"{{/unless}} class="message-time">{{timestr}}</a>
+    {{/if}}
+    {{#if message_edit_notices_for_status_message}}
+        {{> edited_notice .}}
+    {{/if}}
+</span>
 {{/if}}
 
 <div class="message_controls no-select">
