@@ -1,7 +1,7 @@
 import os
 import re
 from dataclasses import dataclass
-from html import escape
+from html import escape, unescape
 from textwrap import dedent
 from typing import Any
 from unittest import mock
@@ -939,15 +939,21 @@ class MarkdownEmbedsTest(ZulipTestCase):
         converted = render_message_markdown(msg, url, url_embed_data={url: embed_data})
 
         self.assertIn(
-            '<div class="embed-rich message_inline_image" data-height="152" data-width="300">',
-            converted.rendered_content,
+            '<div class="message_embed" data-inline-rich-embed="', converted.rendered_content
         )
+        self.assertIn('data-platform="spotify"', converted.rendered_content)
         self.assertIn(f'href="{url}" title="Spotify - Some Song"', converted.rendered_content)
         self.assertIn(
-            f'<img loading="lazy" src="{get_camo_url(embed_data.image)}">',
+            f'style="background-image: url(&quot;{get_camo_url(embed_data.image)}&quot;)"',
             converted.rendered_content,
         )
-        self.assertIn("open.spotify.com/embed/track/abc123", converted.rendered_content)
+
+        match = re.search(r'data-inline-rich-embed="([^"]*)"', converted.rendered_content)
+        assert match is not None
+        payload = orjson.loads(unescape(match.group(1)))
+        self.assertEqual(payload["html"], embed_html)
+        self.assertEqual(payload["width"], 300)
+        self.assertEqual(payload["height"], 152)
 
     @override_settings(INLINE_URL_EMBED_PREVIEW=True)
     def test_inline_rich_oembed_replaces_bare_url_with_title(self) -> None:
@@ -957,10 +963,11 @@ class MarkdownEmbedsTest(ZulipTestCase):
         sender_user_profile.realm.inline_url_embed_preview = True
         sender_user_profile.realm.save(update_fields=["inline_url_embed_preview"])
 
-        for url, provider, title, embed_html in [
+        for url, provider, platform, title, embed_html in [
             (
                 "https://open.spotify.com/track/abc123",
                 "Spotify",
+                "spotify",
                 "Some Song",
                 '<iframe src="https://open.spotify.com/embed/track/abc123" '
                 'width="100%" height="152"></iframe>',
@@ -968,6 +975,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
             (
                 "https://soundcloud.com/example/track",
                 "SoundCloud",
+                "soundcloud",
                 "Some Track",
                 '<iframe src="https://w.soundcloud.com/player/?url=x" '
                 'width="100%" height="166"></iframe>',
@@ -987,6 +995,7 @@ class MarkdownEmbedsTest(ZulipTestCase):
             converted = render_message_markdown(msg, url, url_embed_data={url: embed_data})
             self.assertIn(f">{provider} - {title}</a>", converted.rendered_content)
             self.assertNotIn(f">{url}</a>", converted.rendered_content)
+            self.assertIn(f'data-platform="{platform}"', converted.rendered_content)
 
     @override_settings(INLINE_URL_EMBED_PREVIEW=True)
     def test_inline_rich_oembed_fallback_to_plain(self) -> None:

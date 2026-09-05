@@ -98,6 +98,18 @@ run_test("parse_media_data bare image without parent link", () => {
     assert.equal(result.preview, "https://example.com/image.png");
 });
 
+run_test("parse_media_data rejects a javascript: URL for a bare image", () => {
+    const {media} = make_image({
+        // eslint-disable-next-line no-script-url
+        img_src: "javascript:alert(1)",
+        // No parent_href — simulates a bare <img src="javascript:...">.
+    });
+    const result = lightbox.parse_media_data(media);
+
+    assert.equal(result.type, "image");
+    assert.equal(result.source, "");
+});
+
 run_test("parse_media_data with data-src-fullsize", () => {
     // Remote images proxied through camo have a separate full-size URL.
     const camo_thumbnail = "https://example.com/camo/thumb?size=300x200";
@@ -172,6 +184,19 @@ run_test("parse_media_data inline video", () => {
     // source uses the non-camo'd href for direct playback.
     assert.equal(result.source, "https://example.com/video.mp4");
     assert.equal(result.preview, "https://example.com/camo/video-thumb");
+});
+
+run_test("parse_media_data rejects a javascript: URL for an inline video", () => {
+    const {$img, media} = make_image({
+        img_src: "https://example.com/camo/video-thumb",
+        // eslint-disable-next-line no-script-url
+        parent_href: "javascript:alert(1)",
+    });
+    $img.set_closest_results(".message_inline_video", $img);
+    const result = lightbox.parse_media_data(media);
+
+    assert.equal(result.type, "inline-video");
+    assert.equal(result.source, "");
 });
 
 run_test("parse_media_data YouTube video", () => {

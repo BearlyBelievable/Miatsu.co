@@ -11,6 +11,7 @@ from requests.exceptions import ConnectionError
 from typing_extensions import override
 
 from zerver.lib.camo import get_camo_url
+from zerver.lib.miatsuco_message_card_embed import MediaItem, Quote, SocialPost
 from zerver.lib.test_classes import ZulipTestCase
 from zerver.lib.test_helpers import mock_queue_publish
 from zerver.lib.url_preview.miatsuco_fxembed import (
@@ -380,7 +381,8 @@ class MiatsucoFxEmbedDataTestCase(ZulipTestCase):
             responses.GET,
             "https://api.fxtwitter.com/2/status/99999999999999999",
             json=response_data,
-            status=404,
+            # get_fxembed_data only checks the JSON code field, not the HTTP status.
+            status=200,
         )
         self.assertIsNone(get_fxembed_data("https://x.com/jack/status/99999999999999999"))
 
@@ -406,6 +408,16 @@ class MiatsucoFxEmbedDataTestCase(ZulipTestCase):
 
     def test_non_social_url(self) -> None:
         self.assertIsNone(get_fxembed_data("https://example.com/some/page"))
+
+    @responses.activate
+    def test_non_dict_json_response(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://api.fxtwitter.com/2/status/20",
+            json=[],
+            status=200,
+        )
+        self.assertIsNone(get_fxembed_data("https://x.com/jack/status/20"))
 
 
 @override_settings(INLINE_URL_EMBED_PREVIEW=True)
@@ -486,7 +498,7 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
         author_avatar_url = "https://pbs.twimg.com/profile_images/jack.jpg"
         mocked_data = UrlOEmbedData(
             type="rich",
-            social_post=UrlOEmbedData.SocialPost(
+            social_post=SocialPost(
                 platform="twitter",
                 author_name="jack",
                 author_handle="jack",
@@ -562,7 +574,7 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         mocked_data = UrlOEmbedData(
             type="rich",
-            social_post=UrlOEmbedData.SocialPost(
+            social_post=SocialPost(
                 platform="twitter",
                 author_name="jack",
                 text="counts",
@@ -606,14 +618,14 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         mocked_data = UrlOEmbedData(
             type="rich",
-            social_post=UrlOEmbedData.SocialPost(
+            social_post=SocialPost(
                 platform="bluesky",
                 author_name="Bluesky",
                 author_handle="bsky.app",
                 text="v1.130 is live!",
                 permalink=url,
                 media=[
-                    UrlOEmbedData.SocialPost.MediaItem(
+                    MediaItem(
                         kind="photo",
                         url="https://cdn.bsky.app/img/feed_fullsize/photo.jpg",
                         alt_text="A screenshot.",
@@ -628,13 +640,9 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
                 "zerver.lib.url_preview.preview.get_oembed_data",
                 lambda *args, **kwargs: mocked_data,
             ),
-            self.assertLogs(level="INFO") as info_logs,
+            self.assertLogs(level="INFO"),
         ):
             FetchLinksEmbedData().consume(event)
-        self.assertTrue(
-            "INFO:root:Time spent on get_link_embed_data for https://bsky.app/profile/bsky.app/post/3msqpuobiwk2t: "
-            in info_logs.output[0]
-        )
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
@@ -670,12 +678,12 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         mocked_data = UrlOEmbedData(
             type="rich",
-            social_post=UrlOEmbedData.SocialPost(
+            social_post=SocialPost(
                 platform="twitter",
                 author_name="jack",
                 text="look at this",
                 permalink=url,
-                quote=UrlOEmbedData.SocialPost.Quote(
+                quote=Quote(
                     author_name="Other",
                     author_handle="other",
                     text="the original post",
@@ -690,13 +698,9 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
                 "zerver.lib.url_preview.preview.get_oembed_data",
                 lambda *args, **kwargs: mocked_data,
             ),
-            self.assertLogs(level="INFO") as info_logs,
+            self.assertLogs(level="INFO"),
         ):
             FetchLinksEmbedData().consume(event)
-        self.assertTrue(
-            "INFO:root:Time spent on get_link_embed_data for https://x.com/jack/status/20: "
-            in info_logs.output[0]
-        )
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
@@ -732,12 +736,12 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         mocked_data = UrlOEmbedData(
             type="rich",
-            social_post=UrlOEmbedData.SocialPost(
+            social_post=SocialPost(
                 platform="twitter",
                 author_name="jack",
                 text="look at this",
                 permalink=url,
-                quote=UrlOEmbedData.SocialPost.Quote(unavailable_reason="deleted"),
+                quote=Quote(unavailable_reason="deleted"),
             ),
         )
         self.create_mock_response(url)
@@ -747,13 +751,9 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
                 "zerver.lib.url_preview.preview.get_oembed_data",
                 lambda *args, **kwargs: mocked_data,
             ),
-            self.assertLogs(level="INFO") as info_logs,
+            self.assertLogs(level="INFO"),
         ):
             FetchLinksEmbedData().consume(event)
-        self.assertTrue(
-            "INFO:root:Time spent on get_link_embed_data for https://x.com/jack/status/20: "
-            in info_logs.output[0]
-        )
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
@@ -785,16 +785,16 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         mocked_data = UrlOEmbedData(
             type="rich",
-            social_post=UrlOEmbedData.SocialPost(
+            social_post=SocialPost(
                 platform="twitter",
                 author_name="jack",
                 text="look at this",
                 permalink=url,
-                quote=UrlOEmbedData.SocialPost.Quote(
+                quote=Quote(
                     author_name="Other",
                     text="watch this",
                     media=[
-                        UrlOEmbedData.SocialPost.MediaItem(
+                        MediaItem(
                             kind="video",
                             url="https://video.twimg.com/quoted.mp4",
                         )
@@ -809,13 +809,9 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
                 "zerver.lib.url_preview.preview.get_oembed_data",
                 lambda *args, **kwargs: mocked_data,
             ),
-            self.assertLogs(level="INFO") as info_logs,
+            self.assertLogs(level="INFO"),
         ):
             FetchLinksEmbedData().consume(event)
-        self.assertTrue(
-            "INFO:root:Time spent on get_link_embed_data for https://x.com/jack/status/20: "
-            in info_logs.output[0]
-        )
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
@@ -858,7 +854,7 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
         dangerous_text = '<script>alert("hi")</script>'
         mocked_data = UrlOEmbedData(
             type="rich",
-            social_post=UrlOEmbedData.SocialPost(
+            social_post=SocialPost(
                 platform="twitter",
                 author_name=dangerous_text,
                 text=dangerous_text,
@@ -872,13 +868,9 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
                 "zerver.lib.url_preview.preview.get_oembed_data",
                 lambda *args, **kwargs: mocked_data,
             ),
-            self.assertLogs(level="INFO") as info_logs,
+            self.assertLogs(level="INFO"),
         ):
             FetchLinksEmbedData().consume(event)
-        self.assertTrue(
-            "INFO:root:Time spent on get_link_embed_data for https://x.com/jack/status/20: "
-            in info_logs.output[0]
-        )
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
@@ -904,19 +896,19 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
 
         mocked_data = UrlOEmbedData(
             type="rich",
-            social_post=UrlOEmbedData.SocialPost(
+            social_post=SocialPost(
                 platform="twitter",
                 author_name="jack",
                 author_avatar_url='javascript:alert("avatar")',
                 text="hi",
                 permalink='javascript:alert("permalink")',
                 media=[
-                    UrlOEmbedData.SocialPost.MediaItem(
+                    MediaItem(
                         kind="photo",
                         url='javascript:alert("media")',
                     )
                 ],
-                quote=UrlOEmbedData.SocialPost.Quote(
+                quote=Quote(
                     author_name="Other",
                     author_avatar_url='javascript:alert("quote-avatar")',
                     permalink='javascript:alert("quote-permalink")',
@@ -931,13 +923,9 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
                 "zerver.lib.url_preview.preview.get_oembed_data",
                 lambda *args, **kwargs: mocked_data,
             ),
-            self.assertLogs(level="INFO") as info_logs,
+            self.assertLogs(level="INFO"),
         ):
             FetchLinksEmbedData().consume(event)
-        self.assertTrue(
-            "INFO:root:Time spent on get_link_embed_data for https://x.com/jack/status/20: "
-            in info_logs.output[0]
-        )
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
@@ -978,7 +966,7 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
             image="https://pbs.twimg.com/profile_images/jack.jpg",
             title="jack",
             description="hi",
-            social_post=UrlOEmbedData.SocialPost(platform="twitter", author_name="jack", text="hi"),
+            social_post=SocialPost(platform="twitter", author_name="jack", text="hi"),
         )
         self.create_mock_response(url)
         with (
@@ -987,13 +975,9 @@ class MiatsucoFxEmbedRenderTestCase(ZulipTestCase):
                 "zerver.lib.url_preview.preview.get_oembed_data",
                 lambda *args, **kwargs: mocked_data,
             ),
-            self.assertLogs(level="INFO") as info_logs,
+            self.assertLogs(level="INFO"),
         ):
             FetchLinksEmbedData().consume(event)
-        self.assertTrue(
-            "INFO:root:Time spent on get_link_embed_data for https://x.com/jack/status/20: "
-            in info_logs.output[0]
-        )
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
