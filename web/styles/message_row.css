@@ -157,6 +157,8 @@
     > .message_edit_notice,
     > .edit-notifications {
         place-self: start start;
+        position: relative;
+        top: 1px;
         width: calc(var(--message-box-avatar-width) / 0.75);
         text-align: center;
         overflow: visible;
@@ -171,11 +173,12 @@
 
     .slow-send-spinner {
         display: none;
-        place-self: center end;
-        position: unset;
-        margin-top: 1px;
-        margin-right: 10px;
-        text-align: end;
+        place-self: center center;
+        position: relative;
+        top: 1px;
+        /* Set explicitly since FontAwesome's .fa class would
+           otherwise apply a mismatched size. */
+        font-size: 0.75em;
         grid-area: gutter-top;
     }
 
@@ -371,33 +374,24 @@
                 }
             }
 
-            .message-time,
-            .slow-send-spinner {
-                grid-area: sender;
-                place-self: start end;
-            }
-
             .message-time {
+                grid-area: unset;
+                place-self: unset;
+                top: 0;
                 width: auto;
-                padding-right: 5px;
-            }
-
-            .slow-send-spinner {
-                align-self: center;
+                margin-left: 0.4em;
             }
 
             &:has(.message_edit_notice) .message-time {
                 display: block;
             }
 
-            .message_controls {
-                top: calc(
-                    (
-                            var(--message-box-markdown-aligned-vertical-space) *
-                                0.5 * -1
-                        ) -
-                        var(--message-box-markdown-aligned-vertical-space) + 1px
-                );
+            .slow-send-spinner {
+                grid-area: unset;
+                place-self: unset;
+                top: 0;
+                align-self: center;
+                margin-left: 0.4em;
             }
         }
 
@@ -407,83 +401,66 @@
         }
 
         &.is-me-message {
-            grid-template:
-                var(--message-box-vertical-margin)
-                minmax(var(--message-box-avatar-height), auto)
-                repeat(3, auto) /
-                var(--message-box-avatar-column-width) minmax(0, 1fr)
-                max-content 8px
-                minmax(var(--message-box-timestamp-column-width), max-content);
+            grid-template-columns:
+                var(--message-box-avatar-column-width)
+                minmax(0, 1fr);
             grid-template-areas:
-                ".      .         .        . .   "
-                "avatar sender    controls . time"
-                ".      more      .        . .   "
-                ".      reactions .        . .   "
-                ".      reminders .        . .   ";
+                "avatar time"
+                "avatar sender"
+                ".      more"
+                ".      reactions"
+                ".      reminders";
             /* We align items to the baseline on me messages,
                and unset the align-content property. */
             align-items: baseline;
             align-content: unset;
 
             .message-avatar {
-                /* Set the line-height to match the height of the avatar image
-                   to center me-messages within the baseline group. */
-                line-height: var(--message-box-avatar-height);
-                align-self: baseline;
-                /* Because the avatar may be the tallest element in a
-                   single-line me message, this margin preserves the
-                   overall height of the message box. */
                 margin-bottom: var(--message-box-vertical-margin);
-
-                .inline_profile_picture {
-                    /* We adjust the vertical space in me messages via
-                       the grid definition above. */
-                    margin-top: 0;
-                }
             }
 
-            .message_controls {
-                grid-area: controls;
-                position: static;
-                top: auto;
-                right: auto;
-                z-index: auto;
-                pointer-events: auto;
-                /* Because the controls height is smaller than the
-                   available grid row height on me-messages, we
-                   align to center here. */
+            .me_message_header {
+                grid-area: time;
+                display: flex;
+                align-items: baseline;
+                /* Without a minimum, the header would collapse to
+                   the size of the spinner when nothing else is
+                   inside it. */
+                min-height: var(--message-box-sender-line-height);
+            }
+
+            .message-time {
+                top: 0;
+                width: auto;
+                text-align: left;
+            }
+
+            .slow-send-spinner {
+                grid-area: unset;
+                top: 0;
                 align-self: center;
-                /* But, we need to adjust the bottom margin by the
-                   message box's vertical margin so that the controls
-                   appear properly aligned with both the time stamp
-                   and any me-message content--including inline images. */
-                margin-bottom: var(--message-box-vertical-margin);
             }
 
-            .message_edit_notice {
-                /* Unset the margin on a typical sender line. */
-                margin-left: 0;
+            .me_message_header:has(.message_edit_notice) .message-time {
+                display: block;
             }
 
             .message_sender {
-                /* Don't display message sender as flexbox for me-messages. */
                 display: block;
-                /* Set the same line-height as on message content for
-                   me-messages. */
                 line-height: var(--base-line-height-unitless);
-                /* Ensure the same spacing below messages as for any other
-                   paragraph. */
+                margin-top: calc(
+                    (
+                            var(--message-box-markdown-aligned-vertical-space) *
+                                0.5 * -1
+                        ) -
+                        var(--message-box-markdown-aligned-vertical-space)
+                );
                 padding-bottom: var(
                     --message-box-markdown-aligned-vertical-space
                 );
-                /* Don't allow an ellipsis to display on me-messages. This is
-                   an edge case that can happen with elements such as the
-                   inline audio player. */
                 overflow: visible;
+                font-style: italic;
 
-                /* Display message components inline, with wrapping white-space,
-                   so the sender name and message display as a continuous line
-                   of wrapping text. */
                 .sender_name {
                     white-space: normal;
                     display: inline;
@@ -496,12 +473,10 @@
 
             &.content_edit_mode {
                 .message_sender {
-                    /* Keep the me-message participating in the baseline */
                     visibility: hidden;
                 }
 
                 .message_edit {
-                    /* Use the sender grid area for the me-message edit/view-source box */
                     grid-area: sender;
                     margin-top: var(--message-box-vertical-margin);
                 }
@@ -531,16 +506,8 @@
         }
 
         .message_content {
-            /* Pull message content up closer to sender to
-               let the text baseline sit adjacent the bottom
-               of the avatar. We also need to account for the
-               padding atop .message_content. */
             margin-top: calc(
-                (
-                        var(--message-box-markdown-aligned-vertical-space) *
-                            0.5 * -1
-                    ) -
-                    var(--message-box-markdown-aligned-vertical-space)
+                var(--message-box-markdown-aligned-vertical-space) * -2
             );
             grid-area: message;
         }
@@ -623,74 +590,77 @@
 }
 
 .message_controls {
-    /* Let the controls occupy the entire height
-       of the row; inner flexboxes handle the
-       centering of the icons. */
     align-self: stretch;
-    /* Controls flex to the height of the top
-       row of the message box, and center
-       themselves within it. */
     display: flex;
     align-items: center;
-    /* Ensure square icons for better centering. */
     line-height: 1;
-    grid-area: message;
     position: absolute;
-    top: 1px;
-    right: 0;
+    top: 2px;
+    right: 2px;
     z-index: 1;
     pointer-events: none;
+    border-radius: 6px;
+    padding: 2px;
+    background-color: transparent;
+    box-shadow: none;
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+
+    /* Retry and dismiss buttons need to stay visible and clickable
+       without hovering, unlike every other control button. */
+    &:has(.failed_message_action) {
+        background-color: var(--color-background-popover-menu);
+        box-shadow: var(--box-shadow-popover-menu);
+        pointer-events: auto;
+    }
 
     .messagebox:hover & {
         background-color: var(--color-background-popover-menu);
-        border-radius: 6px;
         box-shadow: var(--box-shadow-popover-menu);
-        padding: 2px;
         pointer-events: auto;
 
         > .message_control_button {
             opacity: 1;
             visibility: visible;
+            transition:
+                opacity 0.2s ease,
+                visibility 0s ease;
         }
     }
 
     @media (hover: none) {
         .message_row.selected_msg_for_touchscreen & {
             background-color: var(--color-background-popover-menu);
-            border-radius: 6px;
             box-shadow: var(--box-shadow-popover-menu);
-            padding: 2px;
             pointer-events: auto;
 
             > .message_control_button {
                 opacity: 1;
                 visibility: visible;
+                transition:
+                    opacity 0.2s ease,
+                    visibility 0s ease;
             }
         }
     }
 
-    /* This is a bit tricky; we need to reserve space for the message
-       controls even when the message isn't hovered, so that hover
-       doesn't disturb the layout.  Usually that would be just
-       visibility: hidden, but that cannot be animated, so we set
-       opacity as well, which can be animated. */
     .message_control_button {
         opacity: 0;
         visibility: hidden;
-        transition: 0.2s ease;
-        transition-property: opacity, visibility;
-        /* Allow buttons to grow to fill the available space,
-           in concord with the column calculated for the
-           .messagebox-content grid. */
-        flex: 1 0 0;
-        /* Set the height to 100% to effectively flex open
-           on the vertical axis. */
-        height: 100%;
+        transition:
+            opacity 0.2s ease,
+            visibility 0s ease 0.2s;
+        flex: none;
+        box-sizing: border-box;
+        width: 1.5em;
+        height: 1.5em;
         /* Control buttons are their own flex containers,
            to more gracefully center the icons. */
         display: flex;
-        place-items: center center;
-        padding: calc(var(--icon-button-padding) - 5px);
+        align-items: center;
+        justify-content: center;
+        padding: 0.0625em;
         color: var(--color-message-action-visible);
 
         .emoji-message-control-button-container {
@@ -701,11 +671,7 @@
 
         & .message-controls-icon {
             cursor: pointer;
-            /* The icon body is 16px square at 16px/1em; the clickable
-               area for the icon is 26px wide by 25px tall, so these
-               values ensure a 26px x 25px clickable area for the icon. */
-            /* 2.5px at 16px/1em; 3px at 16px/1em */
-            padding: 0.1563em 0.1875em;
+            padding: 0.1875em;
 
             &::before {
                 /* We specify block display so the
@@ -751,7 +717,6 @@
 
     .edit_content_button_container,
     .move_message_button_container {
-        width: var(--message-box-icon-width);
         display: none;
 
         &.can-edit-content,
@@ -778,34 +743,6 @@
             color: var(--color-message-star-action);
             opacity: 1;
             visibility: visible !important;
-        }
-    }
-}
-
-.messagebox:hover .messagebox-content.is-me-message .message_controls {
-    background-color: transparent;
-    border-radius: 0;
-    box-shadow: none;
-    padding: 0;
-
-    > .message_control_button {
-        opacity: 1;
-        visibility: visible;
-    }
-}
-
-@media (hover: none) {
-    .message_row.selected_msg_for_touchscreen
-        .messagebox-content.is-me-message
-        .message_controls {
-        background-color: transparent;
-        border-radius: 0;
-        box-shadow: none;
-        padding: 0;
-
-        > .message_control_button {
-            opacity: 1;
-            visibility: visible;
         }
     }
 }
@@ -854,6 +791,8 @@
 
 .message-time {
     place-self: start start;
+    position: relative;
+    top: 1px;
     width: calc(var(--message-box-avatar-width) / 0.75);
     white-space: nowrap;
     overflow: visible;
@@ -1213,7 +1152,7 @@
 
 /* Show the spinner only for messages that are still locally echoed. */
 .locally-echoed .slow-send-spinner {
-    display: unset !important;
+    display: block;
     cursor: default;
 }
 
@@ -1224,11 +1163,32 @@
         .message_control_button:not(.failed_message_action) {
         visibility: hidden;
     }
-    /* The actual star icon is not added to the DOM when a
-       message is locally echoed, so we set the equivalent
-       width on its container. */
+
+    /* Suppress the popover chrome too, or a pending message shows a
+       highlighted box with no buttons in it. */
+    .messagebox:hover .message_controls:not(:has(.failed_message_action)) {
+        background-color: transparent;
+        box-shadow: none;
+        pointer-events: none;
+    }
+
+    @media (hover: none) {
+        &.selected_msg_for_touchscreen {
+            .message_controls
+                .message_control_button:not(.failed_message_action) {
+                visibility: hidden;
+            }
+
+            .message_controls:not(:has(.failed_message_action)) {
+                background-color: transparent;
+                box-shadow: none;
+                pointer-events: none;
+            }
+        }
+    }
+
     .star_container {
-        width: var(--message-box-icon-width);
+        width: 1.5em;
     }
 }
 
