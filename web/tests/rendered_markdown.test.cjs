@@ -142,7 +142,10 @@ const get_content_element = () => {
     $content.set_find_results(".message_inline_video", []);
     $content.set_find_results(".media-audio-element", []);
     $content.set_find_results("audio", []);
-    $content.set_find_results(".youtube-video, .embed-video, .embed-rich", []);
+    $content.set_find_results(
+        ".youtube-video, .embed-video, .message_embed[data-inline-rich-embed]",
+        [],
+    );
     $content.set_find_results(".message-card-embed-timestamp", []);
 
     set_message_for_message_content($content, undefined);
@@ -241,6 +244,25 @@ run_test("message_inline_video_transient_error_is_not_unsupported_format", () =>
 
     // 2 is MediaError.MEDIA_ERR_NETWORK.
     $video[0].error = {code: 2};
+    $video.trigger("error");
+
+    assert.ok(!$video_container.hasClass("video-format-unsupported"));
+});
+
+run_test("message_inline_video_aborted_error_is_not_unsupported_format", () => {
+    const $content = get_content_element();
+    const $video = $.create("video_element");
+    const $video_container = $.create("message_inline_video_container");
+    const $anchor = $.create("anchor_element");
+
+    $video.set_closest_results(".message_inline_video", $video_container);
+    $content.set_find_results(".message_inline_video video", $video);
+    $video_container.set_find_results("a", $anchor);
+
+    rm.update_elements($content);
+
+    // 1 is MediaError.MEDIA_ERR_ABORTED.
+    $video[0].error = {code: 1};
     $video.trigger("error");
 
     assert.ok(!$video_container.hasClass("video-format-unsupported"));

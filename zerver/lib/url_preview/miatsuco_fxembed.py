@@ -5,6 +5,7 @@ from urllib.parse import urlsplit
 
 import requests
 
+from zerver.lib.miatsuco_message_card_embed import MediaItem, Quote, SocialPost
 from zerver.lib.outgoing_http import OutgoingSession
 from zerver.lib.url_preview.types import UrlOEmbedData
 
@@ -65,11 +66,11 @@ def _parse_created_at(raw: str | None, platform: Literal["twitter", "bluesky"]) 
         return None
 
 
-def _parse_media(media: object) -> list[UrlOEmbedData.SocialPost.MediaItem]:
+def _parse_media(media: object) -> list[MediaItem]:
     if not isinstance(media, dict):
         return []
 
-    items: list[UrlOEmbedData.SocialPost.MediaItem] = []
+    items: list[MediaItem] = []
     for photo in media.get("photos") or []:
         if not isinstance(photo, dict):
             continue
@@ -78,7 +79,7 @@ def _parse_media(media: object) -> list[UrlOEmbedData.SocialPost.MediaItem]:
             continue
         kind: Literal["photo", "gif"] = "gif" if photo.get("type") == "gif" else "photo"
         items.append(
-            UrlOEmbedData.SocialPost.MediaItem(
+            MediaItem(
                 kind=kind,
                 url=url,
                 width=_int_or_none(photo.get("width")),
@@ -94,7 +95,7 @@ def _parse_media(media: object) -> list[UrlOEmbedData.SocialPost.MediaItem]:
         if url is None:
             continue
         items.append(
-            UrlOEmbedData.SocialPost.MediaItem(
+            MediaItem(
                 kind="video",
                 url=url,
                 width=_int_or_none(video.get("width")),
@@ -118,17 +119,15 @@ def _parse_author(
     )
 
 
-def _parse_quote(quote: object) -> UrlOEmbedData.SocialPost.Quote | None:
+def _parse_quote(quote: object) -> Quote | None:
     if not isinstance(quote, dict):
         return None
 
     if quote.get("type") == "tombstone":
-        return UrlOEmbedData.SocialPost.Quote(
-            unavailable_reason=_str_or_none(quote.get("reason")) or "unavailable"
-        )
+        return Quote(unavailable_reason=_str_or_none(quote.get("reason")) or "unavailable")
 
     author_name, author_handle, author_avatar_url = _parse_author(quote)
-    return UrlOEmbedData.SocialPost.Quote(
+    return Quote(
         author_name=author_name,
         author_handle=author_handle,
         author_avatar_url=author_avatar_url,
@@ -153,7 +152,7 @@ def _parse_status(
         image=media[0].url if media else author_avatar_url,
         title=author_name,
         description=text,
-        social_post=UrlOEmbedData.SocialPost(
+        social_post=SocialPost(
             platform=platform,
             author_name=author_name,
             author_handle=author_handle,

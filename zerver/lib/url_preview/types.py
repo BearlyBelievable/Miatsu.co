@@ -1,6 +1,7 @@
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 from typing import Literal
+
+from zerver.lib.miatsuco_message_card_embed import SocialPost
 
 
 class TransientPreviewFetchError(Exception):
@@ -32,37 +33,5 @@ class UrlOEmbedData(UrlEmbedData):
     html: str | None = None
     width: int | None = None
     height: int | None = None
-    social_post: "UrlOEmbedData.SocialPost | None" = None
-
-    @dataclass
-    class SocialPost:
-        platform: Literal["twitter", "bluesky"]
-        author_name: str | None = None
-        author_handle: str | None = None
-        author_avatar_url: str | None = None
-        text: str | None = None
-        permalink: str | None = None
-        created_at: datetime | None = None
-        like_count: int | None = None
-        repost_count: int | None = None
-        reply_count: int | None = None
-        media: "list[UrlOEmbedData.SocialPost.MediaItem]" = field(default_factory=list)
-        quote: "UrlOEmbedData.SocialPost.Quote | None" = None
-
-        @dataclass
-        class MediaItem:
-            kind: Literal["photo", "gif", "video"]
-            url: str
-            width: int | None = None
-            height: int | None = None
-            alt_text: str | None = None
-
-        @dataclass
-        class Quote:
-            author_name: str | None = None
-            author_handle: str | None = None
-            author_avatar_url: str | None = None
-            text: str | None = None
-            permalink: str | None = None
-            media: "list[UrlOEmbedData.SocialPost.MediaItem]" = field(default_factory=list)
-            unavailable_reason: str | None = None
+    # MiAtSu.Co edit: hooks out to miatsuco_message_card_embed.py.
+    social_post: SocialPost | None = None

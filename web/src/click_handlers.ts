@@ -22,6 +22,7 @@ import * as message_edit from "./message_edit.ts";
 import * as message_lists from "./message_lists.ts";
 import * as message_store from "./message_store.ts";
 import * as message_view from "./message_view.ts";
+import * as miatsuco_click_handlers from "./miatsuco_click_handlers.ts";
 import * as mouse_drag from "./mouse_drag.ts";
 import * as narrow_state from "./narrow_state.ts";
 import * as navigate from "./navigate.ts";
@@ -47,6 +48,9 @@ import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
 
 export function initialize(): void {
+    // MiAtSu.Co edit: hooks out to miatsuco_click_handlers.ts.
+    miatsuco_click_handlers.initialize();
+
     // MESSAGE CLICKING
 
     function initialize_long_tap(): void {
@@ -343,14 +347,6 @@ export function initialize(): void {
         $(this).addClass("selected_msg_for_touchscreen");
     });
 
-    // MiAtSu.Co fork edit:
-    // Clears the touch-controls popover when tapping outside a message row.
-    $("body").on("click", (e) => {
-        if ($(e.target).closest(".message_row").length === 0) {
-            $(".selected_msg_for_touchscreen").removeClass("selected_msg_for_touchscreen");
-        }
-    });
-
     // MESSAGE EDITING
 
     $("body").on("click", ".edit_content_button", function (e) {
@@ -372,12 +368,6 @@ export function initialize(): void {
             false,
             message,
         );
-        e.stopPropagation();
-    });
-    $("body").on("click", ".quote_message_button", function (e) {
-        assert(message_lists.current !== undefined);
-        const $row = message_lists.current.get_row(rows.id($(this).closest(".message_row")));
-        compose_reply.quote_messages({trigger: "message controls", message_id: rows.id($row)});
         e.stopPropagation();
     });
     $("body").on("click", ".on_hover_topic_edit", function (e) {
