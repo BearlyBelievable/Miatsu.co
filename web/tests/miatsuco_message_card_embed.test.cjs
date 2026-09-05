@@ -2,6 +2,10 @@
 
 const assert = require("node:assert/strict");
 
+const {JSDOM} = require("jsdom");
+
+const message_card_embed_test_cases = require("../../zerver/tests/fixtures/miatsuco_message_card_embed_test_cases.json");
+
 const {$t} = require("./lib/i18n.cjs");
 const {clock, zrequire} = require("./lib/namespace.cjs");
 const {run_test} = require("./lib/test.cjs");
@@ -64,4 +68,20 @@ run_test("switches to an absolute date after 24 hours", () => {
 run_test("leaves elements with no usable datetime untouched", () => {
     assert.equal(format_timestamp(undefined), "never-been-set");
     assert.equal(format_timestamp("not a date"), "never-been-set");
+});
+
+run_test("enhances every payload shape in the shared contract fixture", () => {
+    const {window} = new JSDOM("");
+    for (const test_case of message_card_embed_test_cases) {
+        const message_embed = window.document.createElement("div");
+        miatsuco_message_card_embed.enhance_message_card_embed(
+            window.document,
+            message_embed,
+            JSON.stringify(test_case.expected_payload),
+        );
+        assert.ok(
+            message_embed.classList.contains("message-card-embed"),
+            `${test_case.name} should enhance successfully`,
+        );
+    }
 });

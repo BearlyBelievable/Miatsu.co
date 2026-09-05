@@ -117,12 +117,7 @@ run_test("postprocess_media_and_embeds", () => {
     );
 });
 
-run_test("collapsed media when thumbnails are hidden", ({override}) => {
-    // With the personal setting off, media previews and link embeds are
-    // replaced by compact click-to-expand links. Exercises all collapse
-    // branches: the inline media wrapper, youtube, message embeds,
-    // vimeo/spotify/soundcloud, and inline images (alt text,
-    // URL-derived name, and a malformed URL).
+run_test("collapsed_media_inline_video_youtube_message_embed", ({override}) => {
     override(user_settings, "miatsuco_web_show_upload_thumbnails", false);
 
     assert.equal(
@@ -131,12 +126,22 @@ run_test("collapsed media when thumbnails are hidden", ({override}) => {
         ),
         '<span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;message_inline_image message_inline_video&quot;><a href=&quot;http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline-video-embed.mp4&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;><video src=&quot;http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline-video-embed.mp4&quot;></video></a></div>"><span class="message-media-collapsed-image-link">http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline-video-embed.mp4</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span><span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;youtube-video message_inline_image&quot;><a class=&quot;&quot; href=&quot;https://www.youtube.com/watch?v=tyKJueEk0XM&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;><img src=&quot;https://i.ytimg.com/vi/tyKJueEk0XM/default.jpg&quot;></a></div>" data-platform="youtube"><span class="message-media-collapsed-image-link">https://www.youtube.com/watch?v=tyKJueEk0XM</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span><span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;message_embed&quot;><a class=&quot;message_embed_image&quot; href=&quot;https://example.com/about&quot; style=&quot;background-image: url(&amp;quot;https://example.com/preview.jpeg&amp;quot;)&quot;></a><div class=&quot;data-container&quot;><div class=&quot;message_embed_title&quot;><a href=&quot;https://example.com/about&quot;>About us</a></div><div class=&quot;message_embed_description&quot;>All about us.</div></div></div>"><span class="message-media-collapsed-image-link">About us</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span>',
     );
+});
+
+run_test("collapsed_media_platform_detection", ({override}) => {
+    override(user_settings, "miatsuco_web_show_upload_thumbnails", false);
+
     assert.equal(
         postprocess_content(
-            '<div class="embed-video message_inline_image"><a href="https://vimeo.com/117446026" title="Vimeo Title"><img loading="lazy" src="https://i.vimeocdn.com/video/thumb.jpg"></a></div><div class="embed-rich message_inline_image"><a href="https://open.spotify.com/track/abc123" title="Spotify Title"><img loading="lazy" src="https://i.scdn.co/image/abc.jpg"></a></div><div class="embed-rich message_inline_image"><a href="https://soundcloud.com/artist/track" title="SoundCloud Title"><img loading="lazy" src="https://i1.sndcdn.com/artworks-abc-t500x500.jpg"></a></div>',
+            '<div class="embed-video message_inline_image"><a href="https://vimeo.com/117446026" title="Vimeo Title"><img loading="lazy" src="https://i.vimeocdn.com/video/thumb.jpg"></a></div><div class="message_embed" data-platform="spotify"><a class="message_embed_image" href="https://open.spotify.com/track/abc123" style="background-image: url(&quot;https://i.scdn.co/image/abc.jpg&quot;)"></a><div class="data-container"><div class="message_embed_title"><a href="https://open.spotify.com/track/abc123" title="Spotify Title">Spotify Title</a></div></div></div><div class="message_embed" data-platform="soundcloud"><a class="message_embed_image" href="https://soundcloud.com/artist/track" style="background-image: url(&quot;https://i1.sndcdn.com/artworks-abc-t500x500.jpg&quot;)"></a><div class="data-container"><div class="message_embed_title"><a href="https://soundcloud.com/artist/track" title="SoundCloud Title">SoundCloud Title</a></div></div></div>',
         ),
-        '<span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;embed-video message_inline_image&quot;><a href=&quot;https://vimeo.com/117446026&quot; title=&quot;Vimeo Title&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;><img loading=&quot;lazy&quot; src=&quot;https://i.vimeocdn.com/video/thumb.jpg&quot;></a></div>" data-platform="vimeo"><span class="message-media-collapsed-image-link">Vimeo Title</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span><span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;embed-rich message_inline_image&quot;><a href=&quot;https://open.spotify.com/track/abc123&quot; title=&quot;Spotify Title&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;><img loading=&quot;lazy&quot; src=&quot;https://i.scdn.co/image/abc.jpg&quot;></a></div>" data-platform="spotify"><span class="message-media-collapsed-image-link">Spotify Title</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span><span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;embed-rich message_inline_image&quot;><a href=&quot;https://soundcloud.com/artist/track&quot; title=&quot;SoundCloud Title&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;><img loading=&quot;lazy&quot; src=&quot;https://i1.sndcdn.com/artworks-abc-t500x500.jpg&quot;></a></div>" data-platform="soundcloud"><span class="message-media-collapsed-image-link">SoundCloud Title</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span>',
+        '<span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;embed-video message_inline_image&quot;><a href=&quot;https://vimeo.com/117446026&quot; title=&quot;Vimeo Title&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;><img loading=&quot;lazy&quot; src=&quot;https://i.vimeocdn.com/video/thumb.jpg&quot;></a></div>" data-platform="vimeo"><span class="message-media-collapsed-image-link">Vimeo Title</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span><span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;message_embed&quot; data-platform=&quot;spotify&quot;><a class=&quot;message_embed_image&quot; href=&quot;https://open.spotify.com/track/abc123&quot; style=&quot;background-image: url(&amp;quot;https://i.scdn.co/image/abc.jpg&amp;quot;)&quot;></a><div class=&quot;data-container&quot;><div class=&quot;message_embed_title&quot;><a href=&quot;https://open.spotify.com/track/abc123&quot; title=&quot;Spotify Title&quot;>Spotify Title</a></div></div></div>" data-platform="spotify"><span class="message-media-collapsed-image-link">Spotify Title</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span><span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;message_embed&quot; data-platform=&quot;soundcloud&quot;><a class=&quot;message_embed_image&quot; href=&quot;https://soundcloud.com/artist/track&quot; style=&quot;background-image: url(&amp;quot;https://i1.sndcdn.com/artworks-abc-t500x500.jpg&amp;quot;)&quot;></a><div class=&quot;data-container&quot;><div class=&quot;message_embed_title&quot;><a href=&quot;https://soundcloud.com/artist/track&quot; title=&quot;SoundCloud Title&quot;>SoundCloud Title</a></div></div></div>" data-platform="soundcloud"><span class="message-media-collapsed-image-link">SoundCloud Title</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span>',
     );
+});
+
+run_test("collapsed_media_inline_images", ({override}) => {
+    override(user_settings, "miatsuco_web_show_upload_thumbnails", false);
+
     assert.equal(
         postprocess_content(
             '<img alt="dinky-inline-image" class="inline-image" data-original-content-type="image/png" data-original-dimensions="128x128" data-original-src="/user_uploads/path/to/dinky-inline-image.png" src="/user_uploads/thumbnail/path/to/dinky-inline-image.png/840x560.webp">',
@@ -154,6 +159,39 @@ run_test("collapsed media when thumbnails are hidden", ({override}) => {
             '<img class="inline-image" data-original-src="/user_uploads/path/to/bad%E0%A4.png" src="/user_uploads/thumbnail/path/to/bad%E0%A4.png/840x560.webp">',
         ),
         '<span class="message-media-collapsed-image" data-collapsed-image-html="<img class=&quot;inline-image&quot; data-original-src=&quot;/user_uploads/path/to/bad%E0%A4.png&quot; src=&quot;/user_uploads/thumbnail/path/to/bad%E0%A4.png/840x560.webp&quot;>"><span class="message-media-collapsed-image-link">bad%E0%A4.png</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span>',
+    );
+});
+
+run_test("collapsed_message_embed_image_link_fallback", ({override}) => {
+    override(user_settings, "miatsuco_web_show_upload_thumbnails", false);
+
+    assert.equal(
+        postprocess_content(
+            '<div class="message_embed"><a class="message_embed_image" href="https://example.com/about" style="background-image: url(&quot;https://example.com/preview.jpeg&quot;)"></a><div class="data-container"><div class="message_embed_description">All about us.</div></div></div>',
+        ),
+        '<span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;message_embed&quot;><a class=&quot;message_embed_image&quot; href=&quot;https://example.com/about&quot; style=&quot;background-image: url(&amp;quot;https://example.com/preview.jpeg&amp;quot;)&quot;></a><div class=&quot;data-container&quot;><div class=&quot;message_embed_description&quot;>All about us.</div></div></div>"><span class="message-media-collapsed-image-link">https://example.com/about</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span>',
+    );
+});
+
+run_test("collapsed_message_embed_without_title_or_image_link_is_not_collapsed", ({override}) => {
+    override(user_settings, "miatsuco_web_show_upload_thumbnails", false);
+
+    assert.equal(
+        postprocess_content(
+            '<div class="message_embed"><div class="data-container"><div class="message_embed_description">All about us.</div></div></div>',
+        ),
+        '<div class="message_embed"><div class="data-container"><div class="message_embed_description">All about us.</div></div></div>',
+    );
+});
+
+run_test("collapsed_message_embed_empty_title_text_falls_back_to_href", ({override}) => {
+    override(user_settings, "miatsuco_web_show_upload_thumbnails", false);
+
+    assert.equal(
+        postprocess_content(
+            '<div class="message_embed"><a class="message_embed_image" href="https://example.com/about" style="background-image: url(&quot;https://example.com/preview.jpeg&quot;)"></a><div class="data-container"><div class="message_embed_title"><a href="https://example.com/about"></a></div><div class="message_embed_description">All about us.</div></div></div>',
+        ),
+        '<span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;message_embed&quot;><a class=&quot;message_embed_image&quot; href=&quot;https://example.com/about&quot; style=&quot;background-image: url(&amp;quot;https://example.com/preview.jpeg&amp;quot;)&quot;></a><div class=&quot;data-container&quot;><div class=&quot;message_embed_title&quot;><a href=&quot;https://example.com/about&quot;></a></div><div class=&quot;message_embed_description&quot;>All about us.</div></div></div>"><span class="message-media-collapsed-image-link">https://example.com/about</span><a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview"><i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i></a></span>',
     );
 });
 
@@ -689,6 +727,29 @@ run_test("message_card_embed_malformed_payload_is_ignored", () => {
     assert.ok(result.includes('class="message_embed_title"'));
 });
 
+run_test("message_card_embed_schema_violation_payload_is_ignored", () => {
+    const payload = {
+        platform: "mastodon",
+        author_name: "jack",
+        author_handle: "jack",
+        author_avatar_url: "https://example.com/avatar.jpg",
+        created_at: "2006-03-21T20:50:14Z",
+        text: "just setting up my toot",
+        media: [],
+        like_count: null,
+        repost_count: null,
+        reply_count: null,
+        permalink: "https://mastodon.social/@jack/1",
+        fallback_link: "https://mastodon.social/@jack/1",
+        quote: null,
+    };
+
+    const result = postprocess_content(build_message_card_embed_html(payload));
+
+    assert.ok(!result.includes("message-card-embed-header"));
+    assert.ok(result.includes('class="message_embed_title"'));
+});
+
 run_test("message_card_embed_stats_formatting", () => {
     const payload = {
         platform: "twitter",
@@ -795,6 +856,46 @@ run_test("message_card_embed_collapsed_when_thumbnails_hidden", ({override}) => 
             "</span>",
     );
 });
+
+run_test(
+    "message_card_embed_collapsed_when_thumbnails_hidden_with_media_and_quote",
+    ({override}) => {
+        // Collapsing happens before the payload is parsed against the schema.
+        override(user_settings, "miatsuco_web_show_upload_thumbnails", false);
+
+        const payload = {
+            platform: "twitter",
+            author_name: "jack",
+            author_handle: "jack",
+            author_avatar_url: null,
+            created_at: null,
+            text: "look at this",
+            media: [{kind: "photo", url: "https://example.com/photo.jpg", alt_text: "A photo."}],
+            like_count: null,
+            repost_count: null,
+            reply_count: null,
+            permalink: "https://x.com/jack/status/20",
+            fallback_link: "https://x.com/jack/status/20",
+            quote: {
+                unavailable_reason: null,
+                author_name: "Other",
+                author_handle: "other",
+                text: "watch this",
+                media: [],
+            },
+        };
+
+        assert.equal(
+            postprocess_content(build_message_card_embed_html(payload)),
+            '<span class="message-media-collapsed-image" data-collapsed-image-html="<div class=&quot;message_embed&quot; data-platform=&quot;twitter&quot; data-message-card-embed=&quot;{&amp;quot;platform&amp;quot;:&amp;quot;twitter&amp;quot;,&amp;quot;author_name&amp;quot;:&amp;quot;jack&amp;quot;,&amp;quot;author_handle&amp;quot;:&amp;quot;jack&amp;quot;,&amp;quot;author_avatar_url&amp;quot;:null,&amp;quot;created_at&amp;quot;:null,&amp;quot;text&amp;quot;:&amp;quot;look at this&amp;quot;,&amp;quot;media&amp;quot;:[{&amp;quot;kind&amp;quot;:&amp;quot;photo&amp;quot;,&amp;quot;url&amp;quot;:&amp;quot;https://example.com/photo.jpg&amp;quot;,&amp;quot;alt_text&amp;quot;:&amp;quot;A photo.&amp;quot;}],&amp;quot;like_count&amp;quot;:null,&amp;quot;repost_count&amp;quot;:null,&amp;quot;reply_count&amp;quot;:null,&amp;quot;permalink&amp;quot;:&amp;quot;https://x.com/jack/status/20&amp;quot;,&amp;quot;fallback_link&amp;quot;:&amp;quot;https://x.com/jack/status/20&amp;quot;,&amp;quot;quote&amp;quot;:{&amp;quot;unavailable_reason&amp;quot;:null,&amp;quot;author_name&amp;quot;:&amp;quot;Other&amp;quot;,&amp;quot;author_handle&amp;quot;:&amp;quot;other&amp;quot;,&amp;quot;text&amp;quot;:&amp;quot;watch this&amp;quot;,&amp;quot;media&amp;quot;:[]}}&quot;><a class=&quot;message_embed_image&quot; href=&quot;https://x.com/jack/status/20&quot; style=&quot;background-image: url(&amp;quot;https://example.com/photo.jpg&amp;quot;)&quot;></a><div class=&quot;data-container&quot;><div class=&quot;message_embed_title&quot;><a href=&quot;https://x.com/jack/status/20&quot; title=&quot;X - Post by jack (@jack)&quot;>X - Post by jack (@jack)</a></div><div class=&quot;message_embed_description&quot;>placeholder</div></div></div>" data-platform="twitter">' +
+                '<span class="message-media-collapsed-image-link">X - Post by jack (@jack)</span>' +
+                '<a role="button" tabindex="0" class="message-media-expand-button icon-button icon-button-square icon-button-neutral" aria-label="translated: Show preview">' +
+                '<i class="zulip-icon zulip-icon-expand" aria-hidden="true"></i>' +
+                "</a>" +
+                "</span>",
+        );
+    },
+);
 
 run_test("message_card_embed_quote_with_video", () => {
     const payload = {

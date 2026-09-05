@@ -11,8 +11,7 @@ const IFRAME_SANDBOX =
 // under this min width, so we hold it at this min and scale it instead.
 const SPOTIFY_EMBED_WIDTH_PX = 280;
 
-function update_spotify_narrow_scale(container: HTMLElement, parent: HTMLElement): void {
-    const available_width = parent.clientWidth;
+function update_spotify_narrow_scale(container: HTMLElement, available_width: number): void {
     const is_narrow = available_width > 0 && available_width < SPOTIFY_EMBED_WIDTH_PX;
     requestAnimationFrame(() => {
         container.classList.toggle("spotify-embed-narrow", is_narrow);
@@ -39,7 +38,7 @@ function ensure_spotify_narrow_scale_observer(): ResizeObserver | undefined {
         for (const entry of entries) {
             const container = entry.target.querySelector<HTMLElement>(":scope > .embed-rich");
             if (container !== null && entry.target instanceof HTMLElement) {
-                update_spotify_narrow_scale(container, entry.target);
+                update_spotify_narrow_scale(container, entry.contentRect.width);
             }
         }
     });
@@ -55,7 +54,7 @@ function ensure_spotify_narrow_scale(container: HTMLElement): void {
     if (parent === null) {
         return;
     }
-    update_spotify_narrow_scale(container, parent);
+    update_spotify_narrow_scale(container, parent.clientWidth);
     observer.observe(parent);
 }
 
@@ -108,10 +107,29 @@ function resolve_css_color_var(
     document.body.append(probe);
     const resolved = getComputedStyle(probe).getPropertyValue(css_property);
     probe.remove();
-    return resolved;
+    return resolved || undefined;
 }
 
-function css_color_to_hex(value: string): string {
+type VimeoColors = {
+    background: string;
+    accent: string;
+    text_icon: string;
+};
+
+function resolve_vimeo_colors(): VimeoColors | undefined {
+    const background = resolve_css_color_var("background-color", "--color-background");
+    const accent = resolve_css_color_var(
+        "background-color",
+        "--color-background-brand-solid-action-button",
+    );
+    const text_icon = resolve_css_color_var("color", "--color-text-default");
+    if (background === undefined || accent === undefined || text_icon === undefined) {
+        return undefined;
+    }
+    return {background, accent, text_icon};
+}
+
+export function css_color_to_hex(value: string): string {
     const match = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(value);
     if (!match) {
         return "000000";
@@ -121,10 +139,9 @@ function css_color_to_hex(value: string): string {
         .join("");
 }
 
-function build_embed_source(container: JQuery, anchor: JQuery, url: string): EmbedSource {
-    const data_id = anchor.attr("data-id");
-
+function build_embed_source(container: JQuery, url: string, embed_html: string): EmbedSource {
     if (container.hasClass("youtube-video")) {
+        const data_id = embed_html;
         let source = "https://www.youtube-nocookie.com/embed/" + data_id;
         const start_time = util.parse_youtube_start_time(url);
         if (start_time !== undefined) {
@@ -137,7 +154,7 @@ function build_embed_source(container: JQuery, anchor: JQuery, url: string): Emb
         const params = new URLSearchParams({
             url,
             auto_play: "false",
-            show_artwork: realm.realm_media_preview_size < 150 ? "false" : "true",
+            show_artwork: realm.realm_media_preview_size <= 150 ? "false" : "true",
             visual: "false",
         });
         // Matches the widget's primary color to Zulip accent, like the
@@ -158,8 +175,6 @@ function build_embed_source(container: JQuery, anchor: JQuery, url: string): Emb
         };
     }
 
-    const embed_html = data_id ?? "";
-
     if (/^https?:\/\/open\.spotify\.com\//i.test(url)) {
         const spotify_src = extract_safe_iframe_src(embed_html);
         if (spotify_src !== undefined) {
@@ -176,17 +191,12 @@ function build_embed_source(container: JQuery, anchor: JQuery, url: string): Emb
     if (real_src !== undefined) {
         let final_src = real_src;
         if (/^https?:\/\/(www\.)?vimeo\.com\//i.test(url)) {
-            const background = resolve_css_color_var("background-color", "--color-background");
-            const accent = resolve_css_color_var(
-                "background-color",
-                "--color-background-brand-solid-action-button",
-            );
-            const text_icon = resolve_css_color_var("color", "--color-text-default");
-            if (background !== undefined && accent !== undefined && text_icon !== undefined) {
+            const colors = resolve_vimeo_colors();
+            if (colors !== undefined) {
                 const vimeo_src = new URL(real_src);
                 vimeo_src.searchParams.set(
                     "colors",
-                    `${css_color_to_hex(background)},${css_color_to_hex(accent)},${css_color_to_hex(text_icon)},000000`,
+                    `${css_color_to_hex(colors.background)},${css_color_to_hex(colors.accent)},${css_color_to_hex(colors.text_icon)},000000`,
                 );
                 final_src = vimeo_src.toString();
             }
@@ -211,14 +221,72 @@ function build_embed_source(container: JQuery, anchor: JQuery, url: string): Emb
     };
 }
 
-function load_embed(container: JQuery): void {
+type EmbedData = {
+    url: string;
+    embed_html: string;
+    width: number | undefined;
+    height: number | undefined;
+    is_rich_embed_card: boolean;
+};
+
+function parse_positive_number(value: string | undefined): number | undefined {
+    const parsed = Number(value);
+    return !Number.isNaN(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function extract_embed_data(container: JQuery): EmbedData | undefined {
+    const rich_embed_json = container.attr("data-inline-rich-embed");
+    if (rich_embed_json !== undefined) {
+        const anchor = container.find(".message_embed_title a, .message_embed_image");
+        const url = anchor.attr("href");
+        if (url === undefined) {
+            return undefined;
+        }
+        let payload: unknown;
+        try {
+            payload = JSON.parse(rich_embed_json);
+        } catch {
+            return undefined;
+        }
+        if (typeof payload !== "object" || payload === null) {
+            return undefined;
+        }
+        const html = "html" in payload && typeof payload.html === "string" ? payload.html : "";
+        const width =
+            "width" in payload && typeof payload.width === "number" ? payload.width : undefined;
+        const height =
+            "height" in payload && typeof payload.height === "number" ? payload.height : undefined;
+        return {
+            url,
+            embed_html: html,
+            width,
+            height,
+            is_rich_embed_card: true,
+        };
+    }
+
     const anchor = container.find("a");
     const url = anchor.attr("href");
     if (url === undefined) {
+        return undefined;
+    }
+    return {
+        url,
+        embed_html: anchor.attr("data-id") ?? "",
+        width: parse_positive_number(container.attr("data-width")),
+        height: parse_positive_number(container.attr("data-height")),
+        is_rich_embed_card: false,
+    };
+}
+
+function load_embed(container: JQuery): void {
+    const embed_data = extract_embed_data(container);
+    if (embed_data === undefined) {
         return;
     }
+    const {url, embed_html, width, height, is_rich_embed_card} = embed_data;
 
-    const embed = build_embed_source(container, anchor, url);
+    const embed = build_embed_source(container, url, embed_html);
     if (!is_safe_embed_src(embed.src)) {
         return;
     }
@@ -237,17 +305,21 @@ function load_embed(container: JQuery): void {
     }
 
     if (embed.height !== "css") {
-        const width = Number(container.attr("data-width"));
-        const height = embed.height ?? Number(container.attr("data-height"));
-        if (!Number.isNaN(width) && width > 0 && !Number.isNaN(height) && height > 0) {
-            container.css({height: "auto", "aspect-ratio": `${width} / ${height}`});
-        } else if (!Number.isNaN(height) && height > 0) {
-            container.css("height", height + "px");
+        const final_height = embed.height ?? height;
+        if (width !== undefined && final_height !== undefined) {
+            container.css({height: "auto", "aspect-ratio": `${width} / ${final_height}`});
+        } else if (final_height !== undefined) {
+            container.css("height", final_height + "px");
         }
     }
 
     container.empty().append($iframe);
     container.addClass("inline-embed-loaded");
+    if (is_rich_embed_card) {
+        // The base card renders as a plain message_embed so a client that
+        // doesn't run this enhancement still shows something recognizable.
+        container.addClass("embed-rich");
+    }
 
     if (/^https?:\/\/open\.spotify\.com\//i.test(url)) {
         const container_element = container[0];
@@ -290,15 +362,22 @@ function ensure_embed_intersection_observer(): IntersectionObserver | undefined 
 
 export function enhance_inline_embeds(content: JQuery): void {
     const observer = ensure_embed_intersection_observer();
-    content.find(".youtube-video, .embed-video, .embed-rich").each((_index, element) => {
-        const $container = $(element);
-        if ($container.hasClass("inline-embed-loaded")) {
-            return;
-        }
-        if (observer === undefined) {
-            load_embed($container);
-            return;
-        }
-        observer.observe(element);
-    });
+    content
+        .find(".youtube-video, .embed-video, .message_embed[data-inline-rich-embed]")
+        .each((_index, element) => {
+            const $container = $(element);
+            if ($container.hasClass("inline-embed-loaded")) {
+                return;
+            }
+            if (observer === undefined) {
+                load_embed($container);
+                return;
+            }
+            observer.observe(element);
+        });
+}
+
+export function reset_observers_for_testing(): void {
+    spotify_narrow_scale_observer = undefined;
+    embed_intersection_observer = undefined;
 }

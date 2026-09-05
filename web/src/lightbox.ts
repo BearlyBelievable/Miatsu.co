@@ -6,15 +6,11 @@ import type {PanZoom} from "panzoom";
 import render_lightbox_overlay from "../templates/lightbox_overlay.hbs";
 
 import * as blueslip from "./blueslip.ts";
-import {$t} from "./i18n.ts";
 import * as message_store from "./message_store.ts";
-import * as miatsuco_inline_embed from "./miatsuco_inline_embed.ts";
-import * as miatsuco_inline_video from "./miatsuco_inline_video.ts";
-import * as miatsuco_message_card_embed from "./miatsuco_message_card_embed.ts";
+import * as miatsuco_collapsed_media from "./miatsuco_collapsed_media.ts";
 import * as overlays from "./overlays.ts";
 import * as people from "./people.ts";
 import * as popovers from "./popovers.ts";
-import {postprocess_content} from "./postprocess_content.ts";
 import * as rows from "./rows.ts";
 import * as util from "./util.ts";
 
@@ -761,107 +757,7 @@ export function initialize(): void {
         handle_inline_media_element_click($video);
     });
 
-    $("#main_div, #compose .preview_content").on(
-        "click",
-        ".message-media-collapsed-image-link, .message-media-expand-button",
-        (e) => {
-            // Personal preference: previews were collapsed to a
-            // plain link to save bandwidth. Expand this one preview
-            // in place on demand, rather than navigating away.
-            e.preventDefault();
-            e.stopPropagation();
-
-            const $wrapper = $(e.currentTarget).closest(".message-media-collapsed-image");
-            const original_html = $wrapper[0]?.dataset["collapsedImageHtml"];
-            if (original_html === undefined) {
-                blueslip.warn("Collapsed media wrapper is missing its original markup.");
-                return;
-            }
-
-            const expanded_html = postprocess_content(original_html, {
-                force_show_upload_thumbnails: true,
-            });
-            const expanded_fragment = document.createDocumentFragment();
-            expanded_fragment.append(...$.parseHTML(expanded_html));
-            const $expanded = $([...expanded_fragment.children]);
-
-            // Let the user undo this and re-collapse the preview
-            // back to a link, regardless of whatever the personal
-            // preference is currently set to; clicking this button
-            // is itself an unambiguous, one-off request that applies
-            // only to this one preview.
-            //
-            // This button is a sibling of $expanded within the row
-            // wrapper below, not nested inside it: several other
-            // click handlers here key off of any <a> found inside
-            // .message-media-preview-image or
-            // .message-media-inline-image to assume an <img> is
-            // present, which isn't true of this button.
-            const collapse_button_elt = document.createElement("a");
-            collapse_button_elt.setAttribute("role", "button");
-            collapse_button_elt.setAttribute("tabindex", "0");
-            collapse_button_elt.classList.add(
-                "message-media-recollapse-button",
-                "icon-button",
-                "icon-button-square",
-                "icon-button-neutral",
-            );
-            const collapse_icon_elt = document.createElement("i");
-            collapse_icon_elt.classList.add("zulip-icon", "zulip-icon-collapse");
-            collapse_icon_elt.setAttribute("aria-hidden", "true");
-            collapse_button_elt.append(collapse_icon_elt);
-            const $collapse_button = $(collapse_button_elt);
-            $collapse_button.attr("aria-label", $t({defaultMessage: "Hide preview"}));
-            collapse_button_elt.dataset["collapsedImageHtml"] = original_html;
-
-            const $row = $(document.createElement("span"));
-            $row.addClass("message-media-expanded-image-row");
-            $row.append($expanded, $collapse_button);
-
-            // Expanding bypasses rendered_markdown.update_elements, so the
-            // fork's usual enhancements need to run here too.
-            miatsuco_inline_video.enhance_inline_videos($row);
-            miatsuco_inline_embed.enhance_inline_embeds($row);
-            miatsuco_message_card_embed.enhance_message_card_embed_timestamps($row);
-
-            $wrapper.replaceWith($row);
-
-            // This expanded markup bypasses rendered_markdown.update_elements,
-            // which is where Safari gets its manual video load(). Without
-            // this, an expanded video's thumbnail does not load on Safari.
-            // The element must already be in the DOM (done just above by
-            // replaceWith), so this runs last.
-            if (util.is_client_safari()) {
-                for (const video of $row.find<HTMLMediaElement>(".message_inline_video video")) {
-                    video.load();
-                }
-            }
-        },
-    );
-
-    $("#main_div, #compose .preview_content").on(
-        "click",
-        ".message-media-recollapse-button",
-        (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const $button = $(e.currentTarget).closest(".message-media-recollapse-button");
-            const original_html = $button[0]?.dataset["collapsedImageHtml"];
-            if (original_html === undefined) {
-                blueslip.warn("Recollapse button is missing its original markup.");
-                return;
-            }
-
-            const collapsed_html = postprocess_content(original_html, {
-                force_hide_upload_thumbnails: true,
-            });
-            const collapsed_fragment = document.createDocumentFragment();
-            collapsed_fragment.append(...$.parseHTML(collapsed_html));
-            const $collapsed = $([...collapsed_fragment.children]);
-            $button.closest(".message-media-expanded-image-row").replaceWith($collapsed);
-        },
-    );
+    miatsuco_collapsed_media.initialize();
 
     $("#lightbox_overlay .download").on("click", function () {
         this.blur();
