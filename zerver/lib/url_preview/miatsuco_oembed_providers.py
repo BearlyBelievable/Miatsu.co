@@ -42,6 +42,25 @@ class SpotifyProvider(BaseProvider):
     oembed_endpoint = "https://open.spotify.com/oembed"
 
 
+# YouTube's oEmbed discovery link tag isn't reliably reachable from every
+# network, so this hardcodes the real endpoint instead of depending on it.
+class YoutubeProvider(BaseProvider):
+    priority = 10
+    oembed_schemas = [
+        "https://www.youtube.com/*",
+        "http://www.youtube.com/*",
+        "https://youtube.com/*",
+        "http://youtube.com/*",
+        "https://m.youtube.com/*",
+        "http://m.youtube.com/*",
+        "https://www.youtube-nocookie.com/*",
+        "http://www.youtube-nocookie.com/*",
+        "https://youtu.be/*",
+        "http://youtu.be/*",
+    ]
+    oembed_endpoint = "https://www.youtube.com/oembed"
+
+
 def _xml_content_parse_without_getiterator(self: XmlParser, content: str) -> dict[str, object]:
     # Element.getiterator() was removed in Python 3.9. pyoembed
     # (last released 2017, last commit 2021) never updated for it,

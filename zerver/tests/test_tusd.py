@@ -7,6 +7,7 @@ from django.test import override_settings
 from typing_extensions import ParamSpec
 
 from zerver.lib.cache import cache_delete, get_realm_used_upload_space_cache_key
+from zerver.lib.mime_types import AUDIO_INLINE_MIME_TYPES
 from zerver.lib.test_classes import ZulipTestCase
 from zerver.lib.test_helpers import create_s3_buckets, find_key_by_email, use_s3_backend
 from zerver.lib.upload import (
@@ -533,6 +534,79 @@ class TusdPreFinishTest(ZulipTestCase):
         assert settings.LOCAL_FILES_DIR is not None
         self.assertTrue(os.path.exists(os.path.join(settings.LOCAL_FILES_DIR, path_id)))
         self.assertTrue(os.path.exists(os.path.join(settings.LOCAL_FILES_DIR, f"{path_id}.info")))
+
+    def test_tusd_pre_finish_hook_audio_extension_fallback(self) -> None:
+        # Many operating systems have no MIME type registered for some
+        # audio formats, so the browser (or Uppy's own MIME type
+        # guessing) can report a generic application/octet-stream
+        # File.type for a perfectly valid, server-supported audio
+        # file. The mp3 case of this (a wrong, non-generic guess
+        # rather than a generic one) is covered by
+        # test_miatsuco_mp3_audio.py; this covers every other
+        # supported audio extension falling back to a guess from the
+        # extension, so a false assumption that "well-known" formats
+        # don't need this fallback doesn't quietly break one of them.
+        self.login("hamlet")
+        hamlet = self.example_user("hamlet")
+
+        audio_extensions_and_expected_types = {
+            "song.aac": "audio/aac",
+            "song.flac": "audio/flac",
+            "song.m4a": "audio/mp4",
+            "song.wav": "audio/wav",
+            "song.weba": "audio/webm",
+            "song.oga": "audio/ogg",
+            "song.opus": "audio/ogg",
+        }
+        for filename, expected_content_type in audio_extensions_and_expected_types.items():
+            with self.subTest(filename=filename):
+                path_id = generate_message_upload_path(
+                    str(hamlet.realm.id), sanitize_name(filename)
+                )
+                store_message_attachment(
+                    path_id,
+                    filename,
+                    "application/octet-stream",
+                    b"fake audio bytes",
+                    hamlet,
+                    hamlet.realm,
+                )
+
+                info = TusUpload(
+                    id=path_id,
+                    size=len(b"fake audio bytes"),
+                    offset=0,
+                    size_is_deferred=False,
+                    meta_data={
+                        "filename": filename,
+                        "filetype": "application/octet-stream",
+                        "name": filename,
+                        "type": "application/octet-stream",
+                    },
+                    is_final=False,
+                    is_partial=False,
+                    partial_uploads=None,
+                    storage=None,
+                )
+                store_message_attachment(
+                    f"{path_id}.info",
+                    f"{filename}.info",
+                    "application/octet-stream",
+                    info.model_dump_json().encode(),
+                    hamlet,
+                    hamlet.realm,
+                )
+
+                result = self.client_post(
+                    "/api/internal/tusd",
+                    self.request(info).model_dump(),
+                    content_type="application/json",
+                )
+                self.assertEqual(result.status_code, 200)
+
+                attachment = Attachment.objects.get(path_id=path_id)
+                self.assertEqual(attachment.content_type, expected_content_type)
+                self.assertIn(attachment.content_type, AUDIO_INLINE_MIME_TYPES)
 
     def test_no_metadata(self) -> None:
         self.login("hamlet")

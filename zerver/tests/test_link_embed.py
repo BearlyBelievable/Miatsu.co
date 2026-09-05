@@ -128,6 +128,33 @@ class OembedTestCase(ZulipTestCase):
         self.assertEqual(data.title, response_data["title"])
 
     @responses.activate
+    def test_youtube_provider_is_not_autodiscovered(self) -> None:
+        response_data = {
+            "type": "video",
+            "title": "Nearly Lost You",
+            "html": "<iframe></iframe>",
+            "thumbnail_url": "https://i.ytimg.com/vi/v1fUdD2ToPU/hqdefault.jpg",
+            "version": "1.0",
+            "width": 640,
+            "height": 480,
+        }
+        url = "https://www.youtube.com/watch?v=v1fUdD2ToPU"
+        provider = get_provider(url)
+        self.assertEqual(type(provider).__name__, "YoutubeProvider")
+        reconstructed_url = reconstruct_url(url)
+        responses.add(
+            responses.GET,
+            reconstructed_url,
+            json=response_data,
+            status=200,
+        )
+
+        data = get_oembed_data(url)
+        assert data is not None
+        self.assertIsInstance(data, UrlOEmbedData)
+        self.assertEqual(data.title, response_data["title"])
+
+    @responses.activate
     def test_video_provider_xml_response(self) -> None:
         xml_response = """<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <oembed>

@@ -624,6 +624,69 @@ test("uppy_events", ({override_rewire, mock_template}) => {
     assert.equal($("textarea#compose-textarea").val(), "user modified text");
 });
 
+test("uppy_events_audio_no_browser_mime_type", ({override_rewire}) => {
+    mock_banners();
+    override_rewire(compose_ui, "smart_insert_inline", noop);
+    override_rewire(compose_validate, "validate_and_update_send_button_status", noop);
+
+    const callbacks = {};
+    // Some operating systems have no MIME type registered for .mp3,
+    // so the browser can report an empty File.type here even for a
+    // format as common as this one.
+    const file = {
+        id: "uppy-song.mp3",
+        name: "song.mp3",
+        type: "",
+        meta: {
+            name: "song.mp3",
+        },
+    };
+
+    uppy_stub = function () {
+        return {
+            setMeta() {},
+            use() {},
+            on(event_name, callback) {
+                callbacks[event_name] = callback;
+            },
+            removeFile() {},
+            getFiles() {
+                return [];
+            },
+        };
+    };
+    upload.setup_upload(upload.compose_config);
+
+    const on_upload_success_callback = callbacks["upload-success"];
+    const response = {
+        status: 200,
+        uploadURL: "/api/v1/tus/rue1c-MlMUjDAUdkRrEM4BTJ",
+        body: {
+            xhr: {
+                responseText: JSON.stringify({
+                    url: "/user_uploads/4/cb/rue1c-MlMUjDAUdkRrEM4BTJ/song.mp3",
+                    filename: "song.mp3",
+                }),
+            },
+        },
+    };
+
+    let compose_ui_replace_syntax_called = false;
+    override_rewire(compose_ui, "replace_syntax", (old_syntax, new_syntax, $textarea) => {
+        compose_ui_replace_syntax_called = true;
+        assert.equal(old_syntax, "[translated: Uploading song.mp3…]()");
+        assert.equal(
+            new_syntax,
+            "![song.mp3](/user_uploads/4/cb/rue1c-MlMUjDAUdkRrEM4BTJ/song.mp3)",
+        );
+        assert.equal($textarea[0], $("textarea#compose-textarea")[0]);
+    });
+    override_rewire(compose_ui, "autosize_textarea", noop);
+    on_upload_success_callback(file, response);
+
+    assert.ok(compose_ui_replace_syntax_called);
+});
+
 test("main_file_drop_compose_mode", ({override, override_rewire}) => {
     uppy_stub = function () {
         return {

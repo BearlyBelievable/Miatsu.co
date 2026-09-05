@@ -769,6 +769,15 @@
         /* Allow browser-native media players
            to resize in narrow viewports. */
         max-width: calc(100% - 30px);
+        /* Scales with the media preview size setting, like other
+           inline embeds, though a full-size thumbnail height would
+           be far too tall for a single control bar. */
+        height: calc(var(--media-preview-max-height) / 8);
+        border-radius: 7px;
+
+        &::-webkit-media-controls-panel {
+            border-radius: 7px;
+        }
     }
 
     .media-audio-download {

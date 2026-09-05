@@ -55,6 +55,10 @@ const SUPPORTED_AUDIO_TYPES = new Set([
     "audio/flac",
     "audio/mp4",
     "audio/mpeg",
+    // Non-standard, but reported for .mp3 by Uppy's own MIME type
+    // guessing (independent of the browser's) when the browser
+    // reports no type of its own.
+    "audio/mp3",
     "audio/ogg",
     // Legacy, pre-RFC-5334 generic Ogg container type. Some
     // browsers still report this via the File API instead of
@@ -70,17 +74,17 @@ function is_supported_audio_type(file_type: string, filename: string): boolean {
     if (SUPPORTED_AUDIO_TYPES.has(file_type)) {
         return true;
     }
-    // Unlike widely-registered formats such as .mp3 or .wav, many
-    // operating systems have no MIME type registered for
-    // .ogg/.oga/.opus, so browsers can report an empty (or
-    // otherwise unrecognized) File.type for a perfectly valid,
-    // server-supported Ogg file. file.type reflects the OS's
+    // Which extensions have a MIME type registered varies
+    // unpredictably by OS and browser, and isn't limited to less
+    // common formats like .ogg, so browsers can report an empty
+    // (or otherwise unrecognized) File.type for a perfectly valid,
+    // server-supported audio file. file.type reflects the OS's
     // extension registry, not the actual file contents (unlike
     // e.g. the `file` command, which sniffs the bytes) so we
     // fall back to checking the extension here, matching how the
     // server itself falls back to guessing from the extension when
     // the browser sends no content type at all.
-    return /\.(?:ogg|oga|opus)$/i.test(filename);
+    return /\.(?:aac|flac|m4a|mp3|oga|ogg|opus|wav|weba)$/i.test(filename);
 }
 
 export function compose_upload_cancel(): void {
