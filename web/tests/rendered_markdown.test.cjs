@@ -841,9 +841,39 @@ run_test("audio error hides the player", () => {
     assert.ok(!$audio.hasClass("audio-format-unsupported"));
 
     // Simulate a decode error (e.g. Safari with an Ogg file).
+    // 4 is MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED.
+    $audio[0].error = {code: 4};
     const error_handler = $audio.get_on_handler("error");
     error_handler();
     assert.ok($audio.hasClass("audio-format-unsupported"));
+});
+
+run_test("audio transient error is not marked unsupported", () => {
+    const $content = get_content_element();
+    const $audio = $.create("audio-element");
+    $content.set_find_results(".media-audio-element", $audio);
+
+    rm.update_elements($content);
+
+    // 2 is MediaError.MEDIA_ERR_NETWORK.
+    $audio[0].error = {code: 2};
+    const error_handler = $audio.get_on_handler("error");
+    error_handler();
+    assert.ok(!$audio.hasClass("audio-format-unsupported"));
+});
+
+run_test("audio_aborted_error_is_not_unsupported_format", () => {
+    const $content = get_content_element();
+    const $audio = $.create("audio-element");
+    $content.set_find_results(".media-audio-element", $audio);
+
+    rm.update_elements($content);
+
+    // 1 is MediaError.MEDIA_ERR_ABORTED.
+    $audio[0].error = {code: 1};
+    const error_handler = $audio.get_on_handler("error");
+    error_handler();
+    assert.ok(!$audio.hasClass("audio-format-unsupported"));
 });
 
 run_test("audio already enhanced is not replaced again", () => {

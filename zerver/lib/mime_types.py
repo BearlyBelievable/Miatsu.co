@@ -29,6 +29,9 @@ AUDIO_INLINE_MIME_TYPES = [
     "audio/flac",
     "audio/mp4",
     "audio/mpeg",
+    # Non-standard, but that's what MIME type guessing in Uppy
+    # reports for .mp3 when the browser itself reports none.
+    "audio/mp3",
     "audio/ogg",
     # Legacy, pre-RFC-5334 generic Ogg container type. Some browsers
     # still report this via the File API instead of audio/ogg.
