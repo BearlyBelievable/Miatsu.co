@@ -473,7 +473,13 @@ export const update_elements = ($content: JQuery): void => {
     // visible.
     $content.find<HTMLMediaElement>(".media-audio-element").each((_index, audio) => {
         $(audio).on("error", () => {
-            $(audio).addClass("audio-format-unsupported");
+            // Codes 1/2 (aborted/network) are typically transient, not a
+            // real playback failure. Only 3/4 (decode/src not supported)
+            // mean the browser can't play this file. Compared as literals
+            // since MediaError isn't defined in every environment this runs in.
+            if (audio.error?.code === 3 || audio.error?.code === 4) {
+                $(audio).addClass("audio-format-unsupported");
+            }
         });
     });
 

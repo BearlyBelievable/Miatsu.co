@@ -363,10 +363,8 @@
         max-width: 100%;
 
         & .media-video-element {
-            width: auto;
-            max-width: calc(100% - 14px);
-            height: auto;
-            margin: 0 auto;
+            max-width: 100%;
+            min-width: min(100%, calc(var(--media-preview-max-height) * 1.5));
         }
     }
 
@@ -394,6 +392,13 @@
     .embed-video.inline-embed-loaded {
         width: var(--embed-max-width);
         aspect-ratio: 16 / 9;
+    }
+
+    .message_embed.inline-embed-loaded {
+        display: block;
+        margin: 0 0 var(--markdown-interelement-space-px) 0;
+        padding: 0;
+        border: none;
     }
 
     .embed-rich.inline-embed-loaded {
