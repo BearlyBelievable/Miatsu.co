@@ -772,13 +772,15 @@ run_test("audio", ({mock_template}) => {
     assert.equal(
         audio_html,
         '<span class="media-audio-wrapper">\n' +
-            '    <span class="media-audio-filename">inline.mp3</span>\n' +
-            '    <span class="media-audio-controls-row">\n' +
-            '        <audio controls="" preload="metadata" src="http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline.mp3" title="inline.mp3" class="media-audio-element"></audio>\n' +
+            '    <span class="media-audio-title-row">\n' +
+            '        <span class="media-audio-filename">inline.mp3</span>\n' +
             '        <a class="media-audio-download icon-button icon-button-square icon-button-neutral"\n' +
             '          aria-label="translated: Download" href="http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline.mp3" download>\n' +
             '            <i class="media-download-icon zulip-icon zulip-icon-download"></i>\n' +
             "        </a>\n" +
+            "    </span>\n" +
+            '    <span class="media-audio-controls-row">\n' +
+            '        <audio controls="" preload="metadata" src="http://zulip.zulipdev.com/user_uploads/w/ha/tever/inline.mp3" title="inline.mp3" class="media-audio-element"></audio>\n' +
             "    </span>\n" +
             "</span>",
     );

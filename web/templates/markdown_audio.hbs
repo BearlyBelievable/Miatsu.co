@@ -1,12 +1,14 @@
 {{~!-- --~}}
 <span class="media-audio-wrapper">
-    <span class="media-audio-filename">{{audio_title}}</span>
-    <span class="media-audio-controls-row">
-        <audio controls="" preload="metadata" src="{{audio_src}}" title="{{audio_title}}" class="media-audio-element"></audio>
+    <span class="media-audio-title-row">
+        <span class="media-audio-filename">{{audio_title}}</span>
         <a class="media-audio-download icon-button icon-button-square icon-button-neutral"
           aria-label="{{t 'Download' }}" href="{{ audio_src}}" download>
             <i class="media-download-icon zulip-icon zulip-icon-download"></i>
         </a>
+    </span>
+    <span class="media-audio-controls-row">
+        <audio controls="" preload="metadata" src="{{audio_src}}" title="{{audio_title}}" class="media-audio-element"></audio>
     </span>
 </span>
 {{~!-- --~}}
