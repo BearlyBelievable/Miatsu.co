@@ -436,19 +436,57 @@
         }
     }
 
-    .media-audio-filename {
-        overflow: hidden;
+    .media-audio-wrapper {
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        width: var(--embed-max-width);
+        max-width: 100%;
+        margin-top: var(--markdown-interelement-space-px);
+        background-color: var(--color-markdown-pre-background);
+        border: 1px solid var(--color-markdown-pre-border);
+        border-radius: 4px;
+    }
+
+    .media-audio-title-row {
+        display: flex;
+        align-items: center;
         max-width: 100%;
         margin-bottom: 2px;
-        font-size: 0.85em;
+        padding-left: 10px;
+    }
+
+    .media-audio-filename {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
+    .media-audio-download {
+        flex: 0 0 20px;
+        margin-left: 5px;
+        display: flex;
+        place-content: center center;
+
+        &:hover {
+            text-decoration: none;
+        }
+    }
+
     .media-audio-controls-row {
-        display: inline-flex;
+        display: flex;
         align-items: center;
-        max-width: 100%;
+        width: 100%;
+    }
+
+    .media-audio-element {
+        width: 100%;
+        /* Scales with the media preview size setting, like other
+           inline embeds, though a full-size thumbnail height would
+           be far too tall for a single control bar. */
+        height: calc(var(--media-preview-max-height) / 8);
     }
 
     .media-audio-element.audio-format-unsupported {
