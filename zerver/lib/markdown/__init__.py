@@ -1189,6 +1189,51 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
         if info["remove"] is not None:
             info["parent"].remove(info["remove"])
 
+    # MiAtSu.Co edit: also embeds audio reached via a plain link,
+    # not just the `![...]()` syntax AudioInlineProcessor requires.
+    def is_audio(self, url: str) -> bool:
+        if url.startswith("/user_uploads/") and self.zmd.zulip_db_data:
+            path_id = url.removeprefix("/user_uploads/")
+            return path_id in self.zmd.zulip_db_data.user_upload_previews.audio_path_ids
+
+        url_type = guess_type(url)[0]
+        return url_type in AUDIO_INLINE_MIME_TYPES
+
+    def add_audio(
+        self,
+        root: Element,
+        url: str,
+        title: str | None,
+        insertion_index: int | None = None,
+    ) -> None:
+        if is_static_or_current_realm_url(url, self.zmd.zulip_realm):
+            src = url
+        else:
+            src = get_camo_url(url)
+
+        if insertion_index is not None:
+            audio = Element("audio")
+            root.insert(insertion_index, audio)
+        else:
+            audio = SubElement(root, "audio")
+
+        audio.set("src", src)
+        if title:
+            audio.set("title", title)
+        audio.set("controls", "controls")
+        audio.set("preload", "metadata")
+
+    def handle_audio_inlining(
+        self, root: Element, found_url: ResultWithFamily[tuple[str, str | None]]
+    ) -> None:
+        info = self.get_inlining_information(root, found_url)
+        url = found_url.result[0]
+
+        self.add_audio(info["parent"], url, info["title"], insertion_index=info["index"])
+
+        if info["remove"] is not None:
+            info["parent"].remove(info["remove"])
+
     @override
     def run(self, root: Element) -> None:
         # Get all URLs from the blob
@@ -1260,6 +1305,11 @@ class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
             # url.
             if self.is_video(url):
                 self.handle_video_inlining(root, found_url)
+                continue
+
+            # MiAtSu.Co edit: is_audio/handle_audio_inlining, defined above.
+            if self.is_audio(url):
+                self.handle_audio_inlining(root, found_url)
                 continue
 
             if self.is_image(url):
