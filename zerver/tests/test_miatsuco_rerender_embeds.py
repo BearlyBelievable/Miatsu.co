@@ -10,6 +10,7 @@ from typing_extensions import override
 from zerver.lib.cache import cache_delete, cache_set, preview_url_cache_key
 from zerver.lib.test_classes import ZulipTestCase
 from zerver.lib.test_helpers import mock_queue_publish
+from zerver.lib.upload import upload_message_attachment
 from zerver.management.commands.miatsuco_rerender_embeds import DomainThrottle
 from zerver.models import Message, Realm
 
@@ -53,6 +54,30 @@ class RerenderEmbedsCommandTest(ZulipTestCase):
         msg = Message.objects.get(id=msg_id)
         assert msg.rendered_content is not None
         self.assertNotIn("The Rock", msg.rendered_content)
+
+    @responses.activate
+    def test_persists_a_rendering_that_needed_no_fetch(self) -> None:
+        responses.add(responses.GET, OTHER_SEED_LINKS, status=404)
+
+        user = self.example_user("hamlet")
+        url = upload_message_attachment("song.mp3", "audio/mpeg", b"", user)[0]
+        path_id = re.sub(r"/user_uploads/", "", url)
+        with mock_queue_publish("zerver.actions.message_send.queue_event_on_commit"):
+            msg_id = self.send_stream_message(
+                user, "Denmark", content=f"[Audio link](/user_uploads/{path_id})"
+            )
+
+        msg = Message.objects.get(id=msg_id)
+        msg.rendered_content = f'<p><a href="{url}">Audio link</a></p>'
+        msg.save(update_fields=["rendered_content"])
+
+        out = StringIO()
+        call_command(self.COMMAND_NAME, realm_id="zulip", stdout=out)
+
+        msg.refresh_from_db()
+        assert msg.rendered_content is not None
+        self.assertIn("<audio", msg.rendered_content)
+        self.assertIn("Done: refreshed", out.getvalue())
 
     @responses.activate
     def test_refreshes_a_message_with_a_previewable_link(self) -> None:
