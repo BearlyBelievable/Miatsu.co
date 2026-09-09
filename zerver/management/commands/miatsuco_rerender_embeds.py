@@ -5,9 +5,11 @@ from urllib.parse import urlsplit
 
 from typing_extensions import override
 
+from zerver.actions.message_edit import do_update_embedded_data
 from zerver.actions.message_send import render_incoming_message
 from zerver.lib.cache import cache_get, preview_url_cache_key
 from zerver.lib.management import ZulipBaseCommand
+from zerver.lib.mention import MentionBackend, MentionData
 from zerver.lib.url_preview.preview import get_link_embed_data
 from zerver.models import Message, Realm
 from zerver.worker.embed_links import FetchLinksEmbedData
@@ -43,16 +45,13 @@ class DomainThrottle:
 
 
 class Command(ZulipBaseCommand):
-    help = """Refetch and re-render link previews for messages with a link, in place.
+    help = """Refetch and re-render link previews in place for every message with a link.
 
-render_message_markdown() only fills in a link preview when it's handed
-pre-fetched url_embed_data; otherwise it just records the URL as needing
-one. The normal send/edit path renders once to collect those URLs, then
-hands them to the embed_links queue worker, which fetches each and
-re-renders with the results. This command does the same two passes
-directly, message by message, rather than bumping the global
-markdown_version constant (see Message.need_to_render_content) to force
-a site-wide reprocess."""
+This command re-renders every message with a link directly and saves
+any one whose rendering changed. This avoids bumping the global
+markdown_version constant (see Message.need_to_render_content), which
+forces every message on the server to re-render the next time it's
+read."""
 
     @override
     def add_arguments(self, parser: ArgumentParser) -> None:
@@ -101,7 +100,14 @@ a site-wide reprocess."""
             queryset = Message.objects.filter(has_link=True, realm=one_realm).order_by("-id")
             for message in queryset.select_related("sender", "realm").iterator():
                 i += 1
-                rendering_result = render_incoming_message(message, message.content, message.realm)
+                mention_data = MentionData(
+                    mention_backend=MentionBackend(message.realm_id),
+                    content=message.content,
+                    message_sender=message.sender,
+                )
+                rendering_result = render_incoming_message(
+                    message, message.content, message.realm, mention_data=mention_data
+                )
                 if rendering_result.links_for_preview:
                     for url in rendering_result.links_for_preview:
                         throttle.fetch(url)
@@ -113,6 +119,9 @@ a site-wide reprocess."""
                             "urls": list(rendering_result.links_for_preview),
                         }
                     )
+                    refreshed += 1
+                elif rendering_result.rendered_content != message.rendered_content:
+                    do_update_embedded_data(message.sender, message, rendering_result, mention_data)
                     refreshed += 1
                 if i % 100 == 0:
                     self.stdout.write(f"  ...{i}/{count}")
