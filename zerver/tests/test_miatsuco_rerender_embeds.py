@@ -72,7 +72,8 @@ class RerenderEmbedsCommandTest(ZulipTestCase):
         msg.save(update_fields=["rendered_content"])
 
         out = StringIO()
-        call_command(self.COMMAND_NAME, realm_id="zulip", stdout=out)
+        with self.settings(TEST_SUITE=False), self.assertLogs(level="INFO"):
+            call_command(self.COMMAND_NAME, realm_id="zulip", stdout=out)
 
         msg.refresh_from_db()
         assert msg.rendered_content is not None
